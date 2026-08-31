@@ -1,0 +1,19 @@
+{
+  "name": "copilotkit-ag2-angular-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "record": "npm --prefix autorecorder run record --",
+    "record:all": "npm --prefix autorecorder run record",
+    "record:list": "npm --prefix autorecorder run record -- --list",
+    "record:doctor": "npm --prefix autorecorder run doctor",
+    "record:doctor:online": "npm --prefix autorecorder run doctor:online",
+    "record:mux": "npm --prefix autorecorder run mux",
+    "record:manifest": "npm --prefix autorecorder run manifest",
+    "drift": "npm --prefix frontend run doc:check",
+    "drift:sync": "npm --prefix frontend run doc:sync",
+    "versions": "npm --prefix frontend run gen:versions"
+  }
+}
