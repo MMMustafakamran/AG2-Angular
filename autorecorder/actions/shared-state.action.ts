@@ -1,28 +1,73 @@
 /**
- * Shared state — the browser writes agent state, then the agent reads it back.
+ * Shared state — the browser writes agent state, and the agent never sees it.
  *
  * https://docs.copilotkit.ai/angular/ag2/guides/shared-state
  *
- * Multi-turn demonstration:
- * 1. Click "Mark high priority" -> Ask "what is priority set as?"
- * 2. Click "Mark low priority"  -> Ask "what is priority set as?"
- * 3. Click "Use London time"    -> Ask "what is my timezone?"
+ * The guide opens on a table with two rows. Row one is "Agent and application
+ * both read and write the value → injectAgentStore and agent.setState". On an
+ * AG2 backend that row is false, and this clip is built to prove it rather than
+ * to work around it.
  *
- * On AG2, turns 1 and 2 are expected to FAIL and the clip exists to show that.
- * The bridge merges incoming AG-UI state under the agent's own variables
- * (`initial_state = (incoming.state or {}) | initial_vars` in
- * ag2/ag_ui/stream.py), so the write never reaches the model and the agent has
- * no idea what priority is. Turn 3 is expected to pass: timezone travels as
- * read-only agent *context*, not state, and context is a separate path.
+ * The demonstration is a contrast, in this order:
  *
- * Do not "fix" this by asserting on the answer — a passing turn 1 here would
- * mean the recorder was measuring something other than what the page claims.
+ *   1. click "Mark high priority" — the panel updates, so the write reached the
+ *      store. Ask the agent. It does not know. (write dropped)
+ *   2. click "Mark low priority" — same again, so turn 1 was not a fluke and
+ *      not a timing artefact. (still dropped)
+ *   3. click "Use London time" and ask. The agent answers correctly. (context
+ *      works)
+ *
+ * Step 3 is what makes the clip a finding instead of a shrug: the same page,
+ * the same agent, the same run — one mechanism works and the other does not, so
+ * "the backend is just down" is off the table by the time the note appears.
+ *
+ * The cause is in ag2/ag_ui/stream.py:
+ *
+ *     initial_state = (command.incoming.state or {}) | initial_vars
+ *
+ * The incoming AG-UI state is merged UNDER the agent's own variables, so any
+ * key the agent declares wins and the browser's value is discarded. Verified
+ * end to end through the runtime: state {"language":"spanish"} to an agent
+ * whose variables say english runs english, and the first STATE_SNAPSHOT echoes
+ * english back.
+ *
+ * Do not "fix" this by asserting on the answer, or by seeding the state from
+ * the backend so turn 1 passes. A green turn 1 here would mean the recorder was
+ * measuring something other than what the page claims.
  */
 import { type Page } from 'playwright';
 
 import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
+
+import { dwellOn, showFindingNote } from './finding-note';
+
+/** Clicks one of the workspace's state buttons, human-paced, and reports it. */
+async function clickStateButton(
+  page: Page,
+  selector: string,
+  label: string,
+): Promise<void> {
+  const box = await page
+    .locator(selector)
+    .first()
+    .boundingBox()
+    .catch(() => null);
+
+  if (!box) {
+    console.warn(`   ⚠️ "${label}" button not found.`);
+    return;
+  }
+
+  console.log(`   🔄 Clicking "${label}"...`);
+  await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2, 20);
+  await sleep(400);
+  await humanClick(page);
+  // Rest on the panel afterwards: the value visibly changes in the UI, which is
+  // the half of the round trip that DOES work and has to be seen working.
+  await sleep(1400);
+}
 
 export const runSharedStateAction: PageActionHandler = async (
   page: Page,
@@ -35,74 +80,70 @@ export const runSharedStateAction: PageActionHandler = async (
   ] = promptsFor(config);
   const wait = config.waitAfterPromptMs ?? 4000;
 
-  // ── Turn 1: Mark High Priority ─────────────────────────────────────────────
-  console.log(`   🔄 Step 1: Clicking "Mark high priority"...`);
-  const highBtn = page
-    .locator('app-workspace button:has-text("Mark high priority")')
-    .first();
+  // ── Turn 1: the browser writes state, the agent is asked to read it ───────
+  await clickStateButton(
+    page,
+    'app-workspace button:has-text("Mark high priority")',
+    'Mark high priority',
+  );
 
-  const highBox = await highBtn.boundingBox().catch(() => null);
-  if (highBox) {
-    await humanGlide(page, highBox.x + highBox.width / 2, highBox.y + highBox.height / 2, 20);
-    await sleep(400);
-    await humanClick(page);
-    await sleep(1000);
-  } else {
-    console.warn(`   ⚠️ "Mark high priority" button not found.`);
-  }
+  // Rest on the panel first. `Priority: high` is on screen, so when the agent
+  // says it does not know, the viewer has already seen that the value exists.
+  await dwellOn(page, 'app-workspace', 1800);
 
-  console.log(`   💬 Turn 1: ${highPrompt}`);
+  console.log(`   💬 Turn 1 (expect the agent NOT to know): ${highPrompt}`);
   const count1 = await sendPrompt(page, highPrompt);
   await waitForAgentResponseCompletion(page, wait, count1);
-  await sleep(1000);
+  await sleep(1200);
 
-  // ── Turn 2: Mark Low Priority ──────────────────────────────────────────────
-  console.log(`   🔄 Step 2: Clicking "Mark low priority"...`);
-  const lowBtn = page
-    .locator('app-workspace button:has-text("Mark low priority")')
-    .first();
+  // ── Turn 2: same again, so turn 1 cannot be read as a one-off ────────────
+  await clickStateButton(
+    page,
+    'app-workspace button:has-text("Mark low priority")',
+    'Mark low priority',
+  );
+  await dwellOn(page, 'app-workspace', 1500);
 
-  const lowBox = await lowBtn.boundingBox().catch(() => null);
-  if (lowBox) {
-    await humanGlide(page, lowBox.x + lowBox.width / 2, lowBox.y + lowBox.height / 2, 20);
-    await sleep(400);
-    await humanClick(page);
-    await sleep(1000);
-  } else {
-    console.warn(`   ⚠️ "Mark low priority" button not found.`);
-  }
-
-  console.log(`   💬 Turn 2: ${lowPrompt}`);
+  console.log(`   💬 Turn 2 (expect the same): ${lowPrompt}`);
   const count2 = await sendPrompt(page, lowPrompt);
   await waitForAgentResponseCompletion(page, wait, count2);
-  await sleep(1000);
+  await sleep(1200);
 
-  // ── Turn 3: Timezone Context ───────────────────────────────────────────────
-  const timezoneBtn = page
-    .locator('app-account-context button:has-text("Use London time")')
-    .first();
-  const tzBox = await timezoneBtn.boundingBox().catch(() => null);
-  if (tzBox) {
-    console.log(`   🌍 Step 3: Clicking "Use London time"...`);
-    await humanGlide(page, tzBox.x + tzBox.width / 2, tzBox.y + tzBox.height / 2, 20);
-    await sleep(400);
-    await humanClick(page);
-    await sleep(1000);
-  } else {
-    console.warn(`   ⚠️ "Use London time" button not found.`);
-  }
+  // ── Turn 3: the control. Read-only context travels a different path ──────
+  await clickStateButton(
+    page,
+    'app-account-context button:has-text("Use London time")',
+    'Use London time',
+  );
 
-  console.log(`   💬 Turn 3: ${tzPrompt}`);
+  console.log(`   💬 Turn 3 (expect the agent to KNOW — context, not state): ${tzPrompt}`);
   const count3 = await sendPrompt(page, tzPrompt);
   await waitForAgentResponseCompletion(page, wait, count3);
 
-  // Rest on the context & state panel
-  const accountContext = page.locator('app-account-context').first();
-  const ctxBox = await accountContext.boundingBox().catch(() => null);
-  if (ctxBox) {
-    console.log(`   🎯 Resting on the read-only context component.`);
-    await humanGlide(page, ctxBox.x + ctxBox.width / 2, ctxBox.y + ctxBox.height / 2, 22);
-    await sleep(1500);
-  }
-};
+  await dwellOn(page, 'app-account-context', 2000);
 
+  // ── The finding, with all three turns still in the transcript behind it ───
+  await showFindingNote(page, {
+    file: 'shared-state-finding.txt',
+    headline: 'shared state is read-only on ag2 — writes are dropped',
+    saw: [
+      'clicked "Mark high priority": the panel updated to high',
+      'asked the agent: it did not know the priority',
+      'clicked "Mark low priority": same result, so not a timing fluke',
+      'clicked "Use London time": the agent DID know the timezone',
+    ],
+    why: [
+      'agent.setState reaches the store but never the model.',
+      'ag2/ag_ui/stream.py merges incoming state UNDER agent variables:',
+      '    initial_state = (incoming.state or {}) | initial_vars',
+      'so any key the agent declares wins and the browser value is lost.',
+      'turn 3 works because read-only context is a separate path.',
+    ],
+    doc: [
+      'that its first table row - "agent and application both read',
+      'and write the value" - does not hold on this backend.',
+      'nor that there is no STATE_DELTA: state moves only at the',
+      'start and end of a run, never during it.',
+    ],
+  });
+};

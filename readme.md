@@ -265,11 +265,43 @@ That folder is gitignored: videos are build output. `manifest.json` and
 `MANIFEST.md` beside them are not — their diff is the only record of what a run
 changed.
 
-Two pages are deliberately **reserved** rather than recorded — A2UI and Memory.
-Neither has anything to film (see Known issues 8, and Memory's premium gate),
-and a clip of a blank panel reads as a recorder fault rather than as the finding
-it is. Reserving the slot keeps the clip numbering attached to the guide, so
-`06-SharedState` means the same guide here as in the sibling repos.
+##### The clips are findings, not feature tours
+
+`project-context.md` is explicit that a clean run against broken docs is a
+failed run, and that broken pages keep their broken implementation because "the
+clip exists to show the defect". A video of a feature not working is, on its
+own, indistinguishable from a video of a recorder that mis-clicked — so eight of
+the eleven pages end the same way:
+
+1. drive the feature until the defect actually happens on screen
+2. rest the cursor on the evidence, long enough to read it
+3. open a Notepad window and type the finding out at human speed
+4. hold, then close — the evidence still visible behind all of it
+
+The note format is shared (`actions/finding-note.ts`) so eleven clips read as
+one report rather than as eleven people guessing: *what happened* (observable
+only), *why* (naming the file or symbol), and *what the doc does not say* —
+which is the actual deliverable, since rule 3 of `project-context.md` counts
+ambiguity as a defect.
+
+Three demonstrations are worth knowing about before watching:
+
+- **Shared state** runs three turns, and the third is a control. Two state
+  writes are dropped, then a *context* write lands — same page, same agent, same
+  run. That rules out "the backend is down" on screen, before the note claims
+  anything.
+- **Human-in-the-loop** runs the working half first. The viewer watches the
+  agent genuinely pause and resume for a human decision, and only then travels
+  up to the two interrupt panels that sat empty through all of it.
+- **Frontend tools** reads the weather card's heading out of the DOM and logs
+  it, because the defect is a single blank field on an otherwise perfect card.
+  Left to the eye, that page records as a clean pass — exactly the "silent
+  failure" `project-context.md` lists as a gap the pipeline misses.
+
+Two pages carry a note saying nothing is wrong: **Memory** and **Threads** are
+premium-gated, and both notes say so in as many words. A report that marks four
+pages red without separating "the docs are wrong" from "you have not paid for
+this" is a report nobody can act on.
 
 #### 4. Documentation Drift & Sync
 

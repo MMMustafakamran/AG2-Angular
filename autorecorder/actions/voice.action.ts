@@ -30,7 +30,7 @@ import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
-import { closeNotepadNote, showNotepadNote } from './notepad';
+import { showFindingNote } from './finding-note';
 
 /**
  * Holds `getUserMedia` until the Allow click, then satisfies it — from the real
@@ -206,19 +206,33 @@ export const runVoiceAction: PageActionHandler = async (
     }
   }
 
-  await showNotepadNote(page, 'voice-notes.txt', [
-    'voice / transcription',
-    '',
-    '- the microphone control renders, asks for permission and records',
-    '- this Copilot Runtime configures no transcription service,',
-    '  so the transcribe request fails — expected, not a defect',
-    '- attachments on the same composer work: image/* and application/pdf',
-    '',
-    'note for the viewer: the permission bubble in this recording is drawn',
-    'by the recorder. Chrome’s own prompt is browser chrome and Playwright',
-    'suppresses it, so it could never appear in a captured video.',
-  ]);
-  await closeNotepadNote(page);
+  await showFindingNote(page, {
+    file: 'voice-multimodal-finding.txt',
+    headline: 'the mic records, the transcribe request has nothing behind it',
+    saw: [
+      'the microphone control rendered and asked for permission',
+      'the composer entered its recording state and ran a timer',
+      'stopping posted the audio - and that request failed',
+      'attachments on the same composer do work: image/* and pdf',
+    ],
+    why: [
+      'transcription is a runtime service, and this Copilot Runtime',
+      'configures none. /api/copilotkit/info says as much:',
+      '    audioFileTranscriptionEnabled: false',
+      'so the control is real and the endpoint behind it is not.',
+    ],
+    doc: [
+      'that a transcription service is required at all.',
+      'it documents the mic control as though rendering it were',
+      'the whole job, so a reader who follows the page gets a',
+      'working button wired to nothing - and finds out by speaking',
+      'into it. an unstated prerequisite is a defect (rule 3).',
+      '',
+      'aside: the permission bubble in this clip is drawn by the',
+      'recorder. chrome\'s own prompt is browser chrome, which',
+      'playwright suppresses, so it can never appear on video.',
+    ],
+  });
   await sleep(800);
 
   // Typed, not spoken — so the page still ends on a real agent reply.

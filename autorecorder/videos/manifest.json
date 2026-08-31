@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-31T19:41:06.635Z",
+  "generatedAt": "2026-08-31T20:40:13.773Z",
   "framework": "AG2 (Python) + Angular",
   "videoPrefix": "AG2-angular",
   "clips": {
@@ -16,9 +16,9 @@
         "backend/main.py"
       ],
       "sourceSha": "c51b6ad0c93d",
-      "recordedAt": "2026-08-31T19:37:41.057Z",
-      "bytes": 8167126,
-      "sha256": "45fb97c20706",
+      "recordedAt": "2026-08-31T20:40:07.070Z",
+      "bytes": 8740901,
+      "sha256": "5915075f5948",
       "status": "new"
     },
     "chat-ui": {
@@ -47,9 +47,24 @@
         "backend/main.py"
       ],
       "sourceSha": "2a0d828b0ab6",
-      "recordedAt": "2026-08-31T19:39:12.145Z",
-      "bytes": 6711032,
-      "sha256": "ece770392504",
+      "recordedAt": "2026-08-31T20:22:26.599Z",
+      "bytes": 8937890,
+      "sha256": "3b2bdeb172a2",
+      "status": "new"
+    },
+    "a2ui": {
+      "order": 4,
+      "id": "a2ui",
+      "name": "Guides - A2UI schemas, styling, and recovery",
+      "file": "AG2-angular-04-A2ui.webm",
+      "sources": [
+        "frontend/src/app/features/a2ui/a2ui-chat.component.ts",
+        "frontend/src/app/app.config.ts"
+      ],
+      "sourceSha": "29b574d00b02",
+      "recordedAt": "2026-08-31T20:17:32.246Z",
+      "bytes": 6388537,
+      "sha256": "4db80062154a",
       "status": "new"
     },
     "voice-multimodal": {
@@ -61,10 +76,10 @@
         "frontend/src/app/features/media/voice-chat.component.ts"
       ],
       "sourceSha": "0630d5813e93",
-      "recordedAt": "2026-08-31T19:25:40.342Z",
-      "bytes": 5751323,
-      "sha256": "b2e4e51f113c",
-      "status": "current"
+      "recordedAt": "2026-08-31T20:35:42.440Z",
+      "bytes": 7630558,
+      "sha256": "a9bc812925c1",
+      "status": "new"
     },
     "human-in-the-loop": {
       "order": 6,
@@ -76,10 +91,10 @@
         "frontend/src/app/features/hitl/approval-card.component.ts"
       ],
       "sourceSha": "2069adb80343",
-      "recordedAt": "2026-08-31T19:26:39.475Z",
-      "bytes": 3953809,
-      "sha256": "6496e5921831",
-      "status": "current"
+      "recordedAt": "2026-08-31T20:19:54.717Z",
+      "bytes": 7746295,
+      "sha256": "1c469586b8e9",
+      "status": "new"
     },
     "shared-state": {
       "order": 7,
@@ -93,9 +108,9 @@
         "backend/main.py"
       ],
       "sourceSha": "4da769fa4813",
-      "recordedAt": "2026-08-31T19:40:56.140Z",
-      "bytes": 6286438,
-      "sha256": "3b7e87e12754",
+      "recordedAt": "2026-08-31T20:15:08.537Z",
+      "bytes": 11220234,
+      "sha256": "7de591aaab2b",
       "status": "new"
     },
     "threads": {
@@ -109,10 +124,24 @@
         "frontend/src/app/features/threads/threads-demo.component.ts"
       ],
       "sourceSha": "d5f1d8cebfff",
-      "recordedAt": "2026-08-31T19:29:51.641Z",
-      "bytes": 5241112,
-      "sha256": "331db86483fd",
-      "status": "current"
+      "recordedAt": "2026-08-31T20:37:45.071Z",
+      "bytes": 6203294,
+      "sha256": "f99799b80d90",
+      "status": "new"
+    },
+    "memory": {
+      "order": 9,
+      "id": "memory",
+      "name": "Memory",
+      "file": "AG2-angular-09-Memory.webm",
+      "sources": [
+        "frontend/src/app/features/memory/memory-list.component.ts"
+      ],
+      "sourceSha": "b6784808f4d7",
+      "recordedAt": "2026-08-31T20:33:10.228Z",
+      "bytes": 10115245,
+      "sha256": "e9ced998e390",
+      "status": "new"
     },
     "attachments": {
       "order": 10,

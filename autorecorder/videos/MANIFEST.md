@@ -6,17 +6,19 @@ The `.webm` files are **not** in git; this file is how their state is tracked.
 Regenerate it after every `npm run record`, and commit it — the diff is the
 record of what that run changed.
 
-Generated **2026-08-31 19:41** · 3 new · 6 current
+Generated **2026-08-31 20:40** · 8 new · 3 current
 
 | # | Clip | Recorded | Size | Status | Note |
 |---|------|----------|------|--------|------|
-| 01 | `AG2-angular-01-Quickstart.webm` | 2026-08-31 19:37 | 7.8 MB | 🆕 new |  |
+| 01 | `AG2-angular-01-Quickstart.webm` | 2026-08-31 20:40 | 8.3 MB | 🆕 new |  |
 | 02 | `AG2-angular-02-ChatUi.webm` | 2026-08-31 19:21 | 6.6 MB | ✅ current |  |
-| 03 | `AG2-angular-03-FrontendToolsGenerativeUi.webm` | 2026-08-31 19:39 | 6.4 MB | 🆕 new |  |
-| 05 | `AG2-angular-05-VoiceMultimodal.webm` | 2026-08-31 19:25 | 5.5 MB | ✅ current |  |
-| 06 | `AG2-angular-06-HumanInTheLoop.webm` | 2026-08-31 19:26 | 3.8 MB | ✅ current |  |
-| 07 | `AG2-angular-07-SharedState.webm` | 2026-08-31 19:40 | 6.0 MB | 🆕 new |  |
-| 08 | `AG2-angular-08-Threads.webm` | 2026-08-31 19:29 | 5.0 MB | ✅ current |  |
+| 03 | `AG2-angular-03-FrontendToolsGenerativeUi.webm` | 2026-08-31 20:22 | 8.5 MB | 🆕 new |  |
+| 04 | `AG2-angular-04-A2ui.webm` | 2026-08-31 20:17 | 6.1 MB | 🆕 new |  |
+| 05 | `AG2-angular-05-VoiceMultimodal.webm` | 2026-08-31 20:35 | 7.3 MB | 🆕 new |  |
+| 06 | `AG2-angular-06-HumanInTheLoop.webm` | 2026-08-31 20:19 | 7.4 MB | 🆕 new |  |
+| 07 | `AG2-angular-07-SharedState.webm` | 2026-08-31 20:15 | 10.7 MB | 🆕 new |  |
+| 08 | `AG2-angular-08-Threads.webm` | 2026-08-31 20:37 | 5.9 MB | 🆕 new |  |
+| 09 | `AG2-angular-09-Memory.webm` | 2026-08-31 20:33 | 9.6 MB | 🆕 new |  |
 | 10 | `AG2-angular-10-Attachments.webm` | 2026-08-31 19:31 | 4.2 MB | ✅ current |  |
 | 11 | `AG2-angular-11-HeadlessUi.webm` | 2026-08-31 19:32 | 5.0 MB | ✅ current |  |
 

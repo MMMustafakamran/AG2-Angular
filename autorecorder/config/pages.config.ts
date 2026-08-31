@@ -181,11 +181,32 @@ export const PAGES = definePages([
     waitAfterPromptMs: 4000,
   },
 
-  // /a2ui/demo exists, but it has nothing to record: no catalog is supplied,
-  // so the render_a2ui renderer is never registered and the surface stays
-  // inert. Reserved rather than recorded — a clip of a blank panel reads as a
-  // recorder fault, not as the finding it is.
-  reserve('a2ui'),
+  {
+    id: 'a2ui',
+    name: 'Guides - A2UI schemas, styling, and recovery',
+    videoName: 'A2ui',
+    docPath: 'guides/a2ui',
+    route: 'a2ui',
+    // The catalog CSS the guide prescribes, in the global stylesheet. It is the
+    // only A2UI code this repo has, because the guide's catalog snippet cannot
+    // be completed — which is the finding.
+    ideFile: 'frontend/src/app/features/a2ui/a2ui-chat.component.ts',
+    startLine: 1,
+    endLine: 25,
+    extraTabs: [
+      // `a2ui : recover incomplete streams start|end`, plus the provider that
+      // reports a2uiEnabled: true while rendering nothing.
+      {
+        filePath: 'frontend/src/app/app.config.ts',
+        startLine: 44,
+        endLine: 68,
+      },
+    ],
+    // Asks for something only a catalog could render. The prose answer that
+    // comes back instead IS the finding — see actions/a2ui.action.ts.
+    prompt: 'Show me a flight booking card for London with a confirm button.',
+    waitAfterPromptMs: 4000,
+  },
 
   {
     id: 'voice-multimodal',
@@ -285,8 +306,23 @@ export const PAGES = definePages([
     waitAfterPromptMs: 4000,
   },
 
-  // Memory is a premium component, unavailable in this runtime.
-  reserve('memory'),
+  {
+    id: 'memory',
+    name: 'Memory',
+    videoName: 'Memory',
+    docPath: 'guides/threads-memory-attachments-headless',
+    route: 'memory',
+    // `memory : list memories start|end` — injectMemories behind the
+    // isAvailable() gate the guide requires.
+    ideFile: 'frontend/src/app/features/memory/memory-list.component.ts',
+    startLine: 10,
+    endLine: 44,
+    // Recorded even though the feature is absent, because the absence is
+    // handled correctly and that is worth showing: the gate the guide insists
+    // on is what keeps this page from breaking. See actions/memory.action.ts.
+    prompt: 'What do you remember about me from earlier conversations?',
+    waitAfterPromptMs: 4000,
+  },
 
   {
     id: 'attachments',

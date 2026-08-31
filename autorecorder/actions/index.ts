@@ -22,6 +22,20 @@
  *
  * Pass that returned count into waitForAgentResponseCompletion on multi-turn
  * pages, or the previous turn's reply is mistaken for this one's.
+ *
+ * ── Every page with a finding writes it down ───────────────────────────────
+ * project-context.md: broken pages keep their broken implementation, because
+ * "the clip exists to show the defect". But a clip of a feature not working is
+ * indistinguishable from a clip of a recorder that mis-clicked, so eight of
+ * these handlers end by driving the defect deliberately, resting the cursor on
+ * the evidence, and typing the finding into a Notepad window over the top of
+ * it — see `finding-note.ts` for the house format and why it is shared.
+ *
+ * Which is why `quickstart` and `memory` have handlers even though both pass
+ * on the standard one. Quickstart's defect is in the doc page rather than the
+ * demo, and memory's finding is that there is NO defect — that the guide's
+ * isAvailable() gate did its job. Both need saying; neither can be inferred
+ * from watching a green clip.
  */
 
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
@@ -36,6 +50,7 @@ import { runChatUiAction } from './chat-ui.action';
 import { runHeadlessAction } from './headless.action';
 import { runHitlAction } from './hitl.action';
 import { runMemoryAction } from './memory.action';
+import { runQuickstartAction } from './quickstart.action';
 import { runSharedStateAction } from './shared-state.action';
 import { runThreadsAction } from './threads.action';
 import { runToolsAction } from './tools.action';
@@ -43,15 +58,17 @@ import { runVoiceAction } from './voice.action';
 
 /** Keys are page ids from `config/pages.config.ts`. Doctor flags any orphans. */
 export const ACTION_MAP: Record<string, PageActionHandler> = {
-  // Quickstart, attachments-free and single-turn, is what runStandardAction is
-  // for -- it is listed rather than omitted only to make that a decision.
-  quickstart: runStandardAction,
+  // Quickstart runs the standard turn and then writes a note: the chat works,
+  // and the doc page it came from never shows the backend it talks to.
+  quickstart: runQuickstartAction,
   'chat-ui': runChatUiAction,
   'frontend-tools-generative-ui': runToolsAction,
+  a2ui: runA2uiAction,
   'voice-multimodal': runVoiceAction,
   'human-in-the-loop': runHitlAction,
   'shared-state': runSharedStateAction,
   threads: runThreadsAction,
+  memory: runMemoryAction,
   attachments: runAttachmentsAction,
   headless: runHeadlessAction,
 };

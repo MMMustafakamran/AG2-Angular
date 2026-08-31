@@ -7,9 +7,15 @@
  * Thread endpoints come from the Enterprise Intelligence Platform. Without a
  * licence the hand-built `injectThreads` list never resolves and the drawer
  * renders its locked state — so a video of "threads not working" is worthless
- * unless it also says *why*. The Notepad note is opened before the demo, so the
- * claim is on screen while the evidence is still behind it, and elaborated at
- * the end once the chat beside the drawer has answered normally.
+ * unless it also says *why*.
+ *
+ * This page states its note in two stages rather than one, which is the shape
+ * the evidence has. The claim goes up first, before anything is driven, because
+ * "the list will stay empty" is a prediction — writing it beforehand and then
+ * watching it come true is a stronger clip than narrating it afterwards. The
+ * second half is added at the end, once the chat beside the drawer has answered
+ * normally, because that contrast is the part that separates "unlicensed" from
+ * "broken" and it cannot be claimed until it has happened.
  */
 import { type Page } from 'playwright';
 
@@ -59,11 +65,15 @@ export const runThreadsAction: PageActionHandler = async (
   await typeInNotepad(
     page,
     [
-      'threads — licensed feature, unlicensed runtime',
+      'threads - licensed feature, unlicensed runtime',
       '',
-      'mounted ThreadListComponent (injectThreads) and CopilotThreadsDrawer',
-      '- headless list stays on "Loading conversations..." and lists nothing',
-      '- drawer renders its locked state and opens no thread list',
+      'about to drive both halves of the guide:',
+      '  - ThreadListComponent, hand-built on injectThreads',
+      '  - CopilotThreadsDrawer, the drop-in',
+      '',
+      'predicting now, before touching either:',
+      '  - the list will stay on "Loading conversations..."',
+      '  - the drawer will render its locked state and open nothing',
     ],
     1550,
     280,
@@ -103,10 +113,17 @@ export const runThreadsAction: PageActionHandler = async (
     page,
     [
       '',
-      '-the agent chat answers fine; only thread persistence is missing',
-      '- this is not  a broken agent: th runtime has no intelligenc key,',
-      '  so thread create/list/mutate never reacha store',
+      'both predictions held. and note what just happened beside it:',
+      '  - the agent chat answered normally, same runtime, same run',
       '',
+      'so this is not a broken agent and not a broken page.',
+      'the runtime has no intelligence key, so thread create/list/',
+      'mutate never reach a store. the guide is correct; the',
+      'capability is unlicensed.',
+      '',
+      'file this apart from a2ui and shared state - those are pages',
+      'that teach something which cannot work. this one works, once',
+      'paid for.',
     ],
     1550,
     380,
