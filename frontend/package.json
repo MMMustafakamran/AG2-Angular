@@ -1,0 +1,60 @@
+{
+  "name": "frontend",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --port 4204",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "serve:ssr:frontend": "node dist/frontend/server/server.mjs",
+    "gen:sources": "tsx scripts/generate-sources.ts",
+    "gen:versions": "tsx scripts/write-versions.ts",
+    "doc:sync": "tsx scripts/sync-docs.ts",
+    "doc:check": "tsx scripts/sync-docs.ts --check",
+    "prestart": "npm run gen:sources",
+    "prebuild": "npm run gen:sources",
+    "runtime": "tsx server.ts",
+    "dev": "concurrently --kill-others --names runtime,angular --prefix-colors magenta,cyan \"npm:runtime\" \"npm:start\""
+  },
+  "private": true,
+  "packageManager": "npm@12.0.2",
+  "dependencies": {
+    "@ag-ui/client": "^0.0.58",
+    "@angular/cdk": "^22.1.3",
+    "@angular/common": "^22.1.3",
+    "@angular/compiler": "^22.1.3",
+    "@angular/core": "^22.1.3",
+    "@angular/forms": "^22.1.3",
+    "@angular/platform-browser": "^22.1.3",
+    "@angular/platform-server": "^22.1.3",
+    "@angular/router": "^22.1.3",
+    "@angular/ssr": "^22.1.5",
+    "@copilotkit/angular": "^0.4.0",
+    "@copilotkit/runtime": "^1.69.0",
+    "express": "^5.2.1",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.8.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.1.5",
+    "@angular/cli": "^22.1.5",
+    "@angular/compiler-cli": "^22.1.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.2.0",
+    "concurrently": "^10.0.5",
+    "jsdom": "^30.0.1",
+    "playwright": "^1.62.1",
+    "postcss": "^8.5.26",
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.12",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "rxjs": "$rxjs"
+  }
+}
