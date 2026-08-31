@@ -1,0 +1,84 @@
+name: Doc drift
+
+# Have the upstream docs moved out from under the harness?
+#
+# `doc-snapshot/pages/` is a byte-for-byte copy of the nine /angular/ag2 pages.
+# `npm run drift` re-fetches each one and diffs. A red run here means exactly
+# one thing: CopilotKit edited a page, and this repo now demonstrates something
+# the docs no longer say.
+#
+# Deliberately its own workflow rather than a job in verify.yml. This talks to
+# docs.copilotkit.ai, so it fails for reasons that have nothing to do with the
+# commit being tested — and a PR blocked by someone else's doc edit teaches the
+# author to ignore red builds.
+#
+# It also deliberately does NOT auto-commit the new snapshot. Drift is the
+# finding; swallowing it into a bot commit would mean the harness silently
+# re-baselined to a page nobody read. `npm run drift:sync` is the human step,
+# and it writes the CHANGELOG entry that the QA report cites.
+
+on:
+  schedule:
+    # 05:31 UTC. Not on the hour and not on the half hour: GitHub's scheduler is
+    # best-effort and shared, and those are the most contended slots on the
+    # platform — runs queued there are routinely delayed and sometimes dropped.
+    - cron: '31 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: Check the nine pages against live
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # sync-docs.ts runs under tsx, which is a frontend devDependency.
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Check for drift
+        id: check
+        working-directory: frontend
+        run: |
+          set -o pipefail
+          npm run doc:check 2>&1 | tee "$RUNNER_TEMP/drift.log"
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo '### Doc drift — `/angular/ag2`'
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/drift.log" 2>/dev/null || echo 'no output captured'
+            echo '```'
+            echo
+            echo 'Drift is a finding, not a chore. To act on it:'
+            echo
+            echo '1. `npm run drift:sync` — rewrites the snapshot, the manifest and CHANGELOG.md'
+            echo '2. implement the changed page into the harness'
+            echo '3. re-record the affected page, and check the manifest goes back to `current`'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The script prints its verdict but exits 0 either way, so the log is what
+      # decides. Grepping it keeps the pass/fail rule in one visible place rather
+      # than buried in an exit code the script does not currently set.
+      - name: Fail if any page moved
+        if: always()
+        run: |
+          if grep -q 'ALL 9 PAGES ARE UP TO DATE' "$RUNNER_TEMP/drift.log"; then
+            echo "No drift."
+            exit 0
+          fi
+          echo "::error::Upstream docs have moved. Run 'npm run drift:sync' and implement the changes."
+          exit 1

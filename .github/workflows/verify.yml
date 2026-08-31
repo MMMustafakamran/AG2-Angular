@@ -1,0 +1,177 @@
+name: Verify
+
+# The cheap gate: does the harness still build, typecheck, and describe itself
+# consistently? No secrets, no browser, no model calls — so it runs on every
+# push and pull request and finishes in a couple of minutes.
+#
+# What it deliberately does NOT do:
+#
+#   * check doc drift — that talks to docs.copilotkit.ai, so an upstream edit
+#     or a transient blip would fail an unrelated PR. It lives in doc-drift.yml,
+#     on a schedule, where a red run means "the docs moved" and nothing else.
+#   * record anything — that needs an API key, three servers and a virtual
+#     display. It lives in record.yml, on dispatch.
+#
+# Splitting them that way keeps this workflow's red light meaning exactly one
+# thing: someone broke the code in this repo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend — generate, typecheck, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      # Runs on its own rather than leaning on the prebuild hook, so a failure
+      # here is legible as "the source map could not be generated" instead of
+      # surfacing as a confusing build error.
+      - name: Generate embedded sources
+        working-directory: frontend
+        run: npm run gen:sources
+
+      # The doc routes render generated-sources.ts, which claims to be
+      # byte-identical to the files it mirrors. If regenerating it changes it,
+      # the copy committed to the repo was stale and every screenshot and
+      # recording taken against it showed code that is no longer running.
+      - name: Fail if the committed source map was stale
+        run: |
+          if ! git diff --quiet -- frontend/src/app/lib/generated-sources.ts; then
+            echo "::error::generated-sources.ts is stale. Run 'npm --prefix frontend run gen:sources' and commit."
+            git diff --stat -- frontend/src/app/lib/generated-sources.ts
+            exit 1
+          fi
+          echo "Source map matches the files it mirrors."
+
+      - name: Typecheck
+        working-directory: frontend
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  backend:
+    name: Backend — resolve and import
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Sync (locked)
+        working-directory: backend
+        run: uv sync --locked
+
+      # Importing is the real check: it constructs the ag2.Agent, resolves both
+      # @tool schemas through fast_depends, and mounts the AGUIStream. Most ways
+      # of breaking this file fail right here rather than at request time.
+      #
+      # The placeholder key exists because _build_config() refuses to construct
+      # without one. It is never used — nothing in this job makes a model call.
+      - name: Import the agent
+        working-directory: backend
+        env:
+          OPENAI_API_KEY: ci-placeholder-not-a-real-key
+        run: |
+          uv run python -c "
+          import main
+          routes = [getattr(r, 'path', None) for r in main.app.routes]
+          assert '/agent' in routes, f'AG-UI stream not mounted: {routes}'
+          assert '/health' in routes, f'health route missing: {routes}'
+          names = sorted(t.name for t in (main.get_weather, main.update_language))
+          assert names == ['getWeather', 'update_language'], names
+          print('agent imports, tools:', names)
+          print('routes:', [r for r in routes if r])
+          "
+
+  recorder:
+    name: Recorder — typecheck and doctor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            autorecorder/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install recorder
+        working-directory: autorecorder
+        run: npm ci
+
+      # The doctor reads frontend/VERSIONS.md, which is generated after install
+      # and gitignored, so the frontend has to be installed for it to exist.
+      - name: Install frontend (for VERSIONS.md)
+        working-directory: frontend
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: autorecorder
+        run: npm run typecheck
+
+      # Static doctor only: --online probes live demo URLs, which need all three
+      # servers up. That belongs in record.yml, which has them.
+      #
+      # This still catches the failure mode that actually happens — a page's
+      # highlight range pointing past the end of a file someone edited, so the
+      # simulated IDE would have filmed the wrong lines.
+      - name: Doctor
+        working-directory: autorecorder
+        run: npm run doctor
+
+  consistency:
+    name: Consistency — every page is registered everywhere
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: autorecorder/package-lock.json
+
+      - name: Install recorder
+        working-directory: autorecorder
+        run: npm ci
+
+      # project-context.md lists "pages with no /demo route — unregistered in
+      # the recorder, never recorded" as a gap the pipeline misses. This closes
+      # it, in both directions: every nav-config route marked hasDemo must have
+      # a recorder page, and every recorder page must have such a route.
+      #
+      # The check is a committed script rather than an inline heredoc so it can
+      # be run locally the same way CI runs it — `npm run consistency` — and so
+      # a change to it shows up in a diff instead of inside YAML.
+      - name: Every hasDemo route has a recorder page
+        working-directory: autorecorder
+        run: npm run consistency
