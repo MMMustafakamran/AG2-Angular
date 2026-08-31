@@ -1,0 +1,41 @@
+# Line endings are load-bearing in this repo, which is unusual enough to explain.
+#
+# `frontend/scripts/generate-sources.ts` reads the real implementation files off
+# disk and embeds them, verbatim, into `generated-sources.ts` as JSON strings —
+# so the doc routes can render byte-identical code rather than a re-typed copy.
+# That embedding captures whatever line endings the checkout happens to have.
+#
+# Without this file, the same commit generates a DIFFERENT generated-sources.ts
+# on Windows (\r\n) than on Linux (\n). The "byte-identical to what runs"
+# guarantee then holds only per-machine, and CI's staleness check fails against
+# a working tree that is perfectly fine locally — which reads as a broken check
+# rather than as the platform difference it is.
+#
+# So: LF in the repository and LF on disk, everywhere, for everything textual.
+* text=auto eol=lf
+
+# Binaries, which must never be touched. The voiceover tracks in
+# autorecorder/audio/ and the chart fixtures in autorecorder/assets/ are
+# committed; the clips themselves are not (see .gitignore).
+*.webm  binary
+*.mp4   binary
+*.m4a   binary
+*.wav   binary
+*.mp3   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+
+# Lockfiles are generated; keep them out of diffs and out of review.
+frontend/package-lock.json     linguist-generated=true -diff
+autorecorder/package-lock.json linguist-generated=true -diff
+backend/uv.lock                linguist-generated=true -diff
+
+# So is the embedded source map. Reviewing it is reviewing the files it mirrors,
+# twice.
+frontend/src/app/lib/generated-sources.ts linguist-generated=true -diff
