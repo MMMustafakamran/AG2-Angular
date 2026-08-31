@@ -1,0 +1,146 @@
+{
+  "generatedAt": "2026-08-31T19:41:06.635Z",
+  "framework": "AG2 (Python) + Angular",
+  "videoPrefix": "AG2-angular",
+  "clips": {
+    "quickstart": {
+      "order": 1,
+      "id": "quickstart",
+      "name": "Quickstart",
+      "file": "AG2-angular-01-Quickstart.webm",
+      "sources": [
+        "frontend/VERSIONS.md",
+        "frontend/package.json",
+        "frontend/src/app/features/quickstart/quickstart-chat.ts",
+        "frontend/server.ts",
+        "backend/main.py"
+      ],
+      "sourceSha": "c51b6ad0c93d",
+      "recordedAt": "2026-08-31T19:37:41.057Z",
+      "bytes": 8167126,
+      "sha256": "45fb97c20706",
+      "status": "new"
+    },
+    "chat-ui": {
+      "order": 2,
+      "id": "chat-ui",
+      "name": "Guides - Chat UI and customization",
+      "file": "AG2-angular-02-ChatUi.webm",
+      "sources": [
+        "frontend/src/app/features/chat-ui/chat-ui-demo.component.ts",
+        "frontend/src/app/features/chat-ui/custom-assistant-message.component.ts"
+      ],
+      "sourceSha": "02def1fca65e",
+      "recordedAt": "2026-08-31T19:21:56.997Z",
+      "bytes": 6891016,
+      "sha256": "d9bcaf2870ee",
+      "status": "current"
+    },
+    "frontend-tools-generative-ui": {
+      "order": 3,
+      "id": "frontend-tools-generative-ui",
+      "name": "Guides - Frontend tools and generative UI",
+      "file": "AG2-angular-03-FrontendToolsGenerativeUi.webm",
+      "sources": [
+        "frontend/src/app/features/tools/tools-chat.component.ts",
+        "frontend/src/app/features/tools/weather-card.component.ts",
+        "backend/main.py"
+      ],
+      "sourceSha": "2a0d828b0ab6",
+      "recordedAt": "2026-08-31T19:39:12.145Z",
+      "bytes": 6711032,
+      "sha256": "ece770392504",
+      "status": "new"
+    },
+    "voice-multimodal": {
+      "order": 5,
+      "id": "voice-multimodal",
+      "name": "Guides - Voice and multimodal input",
+      "file": "AG2-angular-05-VoiceMultimodal.webm",
+      "sources": [
+        "frontend/src/app/features/media/voice-chat.component.ts"
+      ],
+      "sourceSha": "0630d5813e93",
+      "recordedAt": "2026-08-31T19:25:40.342Z",
+      "bytes": 5751323,
+      "sha256": "b2e4e51f113c",
+      "status": "current"
+    },
+    "human-in-the-loop": {
+      "order": 6,
+      "id": "human-in-the-loop",
+      "name": "Guides - Human-in-the-loop and interrupts",
+      "file": "AG2-angular-06-HumanInTheLoop.webm",
+      "sources": [
+        "frontend/src/app/features/hitl/approval-tools.service.ts",
+        "frontend/src/app/features/hitl/approval-card.component.ts"
+      ],
+      "sourceSha": "2069adb80343",
+      "recordedAt": "2026-08-31T19:26:39.475Z",
+      "bytes": 3953809,
+      "sha256": "6496e5921831",
+      "status": "current"
+    },
+    "shared-state": {
+      "order": 7,
+      "id": "shared-state",
+      "name": "Guides - Shared state and agent context",
+      "file": "AG2-angular-07-SharedState.webm",
+      "sources": [
+        "frontend/src/app/features/shared-state/workspace.component.ts",
+        "frontend/src/app/features/shared-state/account-context.component.ts",
+        "backend/main.py",
+        "backend/main.py"
+      ],
+      "sourceSha": "4da769fa4813",
+      "recordedAt": "2026-08-31T19:40:56.140Z",
+      "bytes": 6286438,
+      "sha256": "3b7e87e12754",
+      "status": "new"
+    },
+    "threads": {
+      "order": 8,
+      "id": "threads",
+      "name": "Threads",
+      "file": "AG2-angular-08-Threads.webm",
+      "sources": [
+        "frontend/src/app/features/threads/thread-list.component.ts",
+        "frontend/src/app/features/threads/conversations.component.ts",
+        "frontend/src/app/features/threads/threads-demo.component.ts"
+      ],
+      "sourceSha": "d5f1d8cebfff",
+      "recordedAt": "2026-08-31T19:29:51.641Z",
+      "bytes": 5241112,
+      "sha256": "331db86483fd",
+      "status": "current"
+    },
+    "attachments": {
+      "order": 10,
+      "id": "attachments",
+      "name": "Attachments",
+      "file": "AG2-angular-10-Attachments.webm",
+      "sources": [
+        "frontend/src/app/features/attachments/media-chat.component.ts"
+      ],
+      "sourceSha": "19c2fd79acb5",
+      "recordedAt": "2026-08-31T19:31:17.037Z",
+      "bytes": 4423117,
+      "sha256": "0d9786098dd9",
+      "status": "current"
+    },
+    "headless": {
+      "order": 11,
+      "id": "headless",
+      "name": "Headless UI",
+      "file": "AG2-angular-11-HeadlessUi.webm",
+      "sources": [
+        "frontend/src/app/features/headless/headless-chat.component.ts"
+      ],
+      "sourceSha": "8d78adea564d",
+      "recordedAt": "2026-08-31T19:32:56.110Z",
+      "bytes": 5212445,
+      "sha256": "a2aad5951714",
+      "status": "current"
+    }
+  }
+}

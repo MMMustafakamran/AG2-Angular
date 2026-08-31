@@ -1,0 +1,19 @@
+# Recordings are build output, not source.
+#
+# They are reproducible from the code in this folder plus `npm run record`, and
+# versioning them is expensive: 16-17 clips x ~5MB, rewritten on every re-record.
+# In this repo that took .git to 140MB (138MB of it loose .webm objects) before
+# the history was rewritten on 2026-08-19 with `git filter-repo --invert-paths
+# --path-glob '*.webm'`, which brought it back to 672KB.
+#
+# Publish them as release assets or to a bucket instead of committing them.
+#
+# What IS tracked here is the manifest: `npm run manifest` writes manifest.json
+# and MANIFEST.md recording each clip's date, hash, and whether the code it shows
+# has changed since. That is how you tell a fresh recording from a stale one.
+*.webm
+*.mp4
+*.m4a
+*.wav
+*.mp3
+!.gitignore

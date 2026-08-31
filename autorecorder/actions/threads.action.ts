@@ -1,0 +1,117 @@
+/**
+ * Threads — recorded as a finding, because unlicensed is the state this repo
+ * can actually reach.
+ *
+ * https://docs.copilotkit.ai/angular/ag2/guides/threads-memory-attachments-headless
+ *
+ * Thread endpoints come from the Enterprise Intelligence Platform. Without a
+ * licence the hand-built `injectThreads` list never resolves and the drawer
+ * renders its locked state — so a video of "threads not working" is worthless
+ * unless it also says *why*. The Notepad note is opened before the demo, so the
+ * claim is on screen while the evidence is still behind it, and elaborated at
+ * the end once the chat beside the drawer has answered normally.
+ */
+import { type Page } from 'playwright';
+
+import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
+import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { type PageActionHandler, type PageRecordConfig } from '../core/types';
+
+import { closeNotepadNote, openNotepadWindow, typeInNotepad } from './notepad';
+
+/** Clicks a control if it is there, and says so if it is not. */
+async function clickIfPresent(page: Page, selector: string, label: string): Promise<void> {
+  const el = page.locator(selector).first();
+  const box = await el
+    .waitFor({ state: 'visible', timeout: 4000 })
+    .then(() => el.boundingBox())
+    .catch(() => null);
+
+  if (!box) {
+    console.log(`   · ${label} not present.`);
+    return;
+  }
+
+  await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2, 22);
+  await sleep(250);
+  await humanClick(page);
+  await sleep(1000);
+};
+
+export const runThreadsAction: PageActionHandler = async (
+  page: Page,
+  config: PageRecordConfig,
+) => {
+  await page
+    .locator('app-thread-list')
+    .first()
+    .waitFor({ state: 'visible', timeout: 15000 })
+    .catch(() => {});
+  await sleep(600);
+
+  console.log(`   📝 Stating the issue before demonstrating it...`);
+  await openNotepadWindow(page, 'threads-issue.txt', {
+    right: '28px',
+    top: '95px',
+    width: '640px',
+    height: '560px',
+  });
+  await typeInNotepad(
+    page,
+    [
+      'threads — licensed feature, unlicensed runtime',
+      '',
+      'mounted ThreadListComponent (injectThreads) and CopilotThreadsDrawer',
+      '- headless list stays on "Loading conversations..." and lists nothing',
+      '- drawer renders its locked state and opens no thread list',
+    ],
+    1550,
+    280,
+  );
+  await sleep(1500);
+
+  // ── The headless list: New conversation, then Retry if it errored ─────────
+  console.log(`   🧵 Driving the hand-built injectThreads list...`);
+  await clickIfPresent(
+    page,
+    'app-thread-list button:has-text("New conversation")',
+    'New conversation',
+  );
+  await clickIfPresent(page, 'app-thread-list button:has-text("Retry")', 'Retry');
+
+  // ── The drop-in drawer ────────────────────────────────────────────────────
+  const drawer = page.locator('copilot-threads-drawer').first();
+  const drawerBox = await drawer.boundingBox().catch(() => null);
+  if (drawerBox) {
+    console.log(`   🧵 Opening CopilotThreadsDrawer...`);
+    await humanGlide(page, drawerBox.x + 30, drawerBox.y + 30, 22);
+    await sleep(350);
+    await humanClick(page);
+    await sleep(1200);
+  }
+
+  // ── The chat beside it is not licensed and answers normally ──────────────
+  console.log(`   💬 The chat beside the drawer is unaffected by the licence...`);
+  const msgCount = await sendPrompt(page, config.prompt, {
+    inputSelector: 'app-conversations textarea',
+    submitSelector: 'app-conversations copilot-chat-send-button button',
+  });
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
+
+  console.log(`   📝 Elaborating now that the contrast is on screen...`);
+  await typeInNotepad(
+    page,
+    [
+      '',
+      '-the agent chat answers fine; only thread persistence is missing',
+      '- this is not  a broken agent: th runtime has no intelligenc key,',
+      '  so thread create/list/mutate never reacha store',
+      '',
+    ],
+    1550,
+    380,
+  );
+  await sleep(5000);
+  await closeNotepadNote(page);
+  await sleep(1200);
+};
