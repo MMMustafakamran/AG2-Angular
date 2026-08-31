@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "docsRoot": "https://docs.copilotkit.ai/angular/ag2",
+  "syncedAt": "2026-08-31T19:12:33.198Z",
+  "pages": {
+    "/angular/ag2": {
+      "file": "angular__ag2.md",
+      "sha256": "9ee26c3e81d04176743478f2963ca8b2d8700a00892e760424e6f1982348d5a6",
+      "bytes": 7123,
+      "lines": 185,
+      "routes": [
+        "/"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    },
+    "/angular/ag2/quickstart": {
+      "file": "angular__ag2__quickstart.md",
+      "sha256": "9ee26c3e81d04176743478f2963ca8b2d8700a00892e760424e6f1982348d5a6",
+      "bytes": 7123,
+      "lines": 185,
+      "routes": [
+        "/quickstart"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    },
+    "/angular/ag2/guides/chat-ui": {
+      "file": "angular__ag2__guides__chat-ui.md",
+      "sha256": "2292c3b8312308e6160ec16112783fa7c01bcb40cdaab4efc45e38fa8b7c0cc5",
+      "bytes": 5123,
+      "lines": 178,
+      "routes": [
+        "/chat-ui"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    },
+    "/angular/ag2/guides/frontend-tools-generative-ui": {
+      "file": "angular__ag2__guides__frontend-tools-generative-ui.md",
+      "sha256": "65bbec55f2a3c3429efec3c183b6197c61ca0702354d87ce407fcff03733f35a",
+      "bytes": 5725,
+      "lines": 178,
+      "routes": [
+        "/frontend-tools-generative-ui"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    },
+    "/angular/ag2/guides/a2ui": {
+      "file": "angular__ag2__guides__a2ui.md",
+      "sha256": "1ad30cb78f5dece9b29a20141b4b27944ca03841907109fdb905dece5944306c",
+      "bytes": 5801,
+      "lines": 195,
+      "routes": [
+        "/a2ui"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    },
+    "/angular/ag2/guides/voice-multimodal": {
+      "file": "angular__ag2__guides__voice-multimodal.md",
+      "sha256": "f82ccf7ccb27ba8e76c9e3b01e7dfad08b0a6da4b5a6b337a20acefb48c00b6d",
+      "bytes": 3773,
+      "lines": 111,
+      "routes": [
+        "/voice-multimodal"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    },
+    "/angular/ag2/guides/human-in-the-loop": {
+      "file": "angular__ag2__guides__human-in-the-loop.md",
+      "sha256": "e2da45cfa4039efffd83aad4ae12eb9cb7589ee0bcdc63fdb7aa5f7e9b443821",
+      "bytes": 8985,
+      "lines": 274,
+      "routes": [
+        "/human-in-the-loop"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    },
+    "/angular/ag2/guides/shared-state": {
+      "file": "angular__ag2__guides__shared-state.md",
+      "sha256": "3115be9b16de85313001b1257bc8b3d59562bbbc9763c051bb39b850e445d3ac",
+      "bytes": 4719,
+      "lines": 151,
+      "routes": [
+        "/shared-state"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    },
+    "/angular/ag2/guides/threads-memory-attachments-headless": {
+      "file": "angular__ag2__guides__threads-memory-attachments-headless.md",
+      "sha256": "a6d07109c89442bf3ee05683984eeb54a37915aaa2d3cdfebc69159f7c7ead3d",
+      "bytes": 8926,
+      "lines": 302,
+      "routes": [
+        "/threads",
+        "/memory",
+        "/attachments",
+        "/headless"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+    }
+  }
+}

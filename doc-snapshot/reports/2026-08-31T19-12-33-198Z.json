@@ -1,0 +1,136 @@
+{
+  "ranAt": "2026-08-31T19:12:33.198Z",
+  "baseline": false,
+  "docsRoot": "https://docs.copilotkit.ai/angular/ag2",
+  "pages": [
+    {
+      "docPath": "/angular/ag2",
+      "url": "https://docs.copilotkit.ai/angular/ag2.md",
+      "routes": [
+        "/"
+      ],
+      "title": "Angular",
+      "sha256": "9ee26c3e81d04176743478f2963ca8b2d8700a00892e760424e6f1982348d5a6",
+      "bytes": 7123,
+      "lines": 185,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    },
+    {
+      "docPath": "/angular/ag2/quickstart",
+      "url": "https://docs.copilotkit.ai/angular/ag2/quickstart.md",
+      "routes": [
+        "/quickstart"
+      ],
+      "title": "Angular",
+      "sha256": "9ee26c3e81d04176743478f2963ca8b2d8700a00892e760424e6f1982348d5a6",
+      "bytes": 7123,
+      "lines": 185,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    },
+    {
+      "docPath": "/angular/ag2/guides/chat-ui",
+      "url": "https://docs.copilotkit.ai/angular/ag2/guides/chat-ui.md",
+      "routes": [
+        "/chat-ui"
+      ],
+      "title": "Chat UI and customization",
+      "sha256": "2292c3b8312308e6160ec16112783fa7c01bcb40cdaab4efc45e38fa8b7c0cc5",
+      "bytes": 5123,
+      "lines": 178,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    },
+    {
+      "docPath": "/angular/ag2/guides/frontend-tools-generative-ui",
+      "url": "https://docs.copilotkit.ai/angular/ag2/guides/frontend-tools-generative-ui.md",
+      "routes": [
+        "/frontend-tools-generative-ui"
+      ],
+      "title": "Frontend tools and generative UI",
+      "sha256": "65bbec55f2a3c3429efec3c183b6197c61ca0702354d87ce407fcff03733f35a",
+      "bytes": 5725,
+      "lines": 178,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    },
+    {
+      "docPath": "/angular/ag2/guides/a2ui",
+      "url": "https://docs.copilotkit.ai/angular/ag2/guides/a2ui.md",
+      "routes": [
+        "/a2ui"
+      ],
+      "title": "A2UI schemas, styling, and recovery",
+      "sha256": "1ad30cb78f5dece9b29a20141b4b27944ca03841907109fdb905dece5944306c",
+      "bytes": 5801,
+      "lines": 195,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    },
+    {
+      "docPath": "/angular/ag2/guides/voice-multimodal",
+      "url": "https://docs.copilotkit.ai/angular/ag2/guides/voice-multimodal.md",
+      "routes": [
+        "/voice-multimodal"
+      ],
+      "title": "Voice and multimodal input",
+      "sha256": "f82ccf7ccb27ba8e76c9e3b01e7dfad08b0a6da4b5a6b337a20acefb48c00b6d",
+      "bytes": 3773,
+      "lines": 111,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    },
+    {
+      "docPath": "/angular/ag2/guides/human-in-the-loop",
+      "url": "https://docs.copilotkit.ai/angular/ag2/guides/human-in-the-loop.md",
+      "routes": [
+        "/human-in-the-loop"
+      ],
+      "title": "Human-in-the-loop and interrupts",
+      "sha256": "e2da45cfa4039efffd83aad4ae12eb9cb7589ee0bcdc63fdb7aa5f7e9b443821",
+      "bytes": 8985,
+      "lines": 274,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    },
+    {
+      "docPath": "/angular/ag2/guides/shared-state",
+      "url": "https://docs.copilotkit.ai/angular/ag2/guides/shared-state.md",
+      "routes": [
+        "/shared-state"
+      ],
+      "title": "Shared state and agent context",
+      "sha256": "3115be9b16de85313001b1257bc8b3d59562bbbc9763c051bb39b850e445d3ac",
+      "bytes": 4719,
+      "lines": 151,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    },
+    {
+      "docPath": "/angular/ag2/guides/threads-memory-attachments-headless",
+      "url": "https://docs.copilotkit.ai/angular/ag2/guides/threads-memory-attachments-headless.md",
+      "routes": [
+        "/threads",
+        "/memory",
+        "/attachments",
+        "/headless"
+      ],
+      "title": "Threads, memory, attachments, and headless UI",
+      "sha256": "a6d07109c89442bf3ee05683984eeb54a37915aaa2d3cdfebc69159f7c7ead3d",
+      "bytes": 8926,
+      "lines": 302,
+      "outcome": "unchanged",
+      "severity": "none",
+      "hunks": []
+    }
+  ]
+}
