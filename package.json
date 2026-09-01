@@ -13,6 +13,7 @@
     "record:consistency": "npm --prefix autorecorder run consistency",
     "record:mux": "npm --prefix autorecorder run mux",
     "record:manifest": "npm --prefix autorecorder run manifest",
+    "ci:videos": "npm --prefix autorecorder run ci:videos --",
     "drift": "npm --prefix frontend run doc:check",
     "drift:sync": "npm --prefix frontend run doc:sync",
     "versions": "npm --prefix frontend run gen:versions"

@@ -314,6 +314,73 @@ npm run drift:sync     # synchronize snapshots, manifest, changelog, diff report
 
 ---
 
+### Continuous integration
+
+Three workflows, split so each red light means exactly one thing. One workflow
+covering all three would go red for "you broke the build", "CopilotKit edited a
+page" and "a clip failed to capture", which teaches everyone to ignore it.
+
+| Workflow | Trigger | A red run means |
+| :--- | :--- | :--- |
+| [`verify.yml`](.github/workflows/verify.yml) | push, PR | someone broke the code in this repo |
+| [`doc-drift.yml`](.github/workflows/doc-drift.yml) | nightly 05:31 UTC, dispatch | upstream edited a doc page; the harness now demonstrates something the docs no longer say |
+| [`record.yml`](.github/workflows/record.yml) | dispatch | a clip failed to capture what it was meant to |
+
+**`verify.yml`** — no secrets, no browser, no model calls, about two minutes.
+Frontend generates, typechecks and builds. Backend runs `uv sync --locked` and
+then *imports* the agent, which constructs it, resolves both `@tool` schemas
+through `fast_depends` and mounts the `AGUIStream` — most ways of breaking
+`main.py` fail right there rather than at request time. Recorder typechecks and
+runs the static doctor.
+
+It also closes two gaps `project-context.md` lists as things the pipeline
+misses:
+
+- `generated-sources.ts` is regenerated and the run fails if it differs from
+  the committed copy. A stale map means every recording taken against it showed
+  code that is no longer running.
+- `autorecorder/consistency.ts` compares the app's `hasDemo` routes against the
+  recorder's page registry, in both directions. A guide route added without a
+  recorder entry is otherwise dropped from every future run in silence.
+  Runnable locally the same way CI runs it: `npm run record:consistency`.
+
+**`doc-drift.yml`** deliberately does not auto-commit the refreshed snapshot.
+Drift is the finding; folding it into a bot commit would silently re-baseline
+the harness to a page nobody read. `npm run drift:sync` is the human step, and
+it writes the CHANGELOG entry the QA report cites.
+
+**`record.yml`** needs an `OPENAI_API_KEY` repository secret and says so in its
+first step, rather than recording eleven videos of a dead chat. It brings up all
+three processes, waits on each with its own health check, runs the online
+doctor, records under `xvfb` (`core/engine.ts` launches `headless: false`, so a
+virtual display is not optional), muxes the narration, writes the manifest and
+uploads the clips. Its nightly cron is written but commented out — every run
+spends model tokens on eleven pages, so switching it on should be a decision.
+
+What a green `record.yml` means is worth stating plainly, because it is not the
+obvious thing: **not that the features work**. Eight of the eleven pages are
+recorded to demonstrate a defect. Green means every clip captured what it was
+supposed to — including the empty A2UI surface, the dropped state write, and the
+interrupt panels that never fire.
+
+#### Watching what CI recorded
+
+The clips are gitignored, so after a CI run the artifact is the only complete
+set that exists. Pull one down:
+
+```bash
+npm run ci:videos              # newest completed run
+npm run ci:videos -- --list    # what is downloadable
+npm run ci:videos -- 33477092124
+```
+
+They land in `autorecorder/videos/ci-<run-id>/`, beside the local clips rather
+than on top of them. The folder carries its own provenance, so two runs can be
+compared against each other and against a local recording — and a folder found a
+week later still says which run made it.
+
+---
+
 ### Upgrading Packages
 
 #### Frontend (Angular / npm)

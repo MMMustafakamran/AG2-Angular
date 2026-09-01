@@ -17,3 +17,10 @@
 *.wav
 *.mp3
 !.gitignore
+
+# Artifacts pulled down from a CI run by `npm run ci:videos`. The clips inside
+# are already covered by *.webm above, but the reports and logs beside them are
+# not -- and a downloaded copy of one run's output is a local convenience, not
+# repo content. The tracked manifest at the top of this folder is what records
+# what a run produced.
+ci-*/
