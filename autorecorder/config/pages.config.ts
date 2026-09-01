@@ -361,4 +361,46 @@ export const PAGES = definePages([
     prompt: 'Tell me a short joke about Angular.',
     waitAfterPromptMs: 4000,
   },
+  {
+    id: 'inspector',
+    name: 'Inspector',
+    videoName: 'Inspector',
+    docPath: 'inspector',
+    route: 'inspector',
+    // Appended rather than placed in nav order, where the sidebar puts it just
+    // after Quickstart. The clip index is the position in this array, so
+    // inserting it there would renumber every later clip in this repo and
+    // desync the numbering from the sibling repos that document the same guides
+    // in the same order.
+    //
+    // The chat is the whole demo component, and its emptiness is the evidence:
+    // it mounts no Inspector, yet the launcher is there.
+    ideFile: 'frontend/src/app/features/inspector/inspector-chat.component.ts',
+    startLine: 19,
+    endLine: 30,
+    extraTabs: [
+      // The mount check the clip reads on screen -- it counts the elements in
+      // the document and names which of the guide's three cases it found.
+      {
+        filePath:
+          'frontend/src/app/features/inspector/inspector-probe.component.ts',
+        startLine: 143,
+        endLine: 151,
+      },
+      // enableInspector is the only switch the page documents, and this
+      // provider block deliberately does not set it -- the default-on
+      // development behaviour is the state the guide describes, and the state
+      // the quickstart's confirm-setup step assumes.
+      {
+        filePath: 'frontend/src/app/app.config.ts',
+        startLine: 50,
+        endLine: 69,
+      },
+    ],
+    // The quickstart's Inspector step is not satisfied by a static panel: it
+    // asks the reader to send a message and watch AG-UI events move, so the
+    // run has to happen before the panel is opened.
+    prompt: 'Can you tell me a joke?',
+    waitAfterPromptMs: 4000,
+  },
 ]).filter((page) => !page.id.startsWith(RESERVED_PREFIX));

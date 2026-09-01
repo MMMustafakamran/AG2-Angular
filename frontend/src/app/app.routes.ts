@@ -21,6 +21,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/demos').then((m) => m.QuickstartDemo),
   },
   {
+    path: 'inspector/demo',
+    loadComponent: () => import('./pages/demos').then((m) => m.InspectorDemo),
+  },
+  {
     path: 'chat-ui/demo',
     loadComponent: () => import('./pages/demos').then((m) => m.ChatUiDemo),
   },
@@ -68,6 +72,7 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: () => import('./pages/introduction') },
       { path: 'quickstart', loadComponent: () => import('./pages/quickstart') },
+      { path: 'inspector', loadComponent: () => import('./pages/inspector') },
       { path: 'chat-ui', loadComponent: () => import('./pages/chat-ui') },
       {
         path: 'frontend-tools-generative-ui',

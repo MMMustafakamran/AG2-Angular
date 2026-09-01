@@ -83,6 +83,17 @@ export const NAV: NavGroup[] = [
         statusNote:
           'The Angular half of the page is complete. Its backend step is not: the page ships the literal comment "setup skipped: agent-setup is not bundled for ag2" where the AG2 server should be. See Known issues.',
       },
+      {
+        path: '/inspector',
+        hasDemo: true,
+        title: 'Inspector',
+        docPath: '/angular/ag2/inspector',
+        summary:
+          'The panel the framework mounts for you — nothing to install, nothing to mount, and a hand-written mount to delete if you have one.',
+        status: 'working',
+        statusNote:
+          'Tracked from 2026-09-01. The quickstart has always linked here, but the page was in neither DOC_PAGES nor the snapshot manifest, so drift had never looked at it.',
+      },
     ],
   },
   {

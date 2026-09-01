@@ -2,7 +2,7 @@ name: Doc drift
 
 # Have the upstream docs moved out from under the harness?
 #
-# `doc-snapshot/pages/` is a byte-for-byte copy of the nine /angular/ag2 pages.
+# `doc-snapshot/pages/` is a byte-for-byte copy of the ten /angular/ag2 pages.
 # `npm run drift` re-fetches each one and diffs. A red run here means exactly
 # one thing: CopilotKit edited a page, and this repo now demonstrates something
 # the docs no longer say.
@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   drift:
-    name: Check the nine pages against live
+    name: Check the ten pages against live
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

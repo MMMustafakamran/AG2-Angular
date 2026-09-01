@@ -49,6 +49,7 @@ import { runAttachmentsAction } from './attachments.action';
 import { runChatUiAction } from './chat-ui.action';
 import { runHeadlessAction } from './headless.action';
 import { runHitlAction } from './hitl.action';
+import { runInspectorAction } from './inspector.action';
 import { runMemoryAction } from './memory.action';
 import { runQuickstartAction } from './quickstart.action';
 import { runSharedStateAction } from './shared-state.action';
@@ -71,6 +72,10 @@ export const ACTION_MAP: Record<string, PageActionHandler> = {
   memory: runMemoryAction,
   attachments: runAttachmentsAction,
   headless: runHeadlessAction,
+  // The Inspector page's own subject is the panel, so the clip has to open
+  // it. Falling through to runStandardAction would record a chat and
+  // nothing else.
+  inspector: runInspectorAction,
 };
 
 export async function executePageAction(

@@ -186,7 +186,7 @@ snippet is not self-contained. Unchanged from the sibling harnesses — this one
 is a CopilotKit issue, not an AG2 one.
 
 **9 · The Angular guide pages are not AG2 pages.**
-All nine pages under `/angular/ag2` are byte-identical to the ones under
+All ten pages under `/angular/ag2` are byte-identical to the ones under
 `/angular/ms-agent-python` once the slug is normalised. Findings 3, 4 and 5
 are direct consequences: the pages describe capabilities of a different
 backend.
@@ -271,15 +271,15 @@ changed.
 failed run, and that broken pages keep their broken implementation because "the
 clip exists to show the defect". A video of a feature not working is, on its
 own, indistinguishable from a video of a recorder that mis-clicked — so eight of
-the eleven pages end the same way:
+the twelve pages end the same way:
 
 1. drive the feature until the defect actually happens on screen
 2. rest the cursor on the evidence, long enough to read it
 3. open a Notepad window and type the finding out at human speed
 4. hold, then close — the evidence still visible behind all of it
 
-The note format is shared (`actions/finding-note.ts`) so eleven clips read as
-one report rather than as eleven people guessing: *what happened* (observable
+The note format is shared (`actions/finding-note.ts`) so twelve clips read as
+one report rather than as twelve people guessing: *what happened* (observable
 only), *why* (naming the file or symbol), and *what the doc does not say* —
 which is the actual deliverable, since rule 3 of `project-context.md` counts
 ambiguity as a defect.
@@ -350,15 +350,15 @@ the harness to a page nobody read. `npm run drift:sync` is the human step, and
 it writes the CHANGELOG entry the QA report cites.
 
 **`record.yml`** needs an `OPENAI_API_KEY` repository secret and says so in its
-first step, rather than recording eleven videos of a dead chat. It brings up all
+first step, rather than recording twelve videos of a dead chat. It brings up all
 three processes, waits on each with its own health check, runs the online
 doctor, records under `xvfb` (`core/engine.ts` launches `headless: false`, so a
 virtual display is not optional), muxes the narration, writes the manifest and
 uploads the clips. Its nightly cron is written but commented out — every run
-spends model tokens on eleven pages, so switching it on should be a decision.
+spends model tokens on twelve pages, so switching it on should be a decision.
 
 What a green `record.yml` means is worth stating plainly, because it is not the
-obvious thing: **not that the features work**. Eight of the eleven pages are
+obvious thing: **not that the features work**. Eight of the twelve pages are
 recorded to demonstrate a defect. Green means every clip captured what it was
 supposed to — including the empty A2UI surface, the dropped state write, and the
 interrupt panels that never fire.

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "docsRoot": "https://docs.copilotkit.ai/angular/ag2",
-  "syncedAt": "2026-08-31T19:12:33.198Z",
+  "syncedAt": "2026-09-01T10:02:50.539Z",
   "pages": {
     "/angular/ag2": {
       "file": "angular__ag2.md",
@@ -13,7 +13,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     },
     "/angular/ag2/quickstart": {
       "file": "angular__ag2__quickstart.md",
@@ -25,7 +25,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     },
     "/angular/ag2/guides/chat-ui": {
       "file": "angular__ag2__guides__chat-ui.md",
@@ -37,7 +37,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     },
     "/angular/ag2/guides/frontend-tools-generative-ui": {
       "file": "angular__ag2__guides__frontend-tools-generative-ui.md",
@@ -49,7 +49,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     },
     "/angular/ag2/guides/a2ui": {
       "file": "angular__ag2__guides__a2ui.md",
@@ -61,7 +61,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     },
     "/angular/ag2/guides/voice-multimodal": {
       "file": "angular__ag2__guides__voice-multimodal.md",
@@ -73,7 +73,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     },
     "/angular/ag2/guides/human-in-the-loop": {
       "file": "angular__ag2__guides__human-in-the-loop.md",
@@ -85,7 +85,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     },
     "/angular/ag2/guides/shared-state": {
       "file": "angular__ag2__guides__shared-state.md",
@@ -97,7 +97,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     },
     "/angular/ag2/guides/threads-memory-attachments-headless": {
       "file": "angular__ag2__guides__threads-memory-attachments-headless.md",
@@ -112,7 +112,19 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 31 Aug 2026 19:12:33 GMT"
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
+    },
+    "/angular/ag2/inspector": {
+      "file": "angular__ag2__inspector.md",
+      "sha256": "5280de2510360130b46284fda2462559ddb3b39a4fb7393ba622e8b0a3649532",
+      "bytes": 2933,
+      "lines": 72,
+      "routes": [
+        "/inspector"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Tue, 01 Sep 2026 10:02:50 GMT"
     }
   }
 }

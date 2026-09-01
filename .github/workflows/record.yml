@@ -12,11 +12,11 @@ name: Record demos
 # OPENAI_API_KEY. Without it the backend refuses to start (_build_config raises
 # rather than constructing an agent that would fail on first use), and the run
 # stops at the preflight step with that said plainly instead of recording
-# eleven videos of a dead chat.
+# twelve videos of a dead chat.
 #
 # ── What "pass" means here ─────────────────────────────────────────────────
 # Not "the features work". project-context.md: a clean run that finds nothing
-# when the docs are broken is a FAILED run. Eight of these eleven pages are
+# when the docs are broken is a FAILED run. Eight of these twelve pages are
 # recorded to demonstrate a defect, and each writes its finding on screen. A
 # green run means every clip captured what it was supposed to capture —
 # including the empty A2UI surface, the dropped state write, and the interrupt
@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       pages:
-        description: 'Page ids, comma-separated (blank = all 11). e.g. shared-state,a2ui'
+        description: 'Page ids, comma-separated (blank = all 12). e.g. inspector,shared-state'
         type: string
         required: false
       online_doctor:
@@ -245,7 +245,7 @@ jobs:
               echo 'No manifest produced — the run did not reach that step.'
             fi
             echo
-            echo 'Eight of these eleven clips are recorded to demonstrate a defect and'
+            echo 'Eight of these twelve clips are recorded to demonstrate a defect and'
             echo 'write the finding on screen. A green run means each clip captured what'
             echo 'it was meant to — not that every feature works. See readme.md.'
           } >> "$GITHUB_STEP_SUMMARY"

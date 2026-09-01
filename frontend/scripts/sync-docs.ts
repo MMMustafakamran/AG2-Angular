@@ -19,6 +19,12 @@ const DOC_PAGES = [
     docPath: '/angular/ag2/guides/threads-memory-attachments-headless',
     routes: ['/threads', '/memory', '/attachments', '/headless'],
   },
+  // Tracked late. The quickstart's closing step has always linked here
+  // ("More detail: Inspector"), but the page was in neither DOC_PAGES nor the
+  // manifest -- so drift had never once looked at it. That is the first item on
+  // project-context.md's list of gaps the pipeline misses: a page with no entry
+  // produces no diff and no failure, so nothing ever said it was untested.
+  { docPath: '/angular/ag2/inspector', routes: ['/inspector'] },
 ];
 
 function fetchText(url: string): Promise<{ status: number; body: string }> {
@@ -371,7 +377,7 @@ async function run() {
   console.log('----------------------------------------------------');
   console.log(`📊 Summary: Checked ${DOC_PAGES.length} documentation pages against live docs.`);
   if (changedPages.length === 0) {
-    console.log('✅ Status: ALL 9 PAGES ARE UP TO DATE (0 doc drift detected).');
+    console.log(`✅ Status: ALL ${DOC_PAGES.length} PAGES ARE UP TO DATE (0 doc drift detected).`);
   } else {
     console.log(`⚠️ Status: ${changedPages.length} page(s) changed:`);
     for (const p of changedPages) {

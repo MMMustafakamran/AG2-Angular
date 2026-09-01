@@ -16,6 +16,8 @@ import { MediaChatComponent } from '../features/attachments/media-chat.component
 import { ChatUiDemoComponent } from '../features/chat-ui/chat-ui-demo.component';
 import { HeadlessChatComponent } from '../features/headless/headless-chat.component';
 import { HitlChatComponent } from '../features/hitl/hitl-chat.component';
+import { InspectorChatComponent } from '../features/inspector/inspector-chat.component';
+import { InspectorProbeComponent } from '../features/inspector/inspector-probe.component';
 import { MemoryDemoComponent } from '../features/memory/memory-demo.component';
 import { VoiceChatComponent } from '../features/media/voice-chat.component';
 import { QuickstartChat } from '../features/quickstart/quickstart-chat';
@@ -120,3 +122,26 @@ export class AttachmentsDemo {}
   ></app-demo-frame>`,
 })
 export class HeadlessDemo {}
+
+/**
+ * The Inspector has no surface of its own — the framework mounts
+ * `cpk-web-inspector` on `document.body` once a CopilotKit component is on the
+ * route, so the chat below is what brings it into existence.
+ *
+ * The probe strip above it is not a feature the guide asks for. It is how a
+ * recording shows the mount succeeded, failed, or doubled up without anyone
+ * squinting at one corner of the frame.
+ */
+@Component({
+  selector: 'app-inspector-demo',
+  imports: [DemoFrame, InspectorProbeComponent, InspectorChatComponent],
+  template: `<app-demo-frame backTo="/inspector">
+    <div style="display: flex; flex-direction: column; height: 100%">
+      <app-inspector-probe />
+      <div style="flex: 1; min-height: 0">
+        <app-inspector-chat />
+      </div>
+    </div>
+  </app-demo-frame>`,
+})
+export class InspectorDemo {}
