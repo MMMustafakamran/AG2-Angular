@@ -120,6 +120,7 @@ jobs:
         run: npm ci
 
       - name: Install recorder
+        id: install_recorder
         working-directory: autorecorder
         run: npm ci
 
@@ -212,8 +213,15 @@ jobs:
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             npx tsx cli.ts $ARGS
 
+      # `always()` alone would run these even when the job stopped at the key
+      # guard, before anything was installed — which is how a clean, fast,
+      # correct failure came to end with a confusing `tsx: not found`. What
+      # these steps actually need is the recorder's dependencies, so that is
+      # what they are conditioned on: still running after a FAILED recording
+      # (the whole point — partial clips and logs are the evidence), but not
+      # after a skipped one.
       - name: Mux the narration tracks
-        if: always()
+        if: always() && steps.install_recorder.outcome == 'success'
         working-directory: autorecorder
         run: npm run mux
 
@@ -221,12 +229,12 @@ jobs:
       # the artifact carries its own provenance: when each clip was made, what
       # it hashes to, and whether the code it shows has moved since.
       - name: Write the recording manifest
-        if: always()
+        if: always() && steps.install_recorder.outcome == 'success'
         working-directory: autorecorder
         run: npm run manifest
 
       - name: Summarise
-        if: always()
+        if: always() && steps.install_recorder.outcome == 'success'
         run: |
           {
             echo '### Recording run'
@@ -243,7 +251,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload clips
-        if: always()
+        if: always() && steps.install_recorder.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: ag2-angular-recordings
