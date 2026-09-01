@@ -7,11 +7,24 @@
  * maps only the video stream out of the existing clip, so a second run
  * replaces the voiceover rather than layering a second track under it.
  *
- * Two pages carry a voiceover: Shared State and Threads. The tracks in
- * `audio/` are shared verbatim by all the Angular repos in this workspace —
- * the narration is about the CopilotKit concept, not the agent framework
- * behind it, so the same recording fits AG2-, AGNO-, MASTRA- and MSPY-angular.
+ * Two pages carry a voiceover: Shared State and Threads.
+ *
+ * `thread-angular.m4a` is the one shared verbatim with the other Angular repos
+ * in this workspace — that narration is about the CopilotKit concept rather
+ * than the agent framework behind it, so the same recording fits AGNO-,
+ * MASTRA- and MSPY-angular too.
+ *
+ * `sharedstate-angular.m4a` is this repo's own, and longer (51s against the
+ * shared track's 45s). Do not "resync" it with the sibling repos: shared state
+ * fails differently on AG2 than on the backends they test, so the clip it
+ * narrates is a different clip.
+ *
  * Every other clip stays silent and is skipped by the table below.
+ *
+ * The ffmpeg call below pins output to the VIDEO's length, so a narration
+ * longer than its clip is truncated rather than extending it. At 51s that is
+ * not close — the Shared State demo runs well past two minutes — but it is the
+ * constraint to check first if a voiceover ever cuts off mid-sentence.
  *
  * WebM cannot carry AAC — audio is re-encoded to libopus. Missing ffmpeg is a
  * skip, not a failure: a silent demo still beats no demo.
