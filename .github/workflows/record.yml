@@ -57,7 +57,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Require the model key
+      # Checked, never echoed. A secret stored with a stray newline defeats
+      # GitHub's log masking — the mask matches the stored value, so a form of
+      # the key WITHOUT the newline (which is what an error message prints)
+      # sails straight through and lands in a public log. That happened on run
+      # 33477092124 and cost a key rotation, so the shape of the value is
+      # validated here, before anything can construct a request from it.
+      - name: Require a well-formed model key
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -67,7 +73,30 @@ jobs:
             echo "The AG2 backend talks to OpenAI directly and will not start without it."
             exit 1
           fi
-          echo "Model key present."
+
+          # Length and character class only. Nothing below prints any part of
+          # the value, not even a prefix.
+          raw_len=${#OPENAI_API_KEY}
+          trimmed=$(printf '%s' "$OPENAI_API_KEY" | tr -d '[:space:]')
+          trimmed_len=${#trimmed}
+
+          if [ "$raw_len" -ne "$trimmed_len" ]; then
+            echo "::error::OPENAI_API_KEY contains whitespace ($((raw_len - trimmed_len)) character(s))."
+            echo "A trailing newline makes the Authorization header illegal, so every"
+            echo "model call fails, the AG-UI stream dies, and the Copilot Runtime goes"
+            echo "with it - every page then reports 'Failed to fetch'."
+            echo "It also breaks log masking. Re-add the secret as a single unbroken line."
+            exit 1
+          fi
+
+          case "$trimmed" in
+            *[![:print:]]*)
+              echo "::error::OPENAI_API_KEY contains non-printable characters."
+              exit 1
+              ;;
+          esac
+
+          echo "Model key present and well formed ($raw_len characters)."
 
       - uses: actions/setup-node@v4
         with:

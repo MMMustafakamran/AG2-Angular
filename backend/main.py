@@ -79,12 +79,41 @@ def update_language(
 # shared state : update language tool end
 
 
+def _env(name: str, default: str = "") -> str:
+    """Read an env var and strip surrounding whitespace.
+
+    The strip is not cosmetic. A secret pasted into a CI provider or a .env with
+    a trailing newline produces `Bearer sk-...\n`, which httpx rejects as an
+    illegal header value before the request is ever sent. That surfaces as
+    openai.APIConnectionError -> the AG-UI stream raises -> the socket closes
+    mid-response -> the Copilot Runtime dies on an unhandled fetch error, and
+    every page in the browser reports "Failed to fetch".
+
+    One invisible character, and the visible symptom is three processes away
+    from it. This cost a full CI recording run, so the fix lives here rather
+    than in a runbook.
+    """
+    return (os.getenv(name) or default).strip()
+
+
 def _build_config() -> OpenAIConfig:
-    if not os.getenv("OPENAI_API_KEY"):
+    api_key = _env("OPENAI_API_KEY")
+    if not api_key:
         raise RuntimeError("Set OPENAI_API_KEY (see backend/.env.example).")
+
+    # Fail loudly on a key that cannot work, rather than at the first model
+    # call: an OpenAI key is ASCII and unbroken, so anything else here means the
+    # value was mangled in transit and no request built from it will succeed.
+    if any(c.isspace() for c in api_key) or not api_key.isascii():
+        raise RuntimeError(
+            "OPENAI_API_KEY contains whitespace or non-ASCII characters. "
+            "It was probably pasted with a line break. Re-add it as a single "
+            "unbroken line. (The key itself is not printed here on purpose.)"
+        )
+
     return OpenAIConfig(
-        model=os.getenv("OPENAI_CHAT_MODEL_ID", "gpt-4o-mini"),
-        api_key=os.getenv("OPENAI_API_KEY"),
+        model=_env("OPENAI_CHAT_MODEL_ID", "gpt-4o-mini"),
+        api_key=api_key,
         streaming=True,
     )
 
