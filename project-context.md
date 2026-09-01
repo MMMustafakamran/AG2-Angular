@@ -15,8 +15,21 @@ nothing when the docs are broken is a failed run, not a passing one.
 | `autorecorder/` | Per-page demo capture (doc → code → live feature), paced to look human |
 | `prior-testing/` | The earlier manual pass's page-level verdicts, carried in for comparison |
 
-There is no `ci/` here yet. The steps it automated elsewhere are individually
-runnable: `npm run drift`, `npm run versions`, `npm run record`.
+There is no `ci/` directory. The steps it drives in the sibling repos are
+individually runnable here (`npm run drift`, `npm run versions`,
+`npm run record`, `npm run record:consistency`) and are wired into GitHub
+Actions directly, one workflow per kind of red light:
+
+| Workflow | When | A red run means |
+|---|---|---|
+| `verify.yml` | push, PR | someone broke the code in this repo |
+| `doc-drift.yml` | nightly, dispatch | CopilotKit edited a page; the harness now demonstrates something the docs no longer say |
+| `record.yml` | dispatch | a clip failed to capture what it was meant to |
+
+`verify.yml` also closes two of the gaps listed below: it fails if
+`generated-sources.ts` is stale (so no clip can show code that is not running),
+and `autorecorder/consistency.ts` fails if a `hasDemo` route has no recorder
+page, or vice versa.
 
 ## Cycle
 
