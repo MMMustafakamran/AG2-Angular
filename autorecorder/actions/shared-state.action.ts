@@ -1,25 +1,24 @@
 /**
- * Shared state — the browser writes agent state, and the agent never sees it.
+ * Shared state — the agent does not know the state the page is holding.
  *
  * https://docs.copilotkit.ai/angular/ag2/guides/shared-state
  *
- * The guide opens on a table with two rows. Row one is "Agent and application
- * both read and write the value → injectAgentStore and agent.setState". On an
- * AG2 backend that row is false, and this clip is built to prove it rather than
- * to work around it.
+ * The guide opens on a table whose first row is "Agent and application both
+ * read and write the value → injectAgentStore and agent.setState". On an AG2
+ * backend that row is false, and this clip exists to show it rather than to
+ * work around it.
  *
- * The demonstration is a contrast, in this order:
+ * The demonstration is the same move twice, because once is an anecdote:
  *
- *   1. click "Mark high priority" — the panel updates, so the write reached the
- *      store. Ask the agent. It does not know. (write dropped)
- *   2. click "Mark low priority" — same again, so turn 1 was not a fluke and
- *      not a timing artefact. (still dropped)
- *   3. click "Use London time" and ask. The agent answers correctly. (context
- *      works)
+ *   1. click "Mark high priority". The panel updates to `high`, so the write
+ *      reached the store — the browser half works and is seen working.
+ *      Ask the agent what the priority is. It does not know.
+ *   2. click "Mark low priority". Panel updates again. Ask again. Still nothing.
  *
- * Step 3 is what makes the clip a finding instead of a shrug: the same page,
- * the same agent, the same run — one mechanism works and the other does not, so
- * "the backend is just down" is off the table by the time the note appears.
+ * Both turns are asked in plain language, and both are answered by an agent
+ * that has no idea the page is holding a value at all. That is the finding:
+ * not a wrong answer, not an error — an agent with no visibility of state the
+ * page believes it is sharing.
  *
  * The cause is in ag2/ag_ui/stream.py:
  *
@@ -32,7 +31,7 @@
  * english back.
  *
  * Do not "fix" this by asserting on the answer, or by seeding the state from
- * the backend so turn 1 passes. A green turn 1 here would mean the recorder was
+ * the backend so the turns pass. A green turn here would mean the recorder was
  * measuring something other than what the page claims.
  */
 import { type Page } from 'playwright';
@@ -64,9 +63,19 @@ async function clickStateButton(
   await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2, 20);
   await sleep(400);
   await humanClick(page);
-  // Rest on the panel afterwards: the value visibly changes in the UI, which is
-  // the half of the round trip that DOES work and has to be seen working.
+  // Rest afterwards: the value visibly changes in the panel, which is the half
+  // of the round trip that DOES work and has to be seen working.
   await sleep(1400);
+}
+
+/** What the workspace panel is currently showing, for the log and the note. */
+async function panelPriority(page: Page): Promise<string> {
+  return page
+    .evaluate(() => {
+      const text = document.querySelector('app-workspace')?.textContent ?? '';
+      return (text.match(/Priority:\s*(\w+)/i)?.[1] ?? '').trim();
+    })
+    .catch(() => '');
 }
 
 export const runSharedStateAction: PageActionHandler = async (
@@ -76,11 +85,10 @@ export const runSharedStateAction: PageActionHandler = async (
   const [
     highPrompt = 'what is priority set as?',
     lowPrompt = 'what is priority set as?',
-    tzPrompt = 'what is my timezone?',
   ] = promptsFor(config);
   const wait = config.waitAfterPromptMs ?? 4000;
 
-  // ── Turn 1: the browser writes state, the agent is asked to read it ───────
+  // ── Turn 1 ───────────────────────────────────────────────────────────────
   await clickStateButton(
     page,
     'app-workspace button:has-text("Mark high priority")',
@@ -89,61 +97,59 @@ export const runSharedStateAction: PageActionHandler = async (
 
   // Rest on the panel first. `Priority: high` is on screen, so when the agent
   // says it does not know, the viewer has already seen that the value exists.
-  await dwellOn(page, 'app-workspace', 1800);
+  const afterHigh = await panelPriority(page);
+  console.log(`   📋 Panel now reads: Priority: ${afterHigh || '(unreadable)'}`);
+  await dwellOn(page, 'app-workspace', 2000);
 
   console.log(`   💬 Turn 1 (expect the agent NOT to know): ${highPrompt}`);
   const count1 = await sendPrompt(page, highPrompt);
   await waitForAgentResponseCompletion(page, wait, count1);
-  await sleep(1200);
+  await sleep(1400);
 
-  // ── Turn 2: same again, so turn 1 cannot be read as a one-off ────────────
+  // ── Turn 2: the same move, so turn 1 cannot be read as a one-off ─────────
   await clickStateButton(
     page,
     'app-workspace button:has-text("Mark low priority")',
     'Mark low priority',
   );
-  await dwellOn(page, 'app-workspace', 1500);
+
+  const afterLow = await panelPriority(page);
+  console.log(`   📋 Panel now reads: Priority: ${afterLow || '(unreadable)'}`);
+  await dwellOn(page, 'app-workspace', 1800);
 
   console.log(`   💬 Turn 2 (expect the same): ${lowPrompt}`);
   const count2 = await sendPrompt(page, lowPrompt);
   await waitForAgentResponseCompletion(page, wait, count2);
-  await sleep(1200);
+  await sleep(1400);
 
-  // ── Turn 3: the control. Read-only context travels a different path ──────
-  await clickStateButton(
-    page,
-    'app-account-context button:has-text("Use London time")',
-    'Use London time',
-  );
+  // Back to the panel, so the last thing on screen before the note is the
+  // value the agent just failed to know.
+  await dwellOn(page, 'app-workspace', 2000);
 
-  console.log(`   💬 Turn 3 (expect the agent to KNOW — context, not state): ${tzPrompt}`);
-  const count3 = await sendPrompt(page, tzPrompt);
-  await waitForAgentResponseCompletion(page, wait, count3);
-
-  await dwellOn(page, 'app-account-context', 2000);
-
-  // ── The finding, with all three turns still in the transcript behind it ───
   await showFindingNote(page, {
     file: 'shared-state-finding.txt',
-    headline: 'shared state is read-only on ag2 — writes are dropped',
+    headline: 'the agent has no idea what the shared state is',
     saw: [
-      'clicked "Mark high priority": the panel updated to high',
-      'asked the agent: it did not know the priority',
-      'clicked "Mark low priority": same result, so not a timing fluke',
-      'clicked "Use London time": the agent DID know the timezone',
+      `clicked "Mark high priority" - the panel updated to ${afterHigh || 'high'}`,
+      'asked the agent what the priority is: it did not know',
+      `clicked "Mark low priority" - the panel updated to ${afterLow || 'low'}`,
+      'asked again: it still did not know',
+      'no error, no warning - the agent simply never sees the value',
     ],
     why: [
-      'agent.setState reaches the store but never the model.',
-      'ag2/ag_ui/stream.py merges incoming state UNDER agent variables:',
+      'agent.setState reaches the store, so the panel updates.',
+      'it never reaches the model. ag2/ag_ui/stream.py merges the',
+      'incoming ag-ui state UNDER the agent\'s own variables:',
       '    initial_state = (incoming.state or {}) | initial_vars',
-      'so any key the agent declares wins and the browser value is lost.',
-      'turn 3 works because read-only context is a separate path.',
+      'so any key the agent declares wins, and the browser value is',
+      'discarded before the run starts.',
     ],
     doc: [
       'that its first table row - "agent and application both read',
       'and write the value" - does not hold on this backend.',
-      'nor that there is no STATE_DELTA: state moves only at the',
-      'start and end of a run, never during it.',
+      'the read direction works. the write direction is dropped in',
+      'silence, which is the worst way for it to fail: the ui',
+      'updates, so everything looks correct until you ask.',
     ],
   });
 };

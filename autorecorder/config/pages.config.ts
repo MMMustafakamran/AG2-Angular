@@ -117,7 +117,7 @@ export const PAGES = definePages([
       { filePath: 'frontend/server.ts', startLine: 29, endLine: 44 },
       // `quickstart : mount the ag-ui stream start|end`, with the FastAPI app
       // it is mounted on.
-      { filePath: 'backend/main.py', startLine: 130, endLine: 149 },
+      { filePath: 'backend/main.py', startLine: 159, endLine: 178 },
     ],
     prompt: 'Can you tell me a joke?',
     waitAfterPromptMs: 4000,
@@ -219,9 +219,16 @@ export const PAGES = definePages([
     ideFile: 'frontend/src/app/features/media/voice-chat.component.ts',
     startLine: 12,
     endLine: 31,
-    // The microphone records; this runtime configures no transcription service,
-    // so transcription fails by design. The handler shows that and says so.
-    prompt: 'Tell me what you can do with images and voice.',
+    // Both inputs the page teaches, in one run. The microphone is clicked,
+    // metered, and cancelled with nothing audible captured; then an image goes
+    // through the same composer and IS read correctly.
+    //
+    // The prompt asks for two values that exist only inside the attached chart,
+    // so a correct answer is proof the image reached the model — and proof the
+    // silent microphone is a broken input rather than a broken page. A generic
+    // question could be answered without ever seeing the file.
+    prompt:
+      'Read the attached chart. What is its title, and what is the Q4 value?',
     waitAfterPromptMs: 4000,
   },
   {
@@ -268,12 +275,12 @@ export const PAGES = definePages([
       { filePath: 'backend/main.py', startLine: 37, endLine: 44 },
       { filePath: 'backend/main.py', startLine: 60, endLine: 79 },
     ],
+    // Asked twice, in plain language, after two different writes. The finding
+    // is not a wrong answer — it is an agent with no visibility of a value the
+    // page is actively displaying. Asking the same thing twice is what rules
+    // out a one-off.
     prompt: 'what is priority set as?',
-    prompts: [
-      'what is priority set as?',
-      'what is priority set as?',
-      'what is my timezone?',
-    ],
+    prompts: ['what is priority set as?', 'what is priority set as now?'],
     waitAfterPromptMs: 4000,
   },
   {
