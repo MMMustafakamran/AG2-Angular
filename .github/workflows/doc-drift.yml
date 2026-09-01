@@ -73,12 +73,29 @@ jobs:
       # The script prints its verdict but exits 0 either way, so the log is what
       # decides. Grepping it keeps the pass/fail rule in one visible place rather
       # than buried in an exit code the script does not currently set.
+      #
+      # The page COUNT is deliberately not part of the pattern. It used to be
+      # ('ALL 9 PAGES ARE UP TO DATE'), and adding the Inspector page in 82fd0ee
+      # made the script print 10 — so the match would have failed on every run
+      # and reported drift nightly for a doc set that had not moved. A check
+      # that cries wolf whenever the harness grows is worse than no check, and
+      # the count is not what this step is asking about.
       - name: Fail if any page moved
         if: always()
         run: |
-          if grep -q 'ALL 9 PAGES ARE UP TO DATE' "$RUNNER_TEMP/drift.log"; then
+          if grep -qE 'ALL [0-9]+ PAGES ARE UP TO DATE' "$RUNNER_TEMP/drift.log"; then
             echo "No drift."
             exit 0
           fi
+
+          # Distinguish "pages moved" from "the run never got far enough to say"
+          # — a network failure or a crashed script would otherwise be reported
+          # as doc drift, sending someone to diff pages that are fine.
+          if ! grep -q 'Summary: Checked' "$RUNNER_TEMP/drift.log"; then
+            echo "::error::The drift check did not complete — no summary line in its output."
+            echo "This is not drift. Check the log above for a network or script failure."
+            exit 1
+          fi
+
           echo "::error::Upstream docs have moved. Run 'npm run drift:sync' and implement the changes."
           exit 1
