@@ -7,10 +7,11 @@ name: Verify
 # What it deliberately does NOT do:
 #
 #   * check doc drift — that talks to docs.copilotkit.ai, so an upstream edit
-#     or a transient blip would fail an unrelated PR. It lives in doc-drift.yml,
-#     on a schedule, where a red run means "the docs moved" and nothing else.
+#     or a transient blip would fail an unrelated PR. It is stage 1 of
+#     daily-recorder.yml, on a schedule, where a red run means "the docs moved"
+#     and nothing else.
 #   * record anything — that needs an API key, three servers and a virtual
-#     display. It lives in record.yml, on dispatch.
+#     display. That is stage 3 of the same pipeline.
 #
 # Splitting them that way keeps this workflow's red light meaning exactly one
 # thing: someone broke the code in this repo.
@@ -139,7 +140,9 @@ jobs:
         run: npm run typecheck
 
       # Static doctor only: --online probes live demo URLs, which need all three
-      # servers up. That belongs in record.yml, which has them.
+      # servers up. That belongs in the recording pipeline, which starts them
+      # inside ci/automate.mjs and warms them before the recorder's own
+      # preflight runs.
       #
       # This still catches the failure mode that actually happens — a page's
       # highlight range pointing past the end of a file someone edited, so the

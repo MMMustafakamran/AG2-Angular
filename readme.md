@@ -316,15 +316,20 @@ npm run drift:sync     # synchronize snapshots, manifest, changelog, diff report
 
 ### Continuous integration
 
-Three workflows, split so each red light means exactly one thing. One workflow
-covering all three would go red for "you broke the build", "CopilotKit edited a
-page" and "a clip failed to capture", which teaches everyone to ignore it.
+One recording pipeline, plus the cheap per-push gate beside it.
 
 | Workflow | Trigger | A red run means |
 | :--- | :--- | :--- |
 | [`verify.yml`](.github/workflows/verify.yml) | push, PR | someone broke the code in this repo |
-| [`doc-drift.yml`](.github/workflows/doc-drift.yml) | nightly 05:31 UTC, dispatch | upstream edited a doc page; the harness now demonstrates something the docs no longer say |
-| [`record.yml`](.github/workflows/record.yml) | dispatch | a clip failed to capture what it was meant to |
+| [`daily-recorder.yml`](.github/workflows/daily-recorder.yml) | nightly 05:31 UTC, dispatch | upstream edited a doc page, or a clip failed to capture what it was meant to |
+| [`doc-sync.yml`](.github/workflows/doc-sync.yml) | dispatch | — it opens a PR accepting the live docs as the new baseline |
+
+The two are kept apart because their red lights say different things:
+`verify.yml` means the code here is broken, the pipeline means the docs moved or
+a recording failed. Merging them would teach everyone to ignore both.
+
+Everything the pipeline does is also one local command — `node ci/automate.mjs`,
+documented in [`ci/README.md`](ci/README.md).
 
 **`verify.yml`** — no secrets, no browser, no model calls, about two minutes.
 Frontend generates, typechecks and builds. Backend runs `uv sync --locked` and
@@ -344,20 +349,38 @@ misses:
   recorder entry is otherwise dropped from every future run in silence.
   Runnable locally the same way CI runs it: `npm run record:consistency`.
 
-**`doc-drift.yml`** deliberately does not auto-commit the refreshed snapshot.
-Drift is the finding; folding it into a bot commit would silently re-baseline
-the harness to a page nobody read. `npm run drift:sync` is the human step, and
-it writes the CHANGELOG entry the QA report cites.
+**`daily-recorder.yml`** is one pipeline in four stages, each gating the next:
 
-**`record.yml`** needs an `OPENAI_API_KEY` repository secret and says so in its
-first step, rather than recording twelve videos of a dead chat. It brings up all
-three processes, waits on each with its own health check, runs the online
-doctor, records under `xvfb` (`core/engine.ts` launches `headless: false`, so a
-virtual display is not optional), muxes the narration, writes the manifest and
-uploads the clips. Its nightly cron is written but commented out — every run
-spends model tokens on twelve pages, so switching it on should be a decision.
+| Stage | Job | Gates the next? |
+| :--- | :--- | :--- |
+| 1 | drift gate, run name, page selection | **yes** — a moved doc stops a scheduled run and files an issue |
+| 2 | version watch — what resolved, what is out of reach | no, reports only |
+| 3 | three recording shards, each a full stack | — |
+| 4 | consolidate the clips, then write the manifest once | — |
 
-What a green `record.yml` means is worth stating plainly, because it is not the
+Stage 1 runs on a bare checkout with no install, so a moved doc is caught in
+seconds rather than after three shards each spend two minutes on a toolchain.
+It deliberately does not auto-commit the refreshed snapshot: drift is the
+finding, and folding it into a bot commit would silently re-baseline the harness
+to a page nobody read. **`doc-sync.yml`** is the button the issue points at —
+`npm run drift:sync` in CI, opening a PR that carries the diff and the CHANGELOG
+entry the QA report cites.
+
+The recording stage needs an `OPENAI_API_KEY` repository secret and checks its
+shape in its first step — never printing it — rather than recording twelve
+videos of a dead chat. Everything after that happens inside one Node process
+(`ci/automate.mjs`): it brings up all three services, waits on each with its own
+health check, warms the routes and the runtime, records under `xvfb`
+(`core/engine.ts` launches `headless: false`, so a virtual display is not
+optional), muxes the narration and writes `RUN_REPORT.md`. One process because
+each `run:` step is its own subshell, and a server backgrounded in one step is
+reaped before the next begins.
+
+The recording manifest is written in stage 4 rather than by a shard: `npm run
+manifest` rewrites `manifest.json` against whatever clips are on disk, so a
+shard holding four of twelve pages would mark the other eight missing.
+
+What a green pipeline run means is worth stating plainly, because it is not the
 obvious thing: **not that the features work**. Eight of the twelve pages are
 recorded to demonstrate a defect. Green means every clip captured what it was
 supposed to — including the empty A2UI surface, the dropped state write, and the

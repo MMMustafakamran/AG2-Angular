@@ -1,7 +1,7 @@
 /**
  * Pull the clips a CI recording run produced down into `videos/ci-<run-id>/`.
  *
- * `record.yml` uploads its output as a GitHub artifact, which is where it stays
+ * The pipeline uploads its output as GitHub artifacts, which is where they stay
  * — the clips are gitignored, so CI is the only place a full set exists after a
  * run. Watching them means downloading them, and doing that by hand means
  * finding the run, finding the artifact, unzipping it somewhere, and then
@@ -13,9 +13,14 @@
  * `videos/`; every CI run gets its own subfolder, so two runs can be compared
  * against each other and against local.
  *
- *   npm run ci:videos              newest "Record demos" run
+ *   npm run ci:videos              newest pipeline run
  *   npm run ci:videos -- 12345678  that run id
  *   npm run ci:videos -- --list    what is downloadable, without downloading
+ *
+ * A pipeline run publishes several artifacts — `<run>-drift`, three
+ * `<run>-shard-N`, and the consolidated `<run>` holding every clip and the
+ * manifest. Only the last is downloaded: the shards duplicate its clips, and
+ * pulling all five would land five folders where one set of videos was wanted.
  *
  * Requires the `gh` CLI, authenticated. Everything here is a thin wrapper on it
  * rather than raw REST, so it inherits whatever auth the user already has.
@@ -27,7 +32,7 @@ import { fileURLToPath } from 'node:url';
 
 const RECORDER_DIR = fileURLToPath(new URL('.', import.meta.url));
 const VIDEOS_DIR = join(RECORDER_DIR, 'videos');
-const WORKFLOW = 'record.yml';
+const WORKFLOW = 'daily-recorder.yml';
 
 /** Runs `gh` and returns stdout, or exits with a message a human can act on. */
 function gh(args, { allowFail = false } = {}) {
@@ -55,6 +60,38 @@ function listRuns() {
     '--json', 'databaseId,status,conclusion,createdAt,displayTitle',
   ]);
   return JSON.parse(raw || '[]');
+}
+
+/**
+ * The consolidated artifact for a run: the one whose name carries no suffix.
+ *
+ * A pipeline run publishes `<name>-drift`, `<name>-shard-1..3` and `<name>`.
+ * The last holds every clip from every shard plus the manifest, so it is the
+ * only one worth downloading; taking all of them would unpack five folders and
+ * three duplicate copies of each clip.
+ *
+ * Returns null when nothing matches — an in-progress run, or one that stopped
+ * at the drift gate and therefore never recorded anything.
+ */
+function consolidatedArtifact(runId) {
+  const raw = gh(
+    ['api', `repos/{owner}/{repo}/actions/runs/${runId}/artifacts`, '--jq', '.artifacts[].name'],
+    { allowFail: true },
+  );
+  const names = raw.split(/\r?\n/).map((n) => n.trim()).filter(Boolean);
+  if (names.length === 0) {
+    console.error(`\n  Run ${runId} published no artifacts.\n`);
+    return null;
+  }
+  const consolidated = names.find((n) => !/-drift$|-shard-\d+$/.test(n));
+  if (!consolidated) {
+    console.error(
+      `\n  Run ${runId} published only ${names.join(', ')} — no consolidated` +
+        `\n  recordings artifact, so this run never got past the drift gate.\n`,
+    );
+    return null;
+  }
+  return consolidated;
 }
 
 function humanSize(bytes) {
@@ -108,27 +145,13 @@ function main() {
   }
   mkdirSync(dest, { recursive: true });
 
-  console.log(`\n  Downloading artifacts from run ${runId}...`);
-  gh(['run', 'download', runId, '--dir', dest]);
+  const artifact = consolidatedArtifact(runId);
+  if (!artifact) process.exit(1);
 
-  // gh unpacks each artifact into a subdirectory named after it. One artifact
-  // means one level of nesting nobody wants, so flatten that single case.
-  const entries = readdirSync(dest);
-  if (entries.length === 1) {
-    const only = join(dest, entries[0]);
-    if (statSync(only).isDirectory()) {
-      for (const f of readdirSync(only)) {
-        execFileSync(process.platform === 'win32' ? 'cmd' : 'mv',
-          process.platform === 'win32'
-            ? ['/c', 'move', '/y', join(only, f), join(dest, f)]
-            : [join(only, f), join(dest, f)],
-          { stdio: 'ignore' });
-      }
-      try { execFileSync(process.platform === 'win32' ? 'cmd' : 'rmdir',
-        process.platform === 'win32' ? ['/c', 'rmdir', '/s', '/q', only] : [only],
-        { stdio: 'ignore' }); } catch { /* leave the empty dir rather than fail */ }
-    }
-  }
+  console.log(`\n  Downloading ${artifact} from run ${runId}...`);
+  // `--name` unpacks that one artifact directly into --dir. Without it gh
+  // creates a subdirectory per artifact, and this run has five.
+  gh(['run', 'download', runId, '--dir', dest, '--name', artifact]);
 
   const clips = readdirSync(dest).filter((f) => f.endsWith('.webm')).sort();
   console.log(`\n=== videos/ci-${runId}/ ===`);

@@ -15,16 +15,22 @@ nothing when the docs are broken is a failed run, not a passing one.
 | `autorecorder/` | Per-page demo capture (doc → code → live feature), paced to look human |
 | `prior-testing/` | The earlier manual pass's page-level verdicts, carried in for comparison |
 
-There is no `ci/` directory. The steps it drives in the sibling repos are
-individually runnable here (`npm run drift`, `npm run versions`,
-`npm run record`, `npm run record:consistency`) and are wired into GitHub
-Actions directly, one workflow per kind of red light:
+`ci/` is the recording pipeline, the same one the sibling Angular repos run:
+`node ci/automate.mjs` checks drift, installs, starts all three services in one
+process, and records. Every step stays individually runnable (`npm run drift`,
+`npm run versions`, `npm run record`, `npm run record:consistency`). See
+`ci/README.md`.
 
 | Workflow | When | A red run means |
 |---|---|---|
 | `verify.yml` | push, PR | someone broke the code in this repo |
-| `doc-drift.yml` | nightly, dispatch | CopilotKit edited a page; the harness now demonstrates something the docs no longer say |
-| `record.yml` | dispatch | a clip failed to capture what it was meant to |
+| `daily-recorder.yml` | nightly 05:31 UTC, dispatch | the docs moved, or a clip failed to capture what it was meant to |
+| `doc-sync.yml` | dispatch | — it opens a PR accepting the new docs as the baseline |
+
+`daily-recorder.yml` is one pipeline in four stages — drift gate, version watch,
+three recording shards, consolidate — each gating the next. It replaced the
+separate `doc-drift.yml` and `record.yml`, which ran on schedules four minutes
+apart and so could never let one inform the other.
 
 `verify.yml` also closes two of the gaps listed below: it fails if
 `generated-sources.ts` is stale (so no clip can show code that is not running),
