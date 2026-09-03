@@ -1,0 +1,662 @@
+name: Daily Doc Check, Version Watch and Demo Recording
+
+# One pipeline, four stages, each gating the next:
+#
+#   1. drift    -- do the live docs still say what doc-snapshot/ says?
+#                  On a scheduled run, drift STOPS here, files an issue with the
+#                  diff, and points at the Doc sync workflow. Recording against
+#                  a page that has moved produces footage documenting nothing.
+#   2. versions -- what resolved today, and does the documented install still
+#                  work? Reports; never blocks. A moved version is news.
+#   3. record   -- three sharded workers, each bringing up all three services.
+#   4. consolidate -- merge the shards, then write the recording manifest once
+#                  over the complete set.
+#
+# This replaces the old `record.yml` + `doc-drift.yml` pair. Splitting them had
+# a real cost: the drift check ran on its own schedule four minutes later, so a
+# recording run could not know what it had found, and a red drift run said
+# nothing about whether the clips it invalidated had already been made. Here
+# stage 1 decides, once, before three shards each spend two minutes installing a
+# toolchain.
+#
+# `verify.yml` is deliberately NOT folded in. It is the cheap per-push gate --
+# no secrets, no browser, no model calls -- and its red light means exactly one
+# thing: someone broke the code in this repo. This workflow's red light means
+# the docs moved or a recording failed. Merging them would blur both.
+
+# GitHub allows a workflow_dispatch at most 10 INPUTS. This form uses 9, so
+# there is room for exactly one more. Section checkboxes rather than per-page
+# ones are what keep it under the cap as pages are added.
+#
+# Sections map to page ids in ci/lib/pages.mjs (PAGE_GROUPS), which reads the
+# ids from autorecorder/config/pages.config.ts. A page belonging to no section
+# fails the run, so nothing becomes silently unreachable here.
+
+on:
+  schedule:
+    # 05:31 UTC = 10:31 AM PKT (Asia/Karachi, UTC+5, no DST). This is the slot
+    # the old doc-drift.yml already held, kept so the pipeline lands where the
+    # drift check used to and stays clear of the sibling Angular repos at 05:27.
+    #
+    # Not 05:30, and emphatically not 06:00. GitHub's scheduler is best-effort
+    # and shared: on-the-hour and on-the-half-hour are the most contended slots
+    # on the platform, and runs queued there are routinely delayed by hours or
+    # dropped outright. An odd minute is materially more likely to fire near
+    # time.
+    #
+    # This still cannot GUARANTEE a time -- no `schedule:` can. If exact timing
+    # ever matters, drive it externally via repository_dispatch.
+    - cron: '31 5 * * *'
+  workflow_dispatch:
+    inputs:
+      group_getting_started:
+        description: 'Getting Started — Quickstart, Inspector, Chat UI'
+        type: boolean
+        default: false
+      group_generative_ui:
+        description: 'Generative UI — Frontend Tools & Generative UI, A2UI'
+        type: boolean
+        default: false
+      group_interaction:
+        description: 'Interaction — Voice & Multimodal, Human in the Loop'
+        type: boolean
+        default: false
+      group_shared_state:
+        description: 'Shared State'
+        type: boolean
+        default: false
+      group_threads:
+        description: 'Threads, Memory, Attachments, Headless'
+        type: boolean
+        default: false
+      pages:
+        description: 'Exact page ids, comma-separated (added to any sections ticked above). Blank + nothing ticked = all pages.'
+        required: false
+        type: string
+        default: ''
+      use_lockfile:
+        description: 'Install the committed lockfiles instead of re-resolving. Off by default: a normal run picks up the newest versions package.json already allows.'
+        required: false
+        type: boolean
+        default: false
+      # One choice rather than three booleans, because workflow_dispatch accepts
+      # at most 10 INPUTS and the section checkboxes already claim most of them.
+      # Collapsing halt-on-drift, checks-only and commit-snapshot into a single
+      # enum buys back two slots and makes the mutually-exclusive cases actually
+      # look mutually exclusive.
+      run_mode:
+        description: 'What this run should do'
+        required: false
+        type: choice
+        default: 'record-through-drift'
+        options:
+          - 'record-through-drift'   # drift is reported, then recorded anyway
+          - 'halt-on-drift'          # behave like the nightly: drift stops the run
+          - 'checks-only'            # drift + versions, no recording
+      custom_args:
+        description: 'Extra recorder args (e.g. --limit=5). Overrides every selection above.'
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: daily-recorder-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  # Resolve the run name and the page selection once, so every shard agrees and
+  # a bad selection fails in seconds instead of after three stacks boot.
+  prepare:
+    name: 1. Doc drift gate & run selection
+    runs-on: ubuntu-latest
+    outputs:
+      run_name: ${{ steps.meta.outputs.run_name }}
+      pages: ${{ steps.meta.outputs.pages }}
+      drifted: ${{ steps.check.outputs.drifted }}
+      drift_state: ${{ steps.check.outputs.state }}
+      should_record: ${{ steps.decide.outputs.should_record }}
+      gated: ${{ steps.decide.outputs.gated }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # No install anywhere in this job. Everything under ci/ that runs here is
+      # dependency-free .mjs for exactly this reason: the gate answers in
+      # seconds, on a bare checkout.
+      - id: meta
+        env:
+          INPUT_PAGES: ${{ inputs.pages }}
+        run: |
+          set -euo pipefail
+
+          RUN_NAME="$(node ci/run-name.mjs)"
+          echo "run_name=$RUN_NAME" >> "$GITHUB_OUTPUT"
+          echo "Artifacts will be named: $RUN_NAME"
+
+          SEL_GROUPS=""
+          add_group() { [ "$1" = "true" ] && SEL_GROUPS="${SEL_GROUPS:+$SEL_GROUPS,}$2" || true; }
+          add_group "${{ inputs.group_getting_started }}" getting_started
+          add_group "${{ inputs.group_generative_ui }}"   generative_ui
+          add_group "${{ inputs.group_interaction }}"     interaction
+          add_group "${{ inputs.group_shared_state }}"    shared_state
+          add_group "${{ inputs.group_threads }}"         threads
+
+          PAGES="$(node ci/resolve-selection.mjs --pages="${INPUT_PAGES:-}" --groups="$SEL_GROUPS")"
+          echo "pages=$PAGES" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### 🎬 $RUN_NAME"
+            if [ -n "$PAGES" ]; then
+              echo "Recording: \`$PAGES\`"
+            else
+              echo "Recording: **all pages**"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ---- The gate -----------------------------------------------------
+      #
+      # Recording is only worth doing against a page that still says what it
+      # said when doc-snapshot/ was taken. Once the live doc moves, an
+      # unattended run publishes clips of a demo that no longer matches it, and
+      # nobody is watching a 5am run to notice. So this runs FIRST, cheaply,
+      # before three shards each spend two minutes installing a toolchain.
+      - name: Check the live docs against doc-snapshot/
+        id: check
+        run: |
+          set +e
+          node ci/check-doc-drift.mjs > drift.txt 2>&1
+          CODE=$?
+          set -e
+          cat drift.txt
+
+          # check-doc-drift.mjs exits 2 on drift and 0 when clean. Anything else
+          # is the checker itself failing -- docs site unreachable, parse error --
+          # which means drift is UNKNOWN, not absent. Treating that as "clean"
+          # would record straight through a real change on any morning the docs
+          # host has a blip.
+          if [ "$CODE" = "2" ]; then
+            echo "drifted=true"  >> "$GITHUB_OUTPUT"
+            echo "state=drift"   >> "$GITHUB_OUTPUT"
+          elif [ "$CODE" = "0" ]; then
+            echo "drifted=false" >> "$GITHUB_OUTPUT"
+            echo "state=clean"   >> "$GITHUB_OUTPUT"
+          else
+            echo "drifted=false" >> "$GITHUB_OUTPUT"
+            echo "state=unknown" >> "$GITHUB_OUTPUT"
+          fi
+
+          {
+            echo "## 1. Doc drift"
+            echo
+            case "$CODE" in
+              0) echo "**Clean.** The live docs match the committed snapshot." ;;
+              2) echo "**Drifted.** The live docs moved. Recording is halted." ;;
+              *) echo "**Unknown.** The drift checker exited $CODE -- it could not read the docs. Drift is unknown, not absent." ;;
+            esac
+            echo
+            echo '```'
+            cat drift.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit 0
+
+      - name: Open or update the drift issue
+        if: steps.check.outputs.state == 'drift' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let drift = fs.readFileSync('drift.txt', 'utf8').trim();
+            if (drift.length > 55000) {
+              drift = drift.slice(0, 55000) + '\n... (truncated -- see the drift artifact on the run)';
+            }
+            const body = [
+              'The live docs changed in a way that invalidates what this repo records.',
+              'Recording was **halted** -- clips of a demo that no longer matches the',
+              'page document nothing.',
+              '',
+              '### What drifted',
+              '',
+              '```',
+              drift,
+              '```',
+              '',
+              '**To clear:** review the diff above, then run the **Doc sync** workflow',
+              '(Actions -> Doc sync -> Run workflow). It rewrites `doc-snapshot/`,',
+              'appends the CHANGELOG entry, and opens a PR carrying this diff in its',
+              'body. Reconcile the demo pages with the new code blocks on that branch,',
+              'merge, then re-run this workflow.',
+              '',
+              `_Doc sync: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/workflows/doc-sync.yml_`,
+              `_Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}_`,
+            ].join('\n');
+
+            const title = 'Doc drift: the live docs moved';
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'doc-drift',
+            });
+
+            // One issue per drift, reopened by comment rather than duplicated --
+            // a daily job that files a fresh issue every morning gets muted.
+            const existing = open.find((i) => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['doc-drift'],
+              });
+            }
+
+      - name: Decide whether to record
+        id: decide
+        env:
+          STATE: ${{ steps.check.outputs.state }}
+          RUN_MODE: ${{ inputs.run_mode }}
+        run: |
+          set -euo pipefail
+
+          # A scheduled run is unattended, so drift halts it and is not asked.
+          # A manual run is attended -- the operator sees the summary -- so
+          # there drift only halts if they asked for it.
+          GATING=false
+          if [ "$STATE" != "clean" ]; then
+            if [ "${GITHUB_EVENT_NAME:-}" = "schedule" ] || [ "${RUN_MODE:-}" = "halt-on-drift" ]; then
+              GATING=true
+            fi
+          fi
+
+          if [ "${RUN_MODE:-}" = "checks-only" ]; then
+            echo "should_record=false" >> "$GITHUB_OUTPUT"
+            echo "gated=false" >> "$GITHUB_OUTPUT"
+            echo "> Checks-only run requested -- stages 1 and 2 only, no recording." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$GATING" = "true" ]; then
+            echo "should_record=false" >> "$GITHUB_OUTPUT"
+            echo "gated=true" >> "$GITHUB_OUTPUT"
+            echo "> **Pipeline stopped at stage 1.** The docs moved; recording skipped and an issue filed." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "should_record=true" >> "$GITHUB_OUTPUT"
+            echo "gated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.run_name }}-drift
+          path: drift.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ---- 2. Do the versions and the setup still hold? ---------------------
+  #
+  # Runs only if stage 1 was clean, and never blocks stage 3. Sequenced here
+  # rather than left on its own cron so its answer arrives in the same summary
+  # as the run it explains. See ci/VERSION-WATCH.md.
+  versions:
+    name: 2. Versions & setup
+    needs: prepare
+    # Not should_record: a checks-only run deliberately sets that false while
+    # still wanting this stage. What skips stage 2 is the drift gate halting.
+    if: needs.prepare.outputs.gated != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Scoped by the commit step to ci/resolved-versions.json alone. Note this
+      # job holds NO model API keys -- those live only on record-workers. Write
+      # access and the secrets are deliberately never in the same job.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The runner's Node 22 ships npm 10, but this frontend pins a newer npm in
+      # `packageManager`, and a lockfile-free install needs it. Read the pin
+      # rather than restating it, so bumping package.json cannot leave CI behind.
+      - name: Use the npm version the frontend pins
+        run: |
+          set -euo pipefail
+          PINNED="$(node -p "require('./frontend/package.json').packageManager")"
+          npm install -g "$PINNED"
+          npm --version
+
+      # Resolve the way a recording run does -- ci/automate.mjs drops the
+      # lockfiles by default -- so this describes the range boundaries as they
+      # stand this morning, not versions committed months ago.
+      #
+      # It is NOT authoritative for what the demos ran on. This is a separate
+      # job on a separate runner doing its own install, minutes earlier; if a
+      # release lands in that window the two legitimately disagree. The
+      # recorded truth comes from RUN_REPORT, which reads the installed tree
+      # inside the shard that did the recording.
+      #
+      # The Python side is NOT re-resolved here: the recorder runs
+      # `uv sync --upgrade`, and doing that here would mean committing a relock
+      # as a side effect of asking what moved.
+      - name: Re-resolve dependencies
+        run: |
+          set -euo pipefail
+          rm -f frontend/package-lock.json autorecorder/package-lock.json
+          npm --prefix frontend install --no-audit --no-fund
+          npm --prefix autorecorder install --no-audit --no-fund
+
+      # ci/check-versions.mjs is read-only and always exits 0: a moved version is
+      # news, not a build failure, and must never decide whether demos record.
+      # It is a stage of this pipeline so its answer lands in the same summary
+      # as the recordings it explains -- not so it can block them.
+      - name: Report dependency drift and snapshot resolved versions
+        run: node ci/check-versions.mjs --snapshot | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # git history is the version timeline: when a recording breaks today but
+      # not yesterday, `git log -p ci/resolved-versions.json` names the change.
+      - name: Commit the snapshot if it moved
+        # Scheduled runs alone. A manual run reports without committing: the
+        # timeline this snapshot builds is a daily one, and a mid-day ad-hoc
+        # run writing into it makes the diffs mean less, not more.
+        if: github.event_name == 'schedule'
+        run: |
+          set -euo pipefail
+          # Stage BEFORE asking whether anything moved: `git diff` ignores
+          # untracked files, so on the first run -- the one establishing the
+          # baseline -- it would report no change and throw the snapshot away.
+          git add -- ci/resolved-versions.json
+          if git diff --cached --quiet -- ci/resolved-versions.json; then
+            echo "No version movement to record."
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(ci): record resolved dependency versions'
+
+          # A protected default branch rejects this push. That is a repo-settings
+          # answer, not a broken run: the report above stands either way.
+          if ! git push; then
+            {
+              echo '> Version snapshot not recorded -- the push was rejected,'
+              echo '> most likely by branch protection. The report above still'
+              echo '> stands, but without a committed snapshot there is no'
+              echo '> day-to-day diff.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  record-workers:
+    name: 3. Worker ${{ matrix.shard }}/3
+    needs: [prepare, versions]
+    # `always()` so a red versions job -- which reports, and must not decide
+    # whether demos record -- cannot stop stage 3. The drift gate is what
+    # decides, and it already has.
+    if: always() && needs.prepare.outputs.should_record == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+
+    env:
+      # backend/main.py builds an OpenAIConfig unconditionally -- there is no
+      # Azure branch on this backend -- and reads exactly these two.
+      # OPENAI_API_KEY is exported into $GITHUB_ENV by the normalization step below
+      # so that trailing newlines/carriage returns are stripped and the clean key is masked.
+      OPENAI_CHAT_MODEL_ID: ${{ vars.OPENAI_CHAT_MODEL_ID || 'gpt-4o-mini' }}
+      # Where the Copilot Runtime (frontend/server.ts) finds the backend. It
+      # already defaults to this, but a default that silently moves would send
+      # every recording at a dead port, so it is stated.
+      AG2_AGENT_URL: http://localhost:8400/agent/
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # GitHub masks a secret by matching its stored value against each log
+      # line. A secret saved with a trailing newline can never match one line,
+      # so masking silently does nothing and the credential prints in full.
+      # Registering the trimmed value as a mask restores redaction regardless
+      # of how the secret was stored, and re-exporting it means every later
+      # step (and subshell) sees a valid key without trailing whitespace.
+      - name: Normalise and mask credentials
+        env:
+          RAW_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          VALUE="$(printf '%s' "${RAW_OPENAI_API_KEY:-}" | tr -d '\r\n')"
+          if [ -n "$VALUE" ]; then
+            echo "::add-mask::$VALUE"
+            echo "OPENAI_API_KEY=${VALUE}" >> "$GITHUB_ENV"
+          fi
+
+      # Checked, never echoed, and BEFORE anything installs.
+      # ci/lib/preflight.mjs makes the same check inside the run. This one is
+      # not redundant: it fails in ten seconds rather than after a toolchain
+      # install, three times over.
+      - name: Require a well-formed model key
+        run: |
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "::error::OPENAI_API_KEY is not set for this repository."
+            echo "Add it under Settings > Secrets and variables > Actions."
+            echo "The AG2 backend talks to OpenAI directly and will not start without it."
+            exit 1
+          fi
+
+          # Length and character class only. Nothing below prints any part of
+          # the value, not even a prefix.
+          raw_len=${#OPENAI_API_KEY}
+          trimmed=$(printf '%s' "$OPENAI_API_KEY" | tr -d '[:space:]')
+          trimmed_len=${#trimmed}
+
+          if [ "$raw_len" -ne "$trimmed_len" ]; then
+            echo "::error::OPENAI_API_KEY contains whitespace ($((raw_len - trimmed_len)) character(s))."
+            echo "A trailing newline or internal whitespace makes the Authorization header illegal."
+            exit 1
+          fi
+
+          case "$trimmed" in
+            *[![:print:]]*)
+              echo "::error::OPENAI_API_KEY contains non-printable characters."
+              exit 1
+              ;;
+          esac
+
+          echo "Model key present and well formed ($raw_len characters)."
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+            autorecorder/package-lock.json
+
+      # The runner's Node 22 ships npm 10, but this frontend pins npm 12 in
+      # `packageManager`. That gap is not cosmetic: npm 10 cannot resolve the
+      # `"rxjs": "$rxjs"` reference in the frontend's `overrides`, so a
+      # lockfile-free install — which is what a normal run performs — dies
+      # on `Unable to resolve reference $rxjs`. Read the pin rather than
+      # restating it, so bumping package.json cannot leave CI behind.
+      - name: Use the npm version the frontend pins
+        run: |
+          set -euo pipefail
+          PINNED="$(node -p "require('./frontend/package.json').packageManager")"
+          echo "Runner has npm $(npm --version); frontend pins $PINNED"
+          npm install -g "$PINNED"
+          npm --version
+
+      - name: Install Playwright & System Chromium Dependencies
+        run: |
+          cd autorecorder
+          npm install
+          npx playwright install --with-deps chromium
+
+      # ffmpeg lives here, not in consolidate, because muxing happens once — in
+      # the worker that produced the video.
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      # One process, three services. Each `run:` step is its own subshell, so a
+      # server backgrounded in one step is reaped before the next begins --
+      # which is why the servers are spawned inside ci/automate.mjs rather than
+      # here, and why this is a single step rather than the six the old
+      # record.yml needed.
+      - name: Record demos (shard ${{ matrix.shard }}/3)
+        env:
+          SELECTED_PAGES: ${{ needs.prepare.outputs.pages }}
+          INPUT_CUSTOM_ARGS: ${{ inputs.custom_args }}
+          INPUT_USE_LOCKFILE: ${{ inputs.use_lockfile }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_CUSTOM_ARGS:-}" ]; then
+            RECORD_ARGS="${INPUT_CUSTOM_ARGS}"
+          elif [ -n "${SELECTED_PAGES:-}" ]; then
+            RECORD_ARGS="--pages=${SELECTED_PAGES} --shard=${SHARD}/3"
+          else
+            RECORD_ARGS="--shard=${SHARD}/3"
+          fi
+
+          EXTRA_FLAGS=""
+          if [ "${INPUT_USE_LOCKFILE:-false}" = "true" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS --use-lockfile"
+          fi
+          # Always. The drift gate in stage 1 already decided -- it either found
+          # the docs clean or was explicitly overridden -- so re-checking here
+          # would re-litigate a settled question three times over, and let a
+          # transient docs-site blip fail one shard out of three.
+          EXTRA_FLAGS="$EXTRA_FLAGS --ignore-doc-drift"
+
+          echo "Shard ${SHARD}/3 flags: $EXTRA_FLAGS $RECORD_ARGS"
+          # headless: false in autorecorder/core/engine.ts -- the recorder films
+          # a real window and draws its own cursor, taskbar and Notepad over it,
+          # so a virtual display is not optional here.
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            node ci/automate.mjs $EXTRA_FLAGS $RECORD_ARGS
+
+      - name: Publish Shard Report to GitHub Summary
+        if: always()
+        run: |
+          if [ -f "autorecorder/videos/RUN_REPORT.md" ]; then
+            echo "### 🧩 Worker Shard ${{ matrix.shard }}/3 Summary" >> $GITHUB_STEP_SUMMARY
+            cat autorecorder/videos/RUN_REPORT.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 🧩 Worker Shard ${{ matrix.shard }}/3 produced no report" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Shard Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.prepare.outputs.run_name }}-shard-${{ matrix.shard }}
+          path: |
+            autorecorder/videos/*.webm
+            autorecorder/videos/RUN_REPORT.md
+            autorecorder/videos/RUN_REPORT.json
+            autorecorder/videos/logs/*.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  consolidate-recordings:
+    name: 4. Consolidate & merge all video artifacts
+    needs: [prepare, record-workers]
+    # Nothing to consolidate when the gate stopped the run. Without this it
+    # would still run and publish an empty artifact, which reads as "recorded,
+    # produced nothing" rather than "never recorded".
+    if: always() && needs.prepare.outputs.should_record == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # Checked out because the manifest step below needs the recorder and the
+      # sources it hashes. Downloading artifacts alone would not be enough.
+      - uses: actions/checkout@v4
+
+      - name: Download all shard artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: autorecorder/videos
+          pattern: ${{ needs.prepare.outputs.run_name }}-shard-*
+          merge-multiple: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: autorecorder/package-lock.json
+
+      - name: Install recorder
+        id: install_recorder
+        working-directory: autorecorder
+        run: npm ci
+
+      # Written HERE and not in the shards. `npm run manifest` rewrites
+      # manifest.json against whatever clips are on disk, so a shard that
+      # recorded four of twelve pages would mark the other eight missing and the
+      # three shards would each publish a different, wrong manifest. Run once
+      # over the merged set, it says what the run as a whole produced: when each
+      # clip was made, what it hashes to, and whether the code it shows has
+      # moved since.
+      #
+      # Never fatal: a run whose clips are all present should not go red because
+      # its provenance file could not be written.
+      - name: Write the recording manifest
+        if: steps.install_recorder.outcome == 'success'
+        continue-on-error: true
+        working-directory: autorecorder
+        run: npm run manifest
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo '## 4. Recording manifest'
+            echo
+            if [ -f autorecorder/videos/MANIFEST.md ]; then
+              sed -n '/^| #/,/^$/p' autorecorder/videos/MANIFEST.md
+            else
+              echo 'No manifest produced — the run did not reach that step.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # One folder holding every clip from the run, named for the project and
+      # the time it ran.
+      #
+      # Clips and the manifest only. RUN_REPORT and the server logs are
+      # PER-SHARD -- three shards each write their own -- so `merge-multiple`
+      # would leave one arbitrary shard's copy standing here and it would read
+      # as the whole run's. They stay on the three `-shard-N` artifacts, where
+      # which shard produced them is part of the name.
+      - name: Upload Consolidated Demo Recordings Package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.prepare.outputs.run_name }}
+          path: |
+            autorecorder/videos/*.webm
+            autorecorder/videos/MANIFEST.md
+            autorecorder/videos/manifest.json
+          if-no-files-found: ignore
+          retention-days: 14

@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "automate": "node ci/automate.mjs",
+    "automate:pull": "node ci/automate.mjs --pull",
+    "automate:locked": "node ci/automate.mjs --use-lockfile",
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "record": "npm --prefix autorecorder run record --",
@@ -14,7 +17,9 @@
     "record:mux": "npm --prefix autorecorder run mux",
     "record:manifest": "npm --prefix autorecorder run manifest",
     "ci:videos": "npm --prefix autorecorder run ci:videos --",
-    "drift": "npm --prefix frontend run doc:check",
+    "ci:pages": "node ci/list-pages.mjs",
+    "ci:versions": "node ci/check-versions.mjs",
+    "drift": "node ci/check-doc-drift.mjs",
     "drift:sync": "npm --prefix frontend run doc:sync",
     "versions": "npm --prefix frontend run gen:versions"
   }
