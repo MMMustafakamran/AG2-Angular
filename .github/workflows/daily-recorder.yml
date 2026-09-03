@@ -411,7 +411,8 @@ jobs:
     env:
       # backend/main.py builds an OpenAIConfig unconditionally -- there is no
       # Azure branch on this backend -- and reads exactly these two.
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # OPENAI_API_KEY is exported into $GITHUB_ENV by the normalization step below
+      # so that trailing newlines/carriage returns are stripped and the clean key is masked.
       OPENAI_CHAT_MODEL_ID: ${{ vars.OPENAI_CHAT_MODEL_ID || 'gpt-4o-mini' }}
       # Where the Copilot Runtime (frontend/server.ts) finds the backend. It
       # already defaults to this, but a default that silently moves would send
@@ -422,14 +423,24 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Checked, never echoed, and BEFORE anything installs. A secret stored
-      # with a stray newline defeats GitHub's log masking -- the mask matches
-      # the stored value, so a form of the key WITHOUT the newline (which is
-      # what an error message prints) sails straight through and lands in a
-      # public log. That happened on run 33477092124 and cost a key rotation,
-      # so the shape of the value is validated here, before anything can
-      # construct a request from it.
-      #
+      # GitHub masks a secret by matching its stored value against each log
+      # line. A secret saved with a trailing newline can never match one line,
+      # so masking silently does nothing and the credential prints in full.
+      # Registering the trimmed value as a mask restores redaction regardless
+      # of how the secret was stored, and re-exporting it means every later
+      # step (and subshell) sees a valid key without trailing whitespace.
+      - name: Normalise and mask credentials
+        env:
+          RAW_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          VALUE="$(printf '%s' "${RAW_OPENAI_API_KEY:-}" | tr -d '\r\n')"
+          if [ -n "$VALUE" ]; then
+            echo "::add-mask::$VALUE"
+            echo "OPENAI_API_KEY=${VALUE}" >> "$GITHUB_ENV"
+          fi
+
+      # Checked, never echoed, and BEFORE anything installs.
       # ci/lib/preflight.mjs makes the same check inside the run. This one is
       # not redundant: it fails in ten seconds rather than after a toolchain
       # install, three times over.
@@ -450,10 +461,7 @@ jobs:
 
           if [ "$raw_len" -ne "$trimmed_len" ]; then
             echo "::error::OPENAI_API_KEY contains whitespace ($((raw_len - trimmed_len)) character(s))."
-            echo "A trailing newline makes the Authorization header illegal, so every"
-            echo "model call fails, the AG-UI stream dies, and the Copilot Runtime goes"
-            echo "with it - every page then reports 'Failed to fetch'."
-            echo "It also breaks log masking. Re-add the secret as a single unbroken line."
+            echo "A trailing newline or internal whitespace makes the Authorization header illegal."
             exit 1
           fi
 
