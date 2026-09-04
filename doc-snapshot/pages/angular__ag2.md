@@ -177,7 +177,7 @@ More detail: [Inspector](/angular/ag2/inspector).
 ## Next steps
 
 - [Runtime and backend docs](backend/copilot-runtime): configure the server, secure requests, and deploy without leaving the selected Angular surface.
-- [CopilotKit Intelligence](premium/overview): add durable threads, inspection, and cloud-hosted or self-hosted operations.
+- [CopilotKit Intelligence](intelligence/overview): add durable threads, inspection, and cloud-hosted or self-hosted operations.
 - [Angular task guides](guides/chat-ui): build chat UI, tools, generative UI, interrupts, shared state, threads, memory, attachments, and headless UI.
 - [Angular feature examples](features): find runnable examples and canonical shared Angular source for each supported feature.
 - [Angular API reference](/reference/angular): use components, signals, tools, context, and runtime services.
