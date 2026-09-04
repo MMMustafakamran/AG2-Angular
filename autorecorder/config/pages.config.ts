@@ -158,10 +158,14 @@ export const PAGES = definePages([
     docPath: 'guides/frontend-tools-generative-ui',
     route: 'frontend-tools-generative-ui',
     // The constructor is the lesson: `registerRenderToolCall` for the
-    // server-side tool, `registerFrontendTool` for the browser-side one.
+    // server-side tool, `registerFrontendTool` for the browser-side one, and
+    // `registerComponent` — the guide's new first section — now mounted and
+    // running, since the frontend moved to @copilotkit/angular 0.5.1.
+    // Class declaration through the closing brace: lines 57-86 of an 87-line
+    // file, re-counted after the third registration replaced the commented one.
     ideFile: 'frontend/src/app/features/tools/tools-chat.component.ts',
-    startLine: 49,
-    endLine: 66,
+    startLine: 57,
+    endLine: 86,
     extraTabs: [
       {
         filePath: 'frontend/src/app/features/tools/weather-card.component.ts',
@@ -173,11 +177,27 @@ export const PAGES = definePages([
       // the tool under that name, which is what the renderer binds to.
       // `frontend tools : server tool getWeather start|end`.
       { filePath: 'backend/main.py', startLine: 47, endLine: 57 },
+      // The guide's "Let the agent display one of your components" renderer,
+      // verbatim. Its `@if (call.status === "in-progress")` guard is the second
+      // finding on camera: the real status is "executing", so the guard never
+      // fires and the @else branch paints an empty card until the args land.
+      // `@Component` through the class brace, matching the weather-card tab.
+      {
+        filePath: 'frontend/src/app/features/tools/incident-card.component.ts',
+        startLine: 12,
+        endLine: 29,
+      },
     ],
-    // Two turns: a server-side tool the browser only renders, then a frontend
-    // tool whose result is the page itself repainting.
+    // Three turns: a server-side tool the browser only renders, a frontend tool
+    // whose result is the page itself repainting, and the new display-only
+    // registration — which draws the right card and then makes the agent
+    // apologise for it.
     prompt: "What's the weather in Tokyo?",
-    prompts: ["What's the weather in Tokyo?", 'Change the background to violet'],
+    prompts: [
+      "What's the weather in Tokyo?",
+      'Change the background to violet',
+      'Show me incident INC-4711, severity sev1.',
+    ],
     waitAfterPromptMs: 4000,
   },
 

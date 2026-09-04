@@ -143,7 +143,7 @@ import { SOURCES, readSource } from '../lib/generated-sources';
                   class="flex items-center gap-1.5 py-0.5 px-2 rounded cursor-pointer hover:bg-[#2a2d2e]"
                   [class.bg-[#37373d]]="currentFile().includes('tools-chat')"
                   [class.text-white]="currentFile().includes('tools-chat')"
-                  (click)="selectFile('src/app/features/tools/tools-chat.component.ts', 55)"
+                  (click)="selectFile('src/app/features/tools/tools-chat.component.ts', 61)"
                 >
                   <span class="text-[#3178c6]">TS</span>
                   <span>tools-chat.component.ts</span>

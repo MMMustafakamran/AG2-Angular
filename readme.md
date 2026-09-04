@@ -102,7 +102,7 @@ The project defines each feature area in [nav-config.ts](frontend/src/app/lib/na
 | :--- | :--- | :--- | :--- |
 | **Quickstart** | [/quickstart](frontend/src/app/pages/quickstart.ts) | Baseline chat integration with `provideCopilotKit` and `<copilot-chat />` | `Working` |
 | **Chat UI & Theming** | [/chat-ui](frontend/src/app/pages/chat-ui.ts) | Embedded, sidebar, and popup surfaces + custom message components | `Working` |
-| **Frontend Tools & Gen UI** | [/frontend-tools-generative-ui](frontend/src/app/pages/frontend-tools-generative-ui.ts) | Server-side tools rendered in Angular, browser-side tools, sandboxed Open Generative UI | `Working` |
+| **Frontend Tools & Gen UI** | [/frontend-tools-generative-ui](frontend/src/app/pages/frontend-tools-generative-ui.ts) | Server-side tools rendered in Angular, browser-side tools, sandboxed Open Generative UI, and the display-only `registerComponent` path | `Partial` (the `registerComponent` snippet ships four defects — see Known issues) |
 | **Human-In-The-Loop** | [/human-in-the-loop](frontend/src/app/pages/human-in-the-loop.ts) | `registerHumanInTheLoop` confirmation dialogs; interrupt panels | `Working` (tool path only — see Known issues) |
 | **Shared State & Context** | [/shared-state](frontend/src/app/pages/shared-state.ts) | `injectAgentStore` and contextual metadata injection | `Broken` (writes dropped — see Known issues) |
 | **Attachments** | [/attachments](frontend/src/app/pages/attachments.ts) | File picker, drag-and-drop, clipboard image pasting | `Working` |
@@ -190,6 +190,52 @@ All ten pages under `/angular/ag2` are byte-identical to the ones under
 `/angular/ms-agent-python` once the slug is normalised. Findings 3, 4 and 5
 are direct consequences: the pages describe capabilities of a different
 backend.
+
+**10 · The Frontend tools guide's new first section runs, and its snippet is wrong four ways.**
+"Let the agent display one of your components" teaches `registerComponent` —
+display-only generative UI, no `handler`, nothing on the agent side. That much
+holds: `show_incident` is declared by the browser, forwarded over AG-UI, and the
+AG2 process is untouched. Implemented verbatim at `@copilotkit/angular` 0.5.1
+(declared `^0.5.1`), the published snippet then fails in four ways, all
+reproduced against a live agent:
+
+1. **The agent apologises for the card it just drew.** With no `handler`, core
+   returns an empty tool result, the model reads the emptiness as failure, and
+   posts a second message contradicting the correct card above it. Reproduced on
+   every run. `followUp: false` suppresses it — `RegisterComponentConfig` carries
+   the field and the guide never mentions it.
+2. **The snippet's loading guard never fires.** It gates on
+   `status === "in-progress"`; the observed status while arguments stream is
+   `"executing"`, so the `@else` branch runs with empty args and paints a blank
+   card before the values land.
+3. **The status never reaches `"complete"`.** Sampled once a second for 25
+   seconds: `"executing"` throughout. The `registerRenderToolCall` snippet higher
+   up this same page gates its content on `"complete"`, so that documented
+   pattern applied to a display-only tool renders its loading branch forever.
+4. **The card is not a card.** The snippet ships no CSS and pairs an inline
+   `<strong>` with an inline `<span>`; Angular's default
+   `preserveWhitespaces: false` strips the gap between them, so it renders as the
+   unstyled run-together string `INC-4711sev1`.
+
+Two smaller gaps: the registration snippet is a bare ` ```ts ` fence with no
+imports, so `registerComponent` and `z` are undefined identifiers as published;
+and the section never states that it must be called from an Angular injection
+context, though the API docs require one and the `registerFrontendTool` section
+three paragraphs down does say so. The `description` you pass is also not what
+the model receives — core prepends a fixed preamble
+("Use this tool to display the \"show_incident\" component in the chat...").
+The same page now also carries two renderers in two shapes: the older snippet
+imports `{ type AngularToolCall, type ToolRenderer }` and sets no `standalone`,
+the new one imports both as values and sets `standalone: true` — which
+`frontend/AGENTS.md` forbids and the older snippet respects, and which fails
+under `verbatimModuleSyntax` with `TS1484`. Both are kept verbatim.
+
+*Note, not a finding:* `registerComponent` does not exist in
+`@copilotkit/angular` 0.4.0, which this repo declared until now. A caret on a
+0.x package caps below the next minor, so `^0.4.0` could never reach it, while
+the quickstart's unpinned `npm install` gives a new reader 0.5.1. The frontend
+moved to `^0.5.1` (and `@copilotkit/runtime` to `^1.70.1`, which 0.5.1 pins) so
+the section could be QA'd at all; the upgrade was a clean drop-in.
 
 ---
 

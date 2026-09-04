@@ -92,10 +92,13 @@ export async function openNotepadWindow(
 
       setTimeout(() => {
         np.style.opacity = '1';
-        if (sRight !== 'auto') {
-          np.style.transform = 'none';
-        } else {
+        // Only the centred default settles with a translateX; an edge-anchored
+        // window (left: or right:) must settle at `none`, or the reveal shunts
+        // it half its own width off the anchor it was positioned against.
+        if (sLeft === '50%') {
           np.style.transform = 'translateX(-50%) scale(1)';
+        } else {
+          np.style.transform = 'none';
         }
       }, 30);
     },
