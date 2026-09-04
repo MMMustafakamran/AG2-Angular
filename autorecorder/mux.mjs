@@ -40,9 +40,14 @@
  * minutes, so it fits, but it is the constraint to check first if a voiceover
  * ever cuts off mid-sentence.
  *
- * WebM cannot carry AAC — audio is re-encoded to libopus, which wants 48 kHz,
- * hence the explicit `aresample`. Missing ffmpeg is a skip, not a failure: a
- * silent demo still beats no demo.
+ * WebM carries only Vorbis or Opus, and the choice is not free: Windows Media
+ * Player renders VP8 fine and has no Opus decoder, so an Opus track plays as
+ * silence there with no error and no warning — which is how a correctly muxed
+ * and correctly normalised clip still gets reported as "the video has no
+ * audio". Loudness was only half that story. Vorbis is decoded by WMP and by
+ * every browser, so it is what these are encoded with; it wants 48 kHz, hence
+ * the explicit `aresample`. Missing ffmpeg is a skip, not a failure: a silent
+ * demo still beats no demo.
  */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -163,10 +168,10 @@ export function muxAudioFiles() {
       // overruns from extending the clip past its last frame.
       //
       // aresample sits between them because loudnorm runs its own internal
-      // resampling and hands back 192 kHz, which libopus will not take.
+      // resampling and hands back 192 kHz, which libvorbis will not take.
       const filter = `${loudnormFilter(audioPath)},aresample=48000,apad`;
       execSync(
-        `ffmpeg -y -i "${inputPath}" -i "${audioPath}" -c:v copy -c:a libopus -b:a 128k ` +
+        `ffmpeg -y -i "${inputPath}" -i "${audioPath}" -c:v copy -c:a libvorbis -q:a 5 ` +
           `-filter:a "${filter}" -map 0:v:0 -map 1:a:0 -shortest "${tempPath}"`,
         { stdio: 'ignore' },
       );
