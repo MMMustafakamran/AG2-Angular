@@ -7,27 +7,42 @@
  * maps only the video stream out of the existing clip, so a second run
  * replaces the voiceover rather than layering a second track under it.
  *
- * Two pages carry a voiceover: Shared State and Threads.
+ * Three pages carry a voiceover: Frontend Tools & Generative UI, Shared State
+ * and Threads.
  *
  * `thread-angular.m4a` is the one shared verbatim with the other Angular repos
  * in this workspace — that narration is about the CopilotKit concept rather
  * than the agent framework behind it, so the same recording fits AGNO-,
  * MASTRA- and MSPY-angular too.
  *
- * `sharedstate-angular.m4a` is this repo's own, and longer (51s against the
- * shared track's 45s). Do not "resync" it with the sibling repos: shared state
- * fails differently on AG2 than on the backends they test, so the clip it
- * narrates is a different clip.
+ * `sharedstate-botherror.m4a` and `angular-frontendtoolsv1.71.m4a` are this
+ * repo's own. Do not "resync" them with the sibling repos: shared state fails
+ * differently on AG2 than on the backends they test, so the clips they narrate
+ * are different clips.
  *
  * Every other clip stays silent and is skipped by the table below.
  *
- * The ffmpeg call below pins output to the VIDEO's length, so a narration
- * longer than its clip is truncated rather than extending it. At 51s that is
- * not close — the Shared State demo runs well past two minutes — but it is the
- * constraint to check first if a voiceover ever cuts off mid-sentence.
+ * ── Why the narration is normalised on the way in ──────────────────────────
+ * These tracks are recorded quietly: measured end to end they land between
+ * -27 and -36 LUFS, against the -16 LUFS a browser plays other web video at.
+ * Muxed as-is the voiceover is present but 10-20 dB under everything else the
+ * viewer watches that day, which is indistinguishable from a silent clip
+ * without reaching for the volume slider — and it is exactly why the first
+ * runs of this were reported as "the video has no audio". `loudnorm` measures
+ * each track and applies a flat gain so every clip in a run comes out at the
+ * same, audible level. It is two passes because a single-pass loudnorm
+ * compresses dynamically and pumps on speech; measuring first lets the second
+ * pass normalise linearly, which changes the level and nothing else.
  *
- * WebM cannot carry AAC — audio is re-encoded to libopus. Missing ffmpeg is a
- * skip, not a failure: a silent demo still beats no demo.
+ * The ffmpeg call below pins output to the VIDEO's length, so a narration
+ * longer than its clip is truncated rather than extending it. At 88s the
+ * Frontend Tools track is the one to watch: that clip runs a little over two
+ * minutes, so it fits, but it is the constraint to check first if a voiceover
+ * ever cuts off mid-sentence.
+ *
+ * WebM cannot carry AAC — audio is re-encoded to libopus, which wants 48 kHz,
+ * hence the explicit `aresample`. Missing ffmpeg is a skip, not a failure: a
+ * silent demo still beats no demo.
  */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -45,14 +60,20 @@ const AUDIO_DIR = path.join(RECORDER_DIR, 'audio');
  *
  * The mapping is explicit rather than inferred from filenames, so a renamed
  * demo drops its voiceover visibly instead of quietly muxing it onto the wrong
- * clip. Both matches are unique across this repo's `videoName`s.
+ * clip. All three matches are unique across this repo's `videoName`s.
  *
  * @type {{ audioFile: string, videoMatch: string }[]}
  */
 const AUDIO_TRACKS = [
-  { audioFile: 'sharedstate-angular.m4a', videoMatch: 'SharedState' },
+  { audioFile: 'angular-frontendtoolsv1.71.m4a', videoMatch: 'FrontendToolsGenerativeUi' },
+  { audioFile: 'sharedstate-botherror.m4a', videoMatch: 'SharedState' },
   { audioFile: 'thread-angular.m4a', videoMatch: 'Threads' },
 ];
+
+/** Web playback loudness. Matches what YouTube and the browser default to. */
+const TARGET_I = -16;
+const TARGET_TP = -1.5;
+const TARGET_LRA = 11;
 
 function hasFfmpeg() {
   try {
@@ -60,6 +81,44 @@ function hasFfmpeg() {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Pass one: ask loudnorm what the track actually measures.
+ *
+ * Returns the filter string for pass two — linear when the measurement parsed,
+ * and the plain single-pass filter when it did not. A track that cannot be
+ * measured is still worth normalising dynamically; it is only the pumping that
+ * is lost, not the audibility.
+ */
+function loudnormFilter(audioPath) {
+  const base = `loudnorm=I=${TARGET_I}:TP=${TARGET_TP}:LRA=${TARGET_LRA}`;
+  try {
+    // loudnorm prints its JSON on stderr, after the encode log — and execSync
+    // only ever hands back stdout, so the stream is folded in the shell rather
+    // than piped. Reading stdout with stderr on 'pipe' returns null, which is
+    // how the first cut of this silently fell back to single-pass on every run.
+    const out = execSync(
+      `ffmpeg -hide_banner -nostats -i "${audioPath}" -af ${base}:print_format=json -f null - 2>&1`,
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+    );
+    const json = out.slice(out.lastIndexOf('{'), out.lastIndexOf('}') + 1);
+    const m = JSON.parse(json);
+    const measured =
+      `:measured_I=${m.input_i}:measured_LRA=${m.input_lra}` +
+      `:measured_TP=${m.input_tp}:measured_thresh=${m.input_thresh}` +
+      `:offset=${m.target_offset}:linear=true:print_format=summary`;
+    console.log(
+      `   📏 ${path.basename(audioPath)} measures ${m.input_i} LUFS → normalising to ${TARGET_I}.`,
+    );
+    return base + measured;
+  } catch (err) {
+    console.warn(
+      `   ⚠️ Could not measure ${path.basename(audioPath)} (${err.message || err}); ` +
+        `falling back to single-pass loudnorm.`,
+    );
+    return base;
   }
 }
 
@@ -95,14 +154,19 @@ export function muxAudioFiles() {
     console.log(`\n🎵 [Audio Mux] Adding ${track.audioFile} to ${video}...`);
 
     try {
-      // `-af apad` + `-shortest` together pin the output to the VIDEO's length.
+      // `apad` + `-shortest` together pin the output to the VIDEO's length.
       // `-shortest` alone would truncate: these narrations are shorter than the
-      // clips they describe (45s of audio over a 72s Shared State demo), so the
-      // bare flag cut the demo off mid-scene. apad pads the track with silence
-      // and -shortest then stops at the video, which also keeps a track that
+      // clips they describe (29s of audio over a 76s Threads demo), so the bare
+      // flag cut the demo off mid-scene. apad pads the track with silence and
+      // -shortest then stops at the video, which also keeps a track that
       // overruns from extending the clip past its last frame.
+      //
+      // aresample sits between them because loudnorm runs its own internal
+      // resampling and hands back 192 kHz, which libopus will not take.
+      const filter = `${loudnormFilter(audioPath)},aresample=48000,apad`;
       execSync(
-        `ffmpeg -y -i "${inputPath}" -i "${audioPath}" -c:v copy -c:a libopus -af apad -map 0:v:0 -map 1:a:0 -shortest "${tempPath}"`,
+        `ffmpeg -y -i "${inputPath}" -i "${audioPath}" -c:v copy -c:a libopus -b:a 128k ` +
+          `-filter:a "${filter}" -map 0:v:0 -map 1:a:0 -shortest "${tempPath}"`,
         { stdio: 'ignore' },
       );
       fs.copyFileSync(tempPath, inputPath);
