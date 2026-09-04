@@ -1,36 +1,30 @@
 /**
- * Shared state — the agent does not know the state the page is holding.
+ * Shared state — the agent is given neither half of what this page shares.
  *
  * https://docs.copilotkit.ai/angular/ag2/guides/shared-state
  *
- * The guide opens on a table whose first row is "Agent and application both
- * read and write the value → injectAgentStore and agent.setState". On an AG2
- * backend that row is false, and this clip exists to show it rather than to
- * work around it.
+ * The guide's table has two rows, and this demo mounts both against one chat:
  *
- * The demonstration is the same move twice, because once is an anecdote:
+ *   - read/write state, via `injectAgentStore` + `agent.setState`
+ *     (WorkspaceComponent — the priority the buttons set)
+ *   - read-only context, via `connectAgentContext`
+ *     (AccountContextComponent — userName "Ada", and the timezone the
+ *     "Use London time" button moves to Europe/London)
  *
- *   1. click "Mark high priority". The panel updates to `high`, so the write
- *      reached the store — the browser half works and is seen working.
- *      Ask the agent what the priority is. It does not know.
- *   2. click "Mark low priority". Panel updates again. Ask again. Still nothing.
+ * Neither reaches the model, and the clip shows that by asking about each in
+ * turn after the browser has visibly changed it:
  *
- * Both turns are asked in plain language, and both are answered by an agent
- * that has no idea the page is holding a value at all. That is the finding:
- * not a wrong answer, not an error — an agent with no visibility of state the
- * page believes it is sharing.
+ *   1. click "Mark high priority". The panel updates to `high` — the write
+ *      reached the store, so the browser half is seen working. Ask the agent
+ *      what the priority is. It does not know.
+ *   2. click "Use London time". Ask the agent for the name and timezone the
+ *      account context is publishing. It does not know those either.
  *
- * The cause is in ag2/ag_ui/stream.py:
+ * Both turns are asked in plain language and both are answered by an agent with
+ * no visibility of values the page believes it is sharing. That is the finding:
+ * not a wrong answer and not an error — nothing arrives at all.
  *
- *     initial_state = (command.incoming.state or {}) | initial_vars
- *
- * The incoming AG-UI state is merged UNDER the agent's own variables, so any
- * key the agent declares wins and the browser's value is discarded. Verified
- * end to end through the runtime: state {"language":"spanish"} to an agent
- * whose variables say english runs english, and the first STATE_SNAPSHOT echoes
- * english back.
- *
- * Do not "fix" this by asserting on the answer, or by seeding the state from
+ * Do not "fix" this by asserting on the answer, or by seeding either value from
  * the backend so the turns pass. A green turn here would mean the recorder was
  * measuring something other than what the page claims.
  */
@@ -40,10 +34,11 @@ import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from '../core/
 import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
-import { dwellOn, showFindingNote } from './finding-note';
+import { dwellOn } from './finding-note';
+import { closeNotepadNote, openNotepadWindow, typeInNotepad } from './notepad';
 
-/** Clicks one of the workspace's state buttons, human-paced, and reports it. */
-async function clickStateButton(
+/** Clicks one of the workspace's controls, human-paced, and reports it. */
+async function clickDemoButton(
   page: Page,
   selector: string,
   label: string,
@@ -63,8 +58,8 @@ async function clickStateButton(
   await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2, 20);
   await sleep(400);
   await humanClick(page);
-  // Rest afterwards: the value visibly changes in the panel, which is the half
-  // of the round trip that DOES work and has to be seen working.
+  // Rest afterwards: the browser side of the round trip DOES work, and has to
+  // be seen working before the agent is asked about it.
   await sleep(1400);
 }
 
@@ -83,13 +78,13 @@ export const runSharedStateAction: PageActionHandler = async (
   config: PageRecordConfig,
 ) => {
   const [
-    highPrompt = 'what is priority set as?',
-    lowPrompt = 'what is priority set as?',
+    priorityPrompt = 'what is priority set as?',
+    contextPrompt = 'what is my name and what timezone am I in?',
   ] = promptsFor(config);
   const wait = config.waitAfterPromptMs ?? 4000;
 
-  // ── Turn 1 ───────────────────────────────────────────────────────────────
-  await clickStateButton(
+  // ── Turn 1: shared state (agent.setState) ────────────────────────────────
+  await clickDemoButton(
     page,
     'app-workspace button:has-text("Mark high priority")',
     'Mark high priority',
@@ -101,24 +96,25 @@ export const runSharedStateAction: PageActionHandler = async (
   console.log(`   📋 Panel now reads: Priority: ${afterHigh || '(unreadable)'}`);
   await dwellOn(page, 'app-workspace', 2000);
 
-  console.log(`   💬 Turn 1 (expect the agent NOT to know): ${highPrompt}`);
-  const count1 = await sendPrompt(page, highPrompt);
+  console.log(`   💬 Turn 1 — the shared state: ${priorityPrompt}`);
+  const count1 = await sendPrompt(page, priorityPrompt);
   await waitForAgentResponseCompletion(page, wait, count1);
   await sleep(1400);
 
-  // ── Turn 2: the same move, so turn 1 cannot be read as a one-off ─────────
-  await clickStateButton(
+  // ── Turn 2: read-only context (connectAgentContext) ──────────────────────
+  //
+  // A different API on a different row of the guide's table, so turn 1 cannot
+  // be read as one broken function. The click moves the timezone signal, which
+  // re-registers the context — the accessor form exists precisely so it does.
+  await clickDemoButton(
     page,
-    'app-workspace button:has-text("Mark low priority")',
-    'Mark low priority',
+    'app-account-context button:has-text("Use London time")',
+    'Use London time',
   );
+  await dwellOn(page, 'app-account-context', 1600);
 
-  const afterLow = await panelPriority(page);
-  console.log(`   📋 Panel now reads: Priority: ${afterLow || '(unreadable)'}`);
-  await dwellOn(page, 'app-workspace', 1800);
-
-  console.log(`   💬 Turn 2 (expect the same): ${lowPrompt}`);
-  const count2 = await sendPrompt(page, lowPrompt);
+  console.log(`   💬 Turn 2 — the read-only context: ${contextPrompt}`);
+  const count2 = await sendPrompt(page, contextPrompt);
   await waitForAgentResponseCompletion(page, wait, count2);
   await sleep(1400);
 
@@ -126,30 +122,31 @@ export const runSharedStateAction: PageActionHandler = async (
   // value the agent just failed to know.
   await dwellOn(page, 'app-workspace', 2000);
 
-  await showFindingNote(page, {
-    file: 'shared-state-finding.txt',
-    headline: 'the agent has no idea what the shared state is',
-    saw: [
-      `clicked "Mark high priority" - the panel updated to ${afterHigh || 'high'}`,
-      'asked the agent what the priority is: it did not know',
-      `clicked "Mark low priority" - the panel updated to ${afterLow || 'low'}`,
-      'asked again: it still did not know',
-      'no error, no warning - the agent simply never sees the value',
-    ],
-    why: [
-      'agent.setState reaches the store, so the panel updates.',
-      'it never reaches the model. ag2/ag_ui/stream.py merges the',
-      'incoming ag-ui state UNDER the agent\'s own variables:',
-      '    initial_state = (incoming.state or {}) | initial_vars',
-      'so any key the agent declares wins, and the browser value is',
-      'discarded before the run starts.',
-    ],
-    doc: [
-      'that its first table row - "agent and application both read',
-      'and write the value" - does not hold on this backend.',
-      'the read direction works. the write direction is dropped in',
-      'silence, which is the worst way for it to fail: the ui',
-      'updates, so everything looks correct until you ask.',
-    ],
+  console.log(`   🧾 Writing the finding...`);
+  await openNotepadWindow(page, 'shared-state-finding.txt', {
+    right: '32px',
+    top: '95px',
+    width: '700px',
+    height: '420px',
   });
+  await typeInNotepad(
+    page,
+    [
+      'neither value on this page reaches the agent.',
+      '',
+      `the panel says priority is ${afterHigh || 'high'} and the account context is`,
+      'publishing Ada / Europe/London. asked about both, the agent',
+      'knows neither - no error, nothing, it just never sees them.',
+      '',
+      'ag2/ag_ui/stream.py merges the incoming state UNDER the agent',
+      "variables, so setState is discarded, and connectAgentContext",
+      'never lands either. the ui updates, so it all looks fine',
+      'until you ask.',
+    ],
+    1560,
+    260,
+  );
+  await sleep(7000);
+  await closeNotepadNote(page);
+  await sleep(1200);
 };

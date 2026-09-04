@@ -59,21 +59,16 @@ export const runThreadsAction: PageActionHandler = async (
   await openNotepadWindow(page, 'threads-issue.txt', {
     right: '28px',
     top: '95px',
-    width: '640px',
-    height: '560px',
+    width: '620px',
+    height: '340px',
   });
   await typeInNotepad(
     page,
     [
-      'threads - licensed feature, unlicensed runtime',
+      'threads need a licence this runtime does not have.',
       '',
-      'about to drive both halves of the guide:',
-      '  - ThreadListComponent, hand-built on injectThreads',
-      '  - CopilotThreadsDrawer, the drop-in',
-      '',
-      'predicting now, before touching either:',
-      '  - the list will stay on "Loading conversations..."',
-      '  - the drawer will render its locked state and open nothing',
+      'before touching either half: the injectThreads list will',
+      'stay loading, and the drawer will open nothing.',
     ],
     1550,
     280,
@@ -113,22 +108,14 @@ export const runThreadsAction: PageActionHandler = async (
     page,
     [
       '',
-      'both predictions held. and note what just happened beside it:',
-      '  - the agent chat answered normally, same runtime, same run',
-      '',
-      'so this is not a broken agent and not a broken page.',
-      'the runtime has no intelligence key, so thread create/list/',
-      'mutate never reach a store. the guide is correct; the',
-      'capability is unlicensed.',
-      '',
-      'file this apart from a2ui and shared state - those are pages',
-      'that teach something which cannot work. this one works, once',
-      'paid for.',
+      'both held - and the chat beside it answered normally, same',
+      'runtime, same run. so the guide is right and the page is not',
+      'broken; the capability is just unlicensed.',
     ],
     1550,
     380,
   );
-  await sleep(5000);
+  await sleep(4000);
   await closeNotepadNote(page);
   await sleep(1200);
 };

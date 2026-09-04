@@ -275,12 +275,16 @@ export const PAGES = definePages([
       { filePath: 'backend/main.py', startLine: 37, endLine: 44 },
       { filePath: 'backend/main.py', startLine: 60, endLine: 79 },
     ],
-    // Asked twice, in plain language, after two different writes. The finding
-    // is not a wrong answer — it is an agent with no visibility of a value the
-    // page is actively displaying. Asking the same thing twice is what rules
-    // out a one-off.
+    // One turn per row of the guide's table, in plain language, each asked
+    // after the browser has visibly changed the value: the shared state the
+    // priority buttons write, then the read-only context the timezone button
+    // moves. The finding is not a wrong answer — it is an agent with no
+    // visibility of either value the page is actively displaying.
     prompt: 'what is priority set as?',
-    prompts: ['what is priority set as?', 'what is priority set as now?'],
+    prompts: [
+      'what is priority set as?',
+      'what is my name, and what timezone am I in?',
+    ],
     waitAfterPromptMs: 4000,
   },
   {

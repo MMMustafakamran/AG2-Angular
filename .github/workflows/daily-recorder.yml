@@ -412,8 +412,6 @@ jobs:
       # backend/main.py builds an OpenAIConfig unconditionally -- there is no
       # Azure branch on this backend -- and reads exactly these two.
       # OPENAI_API_KEY is exported into $GITHUB_ENV by the normalization step below
-      # so that trailing newlines/carriage returns are stripped and the clean key is masked.
-      OPENAI_CHAT_MODEL_ID: ${{ vars.OPENAI_CHAT_MODEL_ID || 'gpt-4o-mini' }}
       # Where the Copilot Runtime (frontend/server.ts) finds the backend. It
       # already defaults to this, but a default that silently moves would send
       # every recording at a dead port, so it is stated.
@@ -432,24 +430,6 @@ jobs:
       - name: Normalise and mask credentials
         env:
           RAW_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          set -euo pipefail
-          VALUE="$(printf '%s' "${RAW_OPENAI_API_KEY:-}" | tr -d '\r\n')"
-          if [ -n "$VALUE" ]; then
-            echo "::add-mask::$VALUE"
-            echo "OPENAI_API_KEY=${VALUE}" >> "$GITHUB_ENV"
-          fi
-
-      # Checked, never echoed, and BEFORE anything installs.
-      # ci/lib/preflight.mjs makes the same check inside the run. This one is
-      # not redundant: it fails in ten seconds rather than after a toolchain
-      # install, three times over.
-      - name: Require a well-formed model key
-        run: |
-          if [ -z "${OPENAI_API_KEY:-}" ]; then
-            echo "::error::OPENAI_API_KEY is not set for this repository."
-            echo "Add it under Settings > Secrets and variables > Actions."
-            echo "The AG2 backend talks to OpenAI directly and will not start without it."
             exit 1
           fi
 
@@ -474,7 +454,6 @@ jobs:
 
           echo "Model key present and well formed ($raw_len characters)."
 
-      - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
