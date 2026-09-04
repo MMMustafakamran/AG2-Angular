@@ -7,18 +7,18 @@
  * maps only the video stream out of the existing clip, so a second run
  * replaces the voiceover rather than layering a second track under it.
  *
- * Three pages carry a voiceover: Frontend Tools & Generative UI, Shared State
- * and Threads.
+ * Four pages carry a voiceover: Frontend Tools & Generative UI, Voice &
+ * multimodal, Shared State and Threads.
  *
- * `thread-angular.m4a` is the one shared verbatim with the other Angular repos
- * in this workspace — that narration is about the CopilotKit concept rather
- * than the agent framework behind it, so the same recording fits AGNO-,
- * MASTRA- and MSPY-angular too.
+ * Three of the tracks are shared verbatim with the other Angular repos in this
+ * workspace — `thread-angular.m4a`, `angular-frontendtoolsv1.71.m4a` and
+ * `angular- voice and attachments.m4a`. Each narrates the CopilotKit concept
+ * rather than the agent framework behind it, and all five Angular repos now run
+ * the same handler for those three pages, so one recording fits them all.
  *
- * `sharedstate-botherror.m4a` and `angular-frontendtoolsv1.71.m4a` are this
- * repo's own. Do not "resync" them with the sibling repos: shared state fails
- * differently on AG2 than on the backends they test, so the clips they narrate
- * are different clips.
+ * `sharedstate-botherror.m4a` is the exception and is this repo's own. Do not
+ * "resync" it with the sibling repos: shared state fails differently on AG2
+ * than on the backends they test, so it narrates a different clip.
  *
  * Every other clip stays silent and is skipped by the table below.
  *
@@ -60,12 +60,13 @@ const AUDIO_DIR = path.join(RECORDER_DIR, 'audio');
  *
  * The mapping is explicit rather than inferred from filenames, so a renamed
  * demo drops its voiceover visibly instead of quietly muxing it onto the wrong
- * clip. All three matches are unique across this repo's `videoName`s.
+ * clip. All four matches are unique across this repo's `videoName`s.
  *
  * @type {{ audioFile: string, videoMatch: string }[]}
  */
 const AUDIO_TRACKS = [
   { audioFile: 'angular-frontendtoolsv1.71.m4a', videoMatch: 'FrontendToolsGenerativeUi' },
+  { audioFile: 'angular- voice and attachments.m4a', videoMatch: 'VoiceMultimodal' },
   { audioFile: 'sharedstate-botherror.m4a', videoMatch: 'SharedState' },
   { audioFile: 'thread-angular.m4a', videoMatch: 'Threads' },
 ];
