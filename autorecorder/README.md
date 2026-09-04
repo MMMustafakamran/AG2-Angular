@@ -165,11 +165,19 @@ and correctness are different questions — the run summary answers the second o
 ```
 
 - **PASS** — every step completed.
-- **PASS\*** — recorded, but the external doc page misbehaved. The intro footage
-  is degraded; the feature under test is not implicated.
+- **PASS\*** — recorded, with a note. Either the external doc page misbehaved
+  (intro footage degraded, feature not implicated), or the page's handler
+  reported something the doc promises that it did not see (`ctx.warn`), or the
+  browser console logged errors during the demo step.
 - **FAIL** — the demo route 404'd, never rendered a chat surface, the agent never
-  answered, or the IDE view could not be built. The process exits 1, so this is
-  safe to gate CI on.
+  answered, the IDE view could not be built, or the handler reported that the
+  feature under test did not work (`ctx.fail`). The clip is still saved as
+  evidence. The process exits 1, so this is safe to gate CI on.
+
+Every run also writes `videos/RECORD_RESULTS.json` — one entry per page with
+the verdict, duration, warnings and distinct console errors. `ci/lib/report.mjs`
+reads it, so the CI report lists what *this run* recorded rather than every
+`.webm` that happens to be in the folder.
 
 ---
 
@@ -194,15 +202,22 @@ autorecorder/
 │   └── *.action.ts               per-page interaction scripts
 │
 ├── core/                       ← ✖ DO NOT EDIT — no framework knowledge here
+│   ├── CORE_MANIFEST.json        hash per core file; `npm run core:check` enforces it
 │   ├── engine.ts                 browser lifecycle, the 3-step sequence, pass/fail
 │   ├── actions.ts                sendPrompt, response detection, standard action
 │   ├── doctor.ts                 the adaptation contract, as a command
 │   ├── diagnostics.ts            pre-flight health check
-│   ├── types.ts                  PageDefinition → PageRecordConfig
+│   ├── console-capture.ts        browser console/page/network errors, per take
+│   ├── select.ts                 which pages a `record` invocation means
+│   ├── timeouts.ts               every fixed wait, with project/page overrides
+│   ├── types.ts                  PageDefinition → PageRecordConfig, ActionContext
 │   ├── ide/generator.ts          VS Code simulator, Shiki-highlighted from disk
-│   └── overlays/                 Windows 11 taskbar + virtual cursor
+│   └── overlays/                 Windows 11 taskbar, virtual cursor, human pacing
 │
-└── videos/                     ← output
+├── scripts/core-manifest.mjs   ← core/ drift check (--check / --write / --diff)
+├── test/                       ← unit tests for the pure modules (`npm test`)
+│
+└── videos/                     ← output, plus RECORD_RESULTS.json per run
 ```
 
 Every framework-specific value lives in `config/`. If something in `core/` needs
@@ -222,6 +237,24 @@ to change for a port, that is a bug in this folder — see ADAPT.md.
 3. **Demo** — opens the chrome-free demo route, waits for it to be genuinely
    ready, types the prompt, waits for the reply to finish streaming, and pauses
    for reading.
+
+### What makes it read as a person
+
+Every pace in a take comes from `core/overlays/human.ts`, seeded from the
+page id. So the Quickstart clip and the Chat UI clip do not type, pause and
+scroll in the same rhythm — but tonight's Quickstart clip is identical to
+last night's, which keeps two recordings of the same page comparable.
+
+- **Typing** has a person's rhythm: jittered keystrokes, a beat after
+  punctuation, the odd mid-sentence pause. A retry after a swallowed submit is
+  typed quickly instead — that is the recorder recovering, not a performance.
+- **Scrolling** is in bursts: a few wheel notches, a reading pause, a few more,
+  sometimes a nudge back up.
+- **Pauses** vary by about a quarter around their nominal length.
+- **The cursor** overshoots slightly on long travel and settles, hovers a
+  variable moment before a click, drifts while a reply streams instead of
+  freezing, and starts each take somewhere plausible rather than dead centre.
+- **The IDE window** fades in over 180ms instead of cutting.
 
 Two details worth knowing, because both were bugs once:
 

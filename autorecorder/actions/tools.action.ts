@@ -80,6 +80,8 @@ async function readIncidentCard(
 export const runToolsAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   const [weatherPrompt, backgroundPrompt, incidentPrompt] = promptsFor(config);
   const wait = config.waitAfterPromptMs ?? 4000;
@@ -93,7 +95,7 @@ export const runToolsAction: PageActionHandler = async (
   // renderer is visible as its own failure instead of a silent absence.
   const weatherCard = page.locator('app-weather-card').first();
   await weatherCard.waitFor({ state: 'visible', timeout: 25000 }).catch(() => {
-    console.warn(`   ⚠️ app-weather-card never rendered — tool call may not have fired.`);
+    ctx.fail('app-weather-card never rendered -- the getWeather tool call did not fire or its renderer did not mount.');
   });
 
   await waitForAgentResponseCompletion(page, wait, firstCount);
@@ -102,9 +104,9 @@ export const runToolsAction: PageActionHandler = async (
   // an empty field looks like a card.
   const heading = await readCardHeading(page);
   if (heading === null) {
-    console.warn(`   ⚠️ No app-weather-card in the DOM — nothing to measure.`);
+    // Already failed above when the card never appeared; nothing to add.
   } else if (heading.length === 0) {
-    console.warn(`   ⚠️ Card heading rendered empty — check the argument names.`);
+    ctx.warn('Weather card heading rendered empty -- the argument names in the renderer do not match the tool call.');
   } else {
     console.log(`   ✅ Card heading reads "${heading}".`);
   }
@@ -141,7 +143,7 @@ export const runToolsAction: PageActionHandler = async (
 
   const incidentCard = page.locator('app-incident-card').first();
   await incidentCard.waitFor({ state: 'visible', timeout: 25000 }).catch(() => {
-    console.warn(`   ⚠️ app-incident-card never rendered — registerComponent did not fire.`);
+    ctx.fail('app-incident-card never rendered -- registerComponent did not fire.');
   });
 
   // Sampled the instant it mounts. The guide's in-progress guard does not fire,
@@ -157,7 +159,7 @@ export const runToolsAction: PageActionHandler = async (
   if (settled && settled.id) {
     console.log(`   ✅ Card settled correct: ${settled.id} / ${settled.severity}.`);
   } else {
-    console.warn(`   ⚠️ Card never filled in.`);
+    ctx.warn('Incident card mounted but never filled in -- id and severity stayed empty after the reply settled.');
   }
 
   // Rest on the card, then travel down to the apology underneath it. The two

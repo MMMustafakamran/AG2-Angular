@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "record": "tsx cli.ts",
-    "record:all": "tsx cli.ts",
     "record:list": "tsx cli.ts --list",
     "mux": "node mux.mjs",
     "doctor": "npm --prefix ../frontend run gen:versions && tsx cli.ts --doctor",
@@ -14,7 +13,11 @@
     "ci:videos": "node fetch-ci-videos.mjs",
     "manifest": "tsx manifest.ts",
     "manifest:check": "tsx manifest.ts --check",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "core:check": "node scripts/core-manifest.mjs --check",
+    "core:write": "node scripts/core-manifest.mjs --write",
+    "check": "npm run typecheck && npm test && npm run core:check"
   },
   "dependencies": {
     "playwright": "^1.51.0",

@@ -1,0 +1,14 @@
+{
+  "actions.ts": "55e3f8e2b8c574a8",
+  "console-capture.ts": "76ab91f358577eea",
+  "diagnostics.ts": "a8ab7c634dfdb025",
+  "doctor.ts": "3ce90d2e92f5f1ba",
+  "engine.ts": "0395d64ec0d47710",
+  "ide/generator.ts": "60542ff6f4ddb6cd",
+  "overlays/cursor.ts": "a5d297623d0e8ca4",
+  "overlays/human.ts": "899c521adde23874",
+  "overlays/taskbar.ts": "ca9aa929053a4634",
+  "select.ts": "774c0746da8bae3e",
+  "timeouts.ts": "ba4e52b004b4fa04",
+  "types.ts": "b4dacd93c56bf706"
+}

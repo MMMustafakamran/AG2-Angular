@@ -44,11 +44,10 @@ async function switchTab(page: Page, label: string): Promise<boolean> {
 }
 
 /** Clicks a launcher button ("Open popup" / "Open sidebar") and rests on it. */
-async function openLauncher(page: Page, label: string, restAt: [number, number]): Promise<void> {
+async function openLauncher(page: Page, label: string, restAt: [number, number]): Promise<boolean> {
   const btn = page.locator(`button:has-text("${label}")`).first();
   if (!(await btn.isVisible({ timeout: 5000 }).catch(() => false))) {
-    console.warn(`   ⚠️ "${label}" button not found.`);
-    return;
+    return false;
   }
 
   const box = await btn.boundingBox();
@@ -62,11 +61,14 @@ async function openLauncher(page: Page, label: string, restAt: [number, number])
   await sleep(2000);
   await humanGlide(page, restAt[0], restAt[1], 22);
   await sleep(2000);
+  return true;
 }
 
 export const runChatUiAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   const [inlinePrompt, customPrompt] = promptsFor(config);
   const wait = config.waitAfterPromptMs ?? 4000;
@@ -78,7 +80,9 @@ export const runChatUiAction: PageActionHandler = async (
 
   // ── Tab 2: the replaced assistant message component ───────────────────────
   console.log(`   💬 Surface 2/4: replaced assistant message component`);
-  if (await switchTab(page, 'Custom assistant message')) {
+  if (!(await switchTab(page, 'Custom assistant message'))) {
+    ctx.warn('"Custom assistant message" tab not found -- surface 2/4 was skipped.');
+  } else {
     const customCount = await sendPrompt(
       page,
       customPrompt ?? 'Tell me what makes your custom assistant layout unique.',
@@ -93,19 +97,25 @@ export const runChatUiAction: PageActionHandler = async (
 
   // ── Tab 3: popup launcher ─────────────────────────────────────────────────
   console.log(`   💬 Surface 3/4: copilot-popup`);
-  if (await switchTab(page, 'Popup')) {
-    await openLauncher(page, 'Open popup', [1580, 720]);
+  if (!(await switchTab(page, 'Popup'))) {
+    ctx.warn('"Popup" tab not found -- surface 3/4 was skipped.');
+  } else if (!(await openLauncher(page, 'Open popup', [1580, 720]))) {
+    ctx.warn('"Open popup" button not found -- the popup surface never opened.');
   }
 
   // ── Tab 4: sidebar launcher ───────────────────────────────────────────────
   // The open popup lays a backdrop over the tab strip, so the first click here
   // only dismisses it. Clicking the tab again is the fix, not a retry loop.
   console.log(`   💬 Surface 4/4: copilot-sidebar`);
-  if (await switchTab(page, 'Sidebar')) {
+  if (!(await switchTab(page, 'Sidebar'))) {
+    ctx.warn('"Sidebar" tab not found -- surface 4/4 was skipped.');
+  } else {
     const sidebarBtn = page.locator('button:has-text("Open sidebar")').first();
     if (!(await sidebarBtn.isVisible({ timeout: 1200 }).catch(() => false))) {
       await switchTab(page, 'Sidebar');
     }
-    await openLauncher(page, 'Open sidebar', [1680, 480]);
+    if (!(await openLauncher(page, 'Open sidebar', [1680, 480]))) {
+      ctx.warn('"Open sidebar" button not found -- the sidebar surface never opened.');
+    }
   }
 };

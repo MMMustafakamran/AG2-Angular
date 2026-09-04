@@ -146,6 +146,20 @@ await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msg
 Pass that count through on multi-turn pages, or the previous turn's reply is
 mistaken for this one's.
 
+A handler's fourth argument, `ctx`, is how it reports what it saw. Use it
+instead of `console.warn`, which reaches nobody:
+
+```ts
+export const runHitlAction: PageActionHandler = async (page, config, _rootPath, ctx) => {
+  ...
+  if (!cardAppeared) ctx.fail('approval card never rendered');   // [FAIL], clip still saved
+  if (!approveEnabled) ctx.warn('Approve stayed enabled after the click'); // [PASS*] with the note
+};
+```
+
+`ctx.timeouts` carries the resolved waits for the page (see `core/timeouts.ts`;
+override per project in `project.config.ts` or per page with `timeouts`).
+
 Delete handlers for pages that no longer exist. The doctor warns about orphans.
 
 ## Step 6 — Prove it

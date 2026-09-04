@@ -523,6 +523,26 @@ jobs:
       # which is why the servers are spawned inside ci/automate.mjs rather than
       # here, and why this is a single step rather than the six the old
       # record.yml needed.
+      # Unit tests for the recorder's pure modules (page selection, human
+      # pacing) and the core/ drift check. Neither needs a browser or a
+      # service, and a failure here is reported, not fatal: a broken page is a
+      # finding the recording still has to show.
+      - name: Recorder unit tests & core drift
+        run: |
+          set +e
+          npm --prefix autorecorder test > recorder-tests.txt 2>&1
+          UT=$?
+          npm --prefix autorecorder run core:check > core-check.txt 2>&1
+          CC=$?
+          set -e
+          cat recorder-tests.txt core-check.txt
+          {
+            echo "### Recorder self-checks (shard ${{ matrix.shard }}/3)"
+            echo
+            if [ "$UT" = "0" ]; then echo "- unit tests: **pass** ($(grep -o 'pass [0-9]*' recorder-tests.txt | tail -1))"; else echo "- unit tests: **failing** -- see the job log"; fi
+            if [ "$CC" = "0" ]; then echo "- core/: **matches CORE_MANIFEST.json**"; else echo "- core/: **drifted from CORE_MANIFEST.json** -- run \`npm run core:write\` if deliberate"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Record demos (shard ${{ matrix.shard }}/3)
         env:
           SELECTED_PAGES: ${{ needs.prepare.outputs.pages }}

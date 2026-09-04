@@ -38,7 +38,7 @@
  * from watching a green clip.
  */
 
-import { type PageActionHandler, type PageRecordConfig } from '../core/types';
+import { type ActionContext, type PageActionHandler, type PageRecordConfig } from '../core/types';
 import { runStandardAction } from '../core/actions';
 import { type Page } from 'playwright';
 
@@ -82,6 +82,7 @@ export async function executePageAction(
   page: Page,
   config: PageRecordConfig,
   rootPath: string,
+  ctx: ActionContext,
 ): Promise<void> {
   // One gate for every page, including the ones that fall through to
   // runStandardAction. The engine waits for the route to respond and for
@@ -92,5 +93,5 @@ export async function executePageAction(
   await waitForPageReady(page, { label: config.id });
 
   const handler = ACTION_MAP[config.id] ?? runStandardAction;
-  await handler(page, config, rootPath);
+  await handler(page, config, rootPath, ctx);
 }

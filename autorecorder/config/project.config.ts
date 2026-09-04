@@ -64,6 +64,13 @@ export interface ProjectConfig {
   demoSuffix: string;
 
   /**
+   * Project-wide overrides of the recorder's fixed waits. Optional; the
+   * defaults in `core/timeouts.ts` suit a warm dev server. Raise `demoNavMs`
+   * for a stack whose first request compiles the route.
+   */
+  timeouts?: Partial<import('../core/types').RecorderTimeouts>;
+
+  /**
    * Frontend path the browser calls to reach the agent, relative to
    * `frontendUrl` — e.g. '/api/copilotkit'.
    *

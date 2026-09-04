@@ -24,3 +24,4 @@
 # repo content. The tracked manifest at the top of this folder is what records
 # what a run produced.
 ci-*/
+RECORD_RESULTS.json

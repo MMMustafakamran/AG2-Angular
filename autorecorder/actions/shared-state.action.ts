@@ -32,13 +32,14 @@ import { type Page } from 'playwright';
 
 import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
-import { type PageActionHandler, type PageRecordConfig } from '../core/types';
+import { type ActionContext, type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 import { dwellOn } from './finding-note';
 import { closeNotepadNote, openNotepadWindow, typeInNotepad } from './notepad';
 
 /** Clicks one of the workspace's controls, human-paced, and reports it. */
 async function clickDemoButton(
+  ctx: ActionContext,
   page: Page,
   selector: string,
   label: string,
@@ -50,7 +51,7 @@ async function clickDemoButton(
     .catch(() => null);
 
   if (!box) {
-    console.warn(`   ⚠️ "${label}" button not found.`);
+    ctx.warn(`"${label}" button not found -- the agent was asked about state nothing had set.`);
     return;
   }
 
@@ -76,6 +77,8 @@ async function panelPriority(page: Page): Promise<string> {
 export const runSharedStateAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   const [
     priorityPrompt = 'what is priority set as?',
@@ -84,8 +87,7 @@ export const runSharedStateAction: PageActionHandler = async (
   const wait = config.waitAfterPromptMs ?? 4000;
 
   // ── Turn 1: shared state (agent.setState) ────────────────────────────────
-  await clickDemoButton(
-    page,
+  await clickDemoButton(ctx, page,
     'app-workspace button:has-text("Mark high priority")',
     'Mark high priority',
   );
@@ -106,8 +108,7 @@ export const runSharedStateAction: PageActionHandler = async (
   // A different API on a different row of the guide's table, so turn 1 cannot
   // be read as one broken function. The click moves the timezone signal, which
   // re-registers the context — the accessor form exists precisely so it does.
-  await clickDemoButton(
-    page,
+  await clickDemoButton(ctx, page,
     'app-account-context button:has-text("Use London time")',
     'Use London time',
   );
