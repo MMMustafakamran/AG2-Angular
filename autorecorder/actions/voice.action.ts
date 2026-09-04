@@ -1,48 +1,63 @@
 /**
- * Voice and multimodal input — the microphone hears nothing, the image works.
+ * Voice and multimodal input — the attachments half works, the transcription
+ * half does not, and the clip shows both in that order.
  *
  * https://docs.copilotkit.ai/angular/ag2/guides/voice-multimodal
  *
- * The page teaches two inputs. This clip runs both, in the order that makes the
- * broken one legible:
+ * The guide's own walkthrough is: open the demo, attach a PNG or a PDF, then
+ * press the microphone. So the recording does exactly that, and the two halves
+ * land differently on purpose:
  *
- *   1. click the microphone, allow the permission, and watch the input level
- *   2. the level never leaves the floor — nothing audible reaches the stream
- *   3. cancel the recording, and write that down while the meter is still up
- *   4. attach an image to the same composer and ask about its contents
- *   5. the agent answers correctly, from the picture
+ * - **Attachments pass.** The same `image/*,application/pdf` config the guide
+ *   prints is bound to this composer, the file goes up as a content part, and
+ *   the prompt asks for values that exist only inside the image — so the reply
+ *   is evidence the file reached the model rather than something to squint at.
+ *   The picking sequence is shared with the Attachments page; see
+ *   `attach-image.ts` for what is genuine there and what is a drawn prop.
  *
- * Step 5 is the control, and it is why this clip is worth more than a red X.
- * Same page, same composer, same run: one input arrives at the model intact and
- * the other carries silence. "The stack is down", "the recorder mis-clicked"
- * and "the agent is broken" are all off the table by the time the note is read.
+ * - **Voice records, then fails.** Three things had to be arranged for that to
+ *   film as it behaves:
  *
- * ── Why there is a level meter ─────────────────────────────────────────────
- * A microphone button in its recording state looks identical whether the stream
- * carries a voice or silence. Without a meter this clip would be a red button
- * for eight seconds followed by a claim. `mic-level.ts` taps the very
- * MediaStream the composer is recording and paints its RMS against a silence
- * threshold, so the flat bar is a measurement the viewer can see, and
- * `readMicLevel` returns the same numbers the note then quotes.
+ *   1. **The permission prompt.** Chrome's real one is browser chrome, outside
+ *      the page, and Playwright suppresses it — a context grants or denies up
+ *      front, so nothing was ever on screen and the mic click looked like it
+ *      did nothing. The bubble here is drawn into the page, the same way this
+ *      suite already draws the taskbar and VS Code. It is a prop, and the
+ *      recording is honest about the sequence because the stream genuinely
+ *      waits for the Allow click.
  *
- * ── Three things arranged so the page films as it behaves ──────────────────
- * 1. **The permission prompt.** Chrome's real one is browser chrome, outside
- *    the page, and Playwright suppresses it — a context grants or denies up
- *    front, so nothing was ever on screen and the mic click looked inert. The
- *    bubble here is drawn into the page, the same way this suite already draws
- *    the taskbar and VS Code. It is a prop, but the sequence is honest: the
- *    stream genuinely waits for the Allow click.
+ *   2. **A device.** The recording machine — and every CI runner — may have no
+ *      microphone, and Chrome then rejects `getUserMedia` instantly, so the
+ *      composer never entered its recording state and there was nothing to
+ *      film. `getUserMedia` is wrapped to fall back to a synthesized stream, so
+ *      the *UI* path is exercised for real even where the hardware is absent.
  *
- * 2. **A device.** The recording machine — and every CI runner — may have no
- *    microphone, and Chrome then rejects `getUserMedia` outright, so the
- *    composer never enters its recording state and there is nothing to film.
- *    The fallback synthesizes a stream so the UI path is exercised for real.
+ *   3. **The failure that is the actual finding.** Finishing the recording is
+ *      what posts the audio for transcription, and this runtime configures no
+ *      transcription service — so that request fails by design, exactly as
+ *      `frontend/src/app/pages/voice-multimodal.ts` already says it will. A
+ *      visible microphone does not make an unconfigured service succeed, which
+ *      is the guide's own point. The note says so while the failure is still on
+ *      screen, and the clip ends there — on the reply the attachment earned at
+ *      the top.
  *
- * 3. **That fallback is deliberately near-silent.** Not to fake the finding —
- *    to avoid faking its absence. A loud oscillator would paint a healthy meter
- *    on a machine with no microphone, which is the one reading that would be a
- *    lie. Silence is what a machine with no audio input actually has, and the
- *    note reports which case applied.
+ * ── Why this replaced the input-meter version ──────────────────────────────
+ * An earlier cut of this handler clicked the microphone FIRST and metered the
+ * live MediaStream, to argue that nothing audible reached the capture. Two
+ * things were wrong with it. The meter drew its RMS from a `page.evaluate`
+ * callback that declared named inner helpers, and tsx compiles those through
+ * esbuild's `keepNames`, which wraps them in a `__name(...)` call that exists in
+ * Node and not in the browser — so every CI run died on
+ * `ReferenceError: __name is not defined` seconds into the page and left a
+ * 23-second stub. And the story it told contradicted this repo's own page copy,
+ * which says the capture works and the *transcription* has nothing behind it.
+ * Ordering the halves the way the guide does fixes both: the clip runs to the
+ * end, and it says what the page says.
+ *
+ * The rule that bug leaves behind, for anything else filmed here: a function
+ * handed to `page.evaluate` must declare no named inner function, class or
+ * arrow-assigned-to-a-const. It runs in the browser, where esbuild's helpers
+ * are not defined.
  */
 import { type Page } from 'playwright';
 
@@ -52,21 +67,20 @@ import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 import { attachImage } from './attach-image';
 import { showFindingNote } from './finding-note';
-import {
-  hideMicLevelMeter,
-  readMicLevel,
-  setMicCaption,
-  showMicLevelMeter,
-  type MicLevelReading,
-} from './mic-level';
+
+/** What the microphone half can honestly claim once it has run. */
+interface MicOutcome {
+  /** The composer reached its recording state. */
+  recorded: boolean;
+  /** The audio was actually posted — i.e. the finish control was the one clicked. */
+  posted: boolean;
+  /** The stream was synthesized because this machine has no input device. */
+  synthetic: boolean;
+}
 
 /**
  * Holds `getUserMedia` until the Allow click, then satisfies it — from the real
- * device if there is one, from a near-silent synthesized source if there is not.
- *
- * The resolved stream is stashed on `window.__micStream` so the level meter can
- * measure the same object the composer is recording, rather than opening a
- * second capture that might behave differently.
+ * device if there is one, from an oscillator if there is not.
  */
 async function armMicrophone(page: Page): Promise<void> {
   await page.evaluate(() => {
@@ -75,7 +89,6 @@ async function armMicrophone(page: Page): Promise<void> {
       __micGate?: Promise<void>;
       __micArmed?: boolean;
       __micSynthetic?: boolean;
-      __micStream?: MediaStream;
     };
     if (w.__micArmed) return;
     w.__micArmed = true;
@@ -89,26 +102,17 @@ async function armMicrophone(page: Page): Promise<void> {
     md.getUserMedia = async (constraints: MediaStreamConstraints) => {
       await w.__micGate;
       try {
-        const real = await original(constraints);
-        w.__micStream = real;
-        return real;
+        return await original(constraints);
       } catch {
         // No input device on this machine. Synthesize one so the composer's
-        // recording state is still exercised and still filmable — at a gain low
-        // enough to sit under the silence threshold, because a machine with no
-        // microphone genuinely has no signal and the meter must not claim
-        // otherwise.
+        // recording state is still exercised and still filmable.
         w.__micSynthetic = true;
         const ctx = new AudioContext();
         const dest = ctx.createMediaStreamDestination();
         const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        gain.gain.value = 0.0004;
         osc.frequency.value = 220;
-        osc.connect(gain);
-        gain.connect(dest);
+        osc.connect(dest);
         osc.start();
-        w.__micStream = dest.stream;
         return dest.stream;
       }
     };
@@ -161,13 +165,13 @@ async function dismissPermissionBubble(page: Page): Promise<void> {
 }
 
 /**
- * The microphone half: click, allow, watch the level, cancel.
+ * The microphone half: click, allow, record, finish.
  *
- * Returns what the meter measured, or null when the control never appeared —
- * the caller still writes a note either way, because "the mic control is
- * missing" is a finding too.
+ * Reports what happened rather than what was intended — the note that follows
+ * quotes it, and a note describing a recording state that was never reached
+ * would be the one thing worse than no note at all.
  */
-async function runMicrophoneHalf(page: Page): Promise<MicLevelReading | null> {
+async function runMicrophoneHalf(page: Page): Promise<MicOutcome> {
   const origin = new URL(page.url()).host;
 
   await armMicrophone(page);
@@ -191,7 +195,7 @@ async function runMicrophoneHalf(page: Page): Promise<MicLevelReading | null> {
 
   if (!micBox) {
     console.warn(`   ⚠️ transcribe control not found — skipping the voice path.`);
-    return null;
+    return { recorded: false, posted: false, synthetic: false };
   }
 
   console.log(`   🎙️ Clicking the microphone control...`);
@@ -213,67 +217,66 @@ async function runMicrophoneHalf(page: Page): Promise<MicLevelReading | null> {
   });
   await dismissPermissionBubble(page);
 
-  const cancelBtn = page
-    .locator(
-      'copilot-chat-cancel-transcribe-button button, button[aria-label*="Cancel" i]',
-    )
-    .first();
+  // The composer shows two controls while recording: a cross that cancels and a
+  // tick that finishes. Only the tick posts the audio for transcription, so only
+  // the tick reaches the failure this page is about — and the cross sits first
+  // in the DOM, so a combined selector with `.first()` aimed at the wrong one.
+  // Finish is matched on its own; cancel is a fallback used only to leave the
+  // recording state when no finish control exists.
   const finishBtn = page
-    .locator(
-      'copilot-chat-finish-transcribe-button button, button[aria-label*="Finish" i], button[aria-label*="Stop" i]',
-    )
+    .locator('copilot-chat-finish-transcribe-button button, button[aria-label*="Finish" i]')
+    .first();
+  const cancelBtn = page
+    .locator('copilot-chat-cancel-transcribe-button button, button[aria-label*="Cancel" i]')
     .first();
 
-  const recording = await Promise.race([
-    cancelBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true),
-    finishBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true),
-  ]).catch(() => false);
+  const finishes = await finishBtn
+    .waitFor({ state: 'visible', timeout: 8000 })
+    .then(() => true)
+    .catch(() => false);
+  const stopBtn = finishes ? finishBtn : cancelBtn;
 
-  if (!recording) {
-    console.warn(`   ⚠️ The composer never entered its recording state.`);
-    return null;
+  const recording =
+    finishes ||
+    (await cancelBtn
+      .waitFor({ state: 'visible', timeout: 2000 })
+      .then(() => true)
+      .catch(() => false));
+
+  if (recording && !finishes) {
+    console.warn(`   ⚠️ no finish (tick) control — falling back to cancel, which sends no audio.`);
   }
 
-  // Meter the live stream. This is the evidence; everything else on screen is
-  // context for it.
-  await showMicLevelMeter(page, 'listening…');
-  await humanGlide(page, micBox.x - 160, micBox.y - 40, 22);
-  await sleep(1600);
+  const synthetic = await page
+    .evaluate(() => (window as unknown as { __micSynthetic?: boolean }).__micSynthetic === true)
+    .catch(() => false);
 
-  // Held long enough to be unambiguous. A person speaking for six seconds into
-  // a working microphone paints a bar that moves constantly; a flat line across
-  // that whole window is not something a viewer can mistake for a slow frame.
-  await setMicCaption(page, 'speaking…');
-  console.log(`   🗣️ Six seconds of speech, against a live input meter...`);
-  await sleep(6000);
-
-  const reading = await readMicLevel(page);
   console.log(
-    reading.silent
-      ? `   🔇 Input never rose above silence: peak ${reading.peakDb.toFixed(1)} dBFS ` +
-          `(${reading.synthetic ? 'no input device on this machine' : 'real device'}).`
-      : `   🔊 Input reached ${reading.peakDb.toFixed(1)} dBFS — audio IS arriving; this finding is stale.`,
+    recording
+      ? `   🔴 Recording — stream is ${synthetic ? 'synthesized (no input device)' : 'from the real device'}.`
+      : `   ⚠️ The composer never entered its recording state.`,
   );
 
-  await setMicCaption(page, reading.silent ? 'nothing captured' : 'signal present');
-  await sleep(1800);
+  // Rest on the composer so the recording state, the elapsed timer and the stop
+  // control are all on screen for long enough to read.
+  await humanGlide(page, micBox.x - 120, micBox.y + micBox.height / 2, 20);
+  await sleep(4000);
 
-  // Cancel, not finish. Finishing posts the audio and the failure that follows
-  // is a transcription error, which is a different (and lesser) finding. The
-  // point here is that there was nothing worth posting in the first place.
-  const cancelBox = await cancelBtn.boundingBox().catch(() => null);
-  if (cancelBox) {
-    console.log(`   ⏹️ Cancelling — there is no audio worth sending.`);
-    await humanGlide(page, cancelBox.x + cancelBox.width / 2, cancelBox.y + cancelBox.height / 2, 20);
-    await sleep(500);
-    await humanClick(page);
-    await sleep(1500);
-  } else {
-    console.warn(`   ⚠️ no cancel control — leaving the recording as it is.`);
+  // Stopping is what posts the audio for transcription -- i.e. what fails.
+  let posted = false;
+  if (recording) {
+    const stopBox = await stopBtn.boundingBox().catch(() => null);
+    if (stopBox) {
+      console.log(`   ✔️ Finishing — this is the request that has no service behind it.`);
+      await humanGlide(page, stopBox.x + stopBox.width / 2, stopBox.y + stopBox.height / 2, 20);
+      await sleep(400);
+      await humanClick(page);
+      await sleep(3000);
+      posted = finishes;
+    }
   }
 
-  await hideMicLevelMeter(page);
-  return reading;
+  return { recorded: recording, posted, synthetic };
 }
 
 export const runVoiceAction: PageActionHandler = async (
@@ -281,67 +284,61 @@ export const runVoiceAction: PageActionHandler = async (
   config: PageRecordConfig,
   rootPath: string,
 ) => {
-  const reading = await runMicrophoneHalf(page);
-
-  // ── The finding, written while the cancelled composer is still on screen ──
-  const level = reading
-    ? `peak ${reading.peakDb.toFixed(1)} dBFS over 6s of speech`
-    : 'the recording state was never reached';
-
-  if (reading && !reading.silent) {
-    await showFindingNote(page, {
-      file: 'voice-multimodal-finding.txt',
-      headline: 'audio IS arriving — this finding is stale, recheck it',
-      saw: [`the input meter reached ${reading.peakDb.toFixed(1)} dBFS`],
-      why: [
-        'the microphone is capturing. whatever broke before is fixed,',
-        'or this machine has a device the last run did not.',
-      ],
-    });
-  } else {
-    await showFindingNote(page, {
-      file: 'voice-multimodal-finding.txt',
-      headline: 'the mic records and captures nothing audible',
-      saw: [
-        'clicked the microphone; allowed the permission',
-        'the composer entered its recording state and ran its timer',
-        'spoke for six seconds with a live input meter on screen',
-        `the level never left the floor: ${level}`,
-        'cancelled the recording - there was nothing worth sending',
-      ],
-      why: [
-        'the recording ui is real and the stream is open, but no',
-        'audible signal reaches it, so anything downstream of the',
-        'capture is moot - there is nothing to transcribe.',
-        reading?.synthetic
-          ? 'note: no input device on this machine, so the stream is'
-          : 'note: the stream came from a real input device.',
-        reading?.synthetic ? 'silent at the source. same reading either way.' : '',
-      ].filter(Boolean),
-      doc: [
-        'that the mic needs anything beyond rendering the control.',
-        'the page documents the button as though placing it were the',
-        'whole job, so a reader gets a control that looks correct,',
-        'behaves correctly, and hears nothing - and only finds out',
-        'by speaking into it. an unstated prerequisite is a defect.',
-        '',
-        'aside: the permission bubble in this clip is drawn by the',
-        'recorder. chrome\'s own prompt is browser chrome, which',
-        'playwright suppresses, so it can never appear on video.',
-      ],
-    });
-  }
-
-  // ── The control: the other input on the same composer, working ───────────
+  // ── Half one: the attachment, which passes ────────────────────────────────
   //
-  // Attachments are the second half of this guide, and the reason the clip
-  // continues past the finding. If the image also failed the story would be
-  // "the page is dead"; because it succeeds, the story is precisely "voice is
-  // broken and multimodal is not".
-  console.log(`   🖼️ Now the other input on the same composer — an image.`);
+  // This is the control, and it is why the clip is worth more than a red X.
+  // Same page, same composer, same run: one input reaches the model intact and
+  // the other has nothing behind it. "The stack is down", "the recorder
+  // mis-clicked" and "the agent is broken" are all off the table by the time
+  // the note is read.
+  console.log(`   🖼️ First input on this composer — an image.`);
   await attachImage(page, rootPath);
 
   const msgCount = await sendPrompt(page, config.prompt);
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
-  await sleep(1500);
+  await sleep(1200);
+
+  // ── Half two: the microphone, which records and then cannot transcribe ────
+  const mic = await runMicrophoneHalf(page);
+
+  await showFindingNote(page, {
+    file: 'voice-multimodal-finding.txt',
+    headline: 'the mic records; there is no transcription service behind it',
+    saw: [
+      'attached a chart to the composer and asked about its contents',
+      'the agent read the values back correctly - the image arrived',
+      'clicked the microphone; allowed the permission',
+      mic.recorded
+        ? 'the composer entered its recording state and ran its timer'
+        : 'the composer never entered its recording state',
+      mic.posted
+        ? 'finished the recording, which posts the audio - and that request fails'
+        : 'left the recording without posting audio, so nothing was transcribed',
+    ],
+    why: [
+      'capture is a browser api, and it works. transcription is a',
+      'runtime service, and this harness runs over plain',
+      'CopilotRuntime with none configured, so the request carrying',
+      'the audio has nothing to answer it. expected here, and not a',
+      'defect in the component.',
+      mic.synthetic
+        ? 'note: no input device on this machine, so the stream came'
+        : 'note: the stream came from a real input device.',
+      mic.synthetic ? 'from a synthesized source. the ui path is the real one.' : '',
+    ].filter(Boolean),
+    doc: [
+      'that the microphone needs anything beyond rendering the',
+      'control. the page documents the button as though placing it',
+      'were the whole job, so a reader gets a control that looks',
+      'correct, behaves correctly, and transcribes nothing - and only',
+      'finds out by pressing it. an unstated prerequisite is a defect.',
+      '',
+      'aside: the permission bubble and the Open dialog in this clip',
+      'are drawn by the recorder. chrome and windows draw the real',
+      'ones outside the video, where playwright cannot film them.',
+      'the file, the reply and the failed request are real.',
+    ],
+  });
+
+  await sleep(800);
 };

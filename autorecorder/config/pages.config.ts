@@ -239,14 +239,16 @@ export const PAGES = definePages([
     ideFile: 'frontend/src/app/features/media/voice-chat.component.ts',
     startLine: 12,
     endLine: 31,
-    // Both inputs the page teaches, in one run. The microphone is clicked,
-    // metered, and cancelled with nothing audible captured; then an image goes
-    // through the same composer and IS read correctly.
+    // Both inputs the page teaches, in the order the guide walks them: attach
+    // first, then press the microphone. The image goes through the composer and
+    // IS read correctly; the microphone then records, and this runtime
+    // configures no transcription service, so transcription fails by design —
+    // which is what frontend/src/app/pages/voice-multimodal.ts already says.
     //
     // The prompt asks for two values that exist only inside the attached chart,
     // so a correct answer is proof the image reached the model — and proof the
-    // silent microphone is a broken input rather than a broken page. A generic
-    // question could be answered without ever seeing the file.
+    // failing microphone is one unconfigured service rather than a broken page.
+    // A generic question could be answered without ever seeing the file.
     prompt:
       'Read the attached chart. What is its title, and what is the Q4 value?',
     waitAfterPromptMs: 4000,
