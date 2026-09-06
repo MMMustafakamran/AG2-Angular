@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-09-05T09:13:19.137Z",
+  "recordedAt": "2026-09-06T09:34:18.162Z",
   "frontend": {
     "@a2ui/web_core": "0.10.4",
     "@a2ui/web_core/node_modules/zod": "3.25.76",
@@ -30,7 +30,7 @@
     "@ai-sdk/google-vertex/node_modules/@fastify/busboy": "2.1.1",
     "@ai-sdk/google-vertex/node_modules/undici": "5.29.0",
     "@ai-sdk/mcp": "1.0.78",
-    "@ai-sdk/openai": "3.0.108",
+    "@ai-sdk/openai": "3.0.109",
     "@ai-sdk/openai-compatible": "1.0.53",
     "@ai-sdk/openai-compatible/node_modules/@ai-sdk/provider": "2.0.3",
     "@ai-sdk/openai-compatible/node_modules/@ai-sdk/provider-utils": "3.0.36",
@@ -614,7 +614,7 @@
     "is-unicode-supported": "2.1.0",
     "isexe": "2.0.0",
     "jiti": "2.7.0",
-    "jose": "6.2.11",
+    "jose": "6.2.12",
     "joycon": "3.1.1",
     "js-tiktoken": "1.0.21",
     "js-tokens": "10.0.0",
@@ -633,7 +633,7 @@
     "jws": "4.0.1",
     "katex": "0.16.47",
     "langchain": "1.5.10",
-    "langsmith": "0.10.1",
+    "langsmith": "0.10.2",
     "libphonenumber-js": "1.13.12",
     "lightningcss": "1.32.0",
     "lightningcss-android-arm64": "1.32.0",
