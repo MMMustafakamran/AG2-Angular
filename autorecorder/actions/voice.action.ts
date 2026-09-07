@@ -305,38 +305,17 @@ export const runVoiceAction: PageActionHandler = async (
     file: 'voice-multimodal-finding.txt',
     headline: 'the mic records; there is no transcription service behind it',
     saw: [
-      'attached a chart to the composer and asked about its contents',
-      'the agent read the values back correctly - the image arrived',
-      'clicked the microphone; allowed the permission',
-      mic.recorded
-        ? 'the composer entered its recording state and ran its timer'
-        : 'the composer never entered its recording state',
+      'attached a chart; the agent read its values back correctly',
       mic.posted
-        ? 'finished the recording, which posts the audio - and that request fails'
-        : 'left the recording without posting audio, so nothing was transcribed',
+        ? 'clicked the mic, recorded, posted - and that request fails'
+        : 'clicked the mic; nothing posted, so nothing transcribed',
     ],
     why: [
-      'capture is a browser api, and it works. transcription is a',
-      'runtime service, and this harness runs over plain',
-      'CopilotRuntime with none configured, so the request carrying',
-      'the audio has nothing to answer it. expected here, and not a',
-      'defect in the component.',
-      mic.synthetic
-        ? 'note: no input device on this machine, so the stream came'
-        : 'note: the stream came from a real input device.',
-      mic.synthetic ? 'from a synthesized source. the ui path is the real one.' : '',
-    ].filter(Boolean),
+      'capture is a browser api and works; transcription is a runtime',
+      'service, and none is configured here. not a component defect.',
+    ],
     doc: [
-      'that the microphone needs anything beyond rendering the',
-      'control. the page documents the button as though placing it',
-      'were the whole job, so a reader gets a control that looks',
-      'correct, behaves correctly, and transcribes nothing - and only',
-      'finds out by pressing it. an unstated prerequisite is a defect.',
-      '',
-      'aside: the permission bubble and the Open dialog in this clip',
-      'are drawn by the recorder. chrome and windows draw the real',
-      'ones outside the video, where playwright cannot film them.',
-      'the file, the reply and the failed request are real.',
+      'that the mic needs anything beyond rendering the control.',
     ],
   });
 

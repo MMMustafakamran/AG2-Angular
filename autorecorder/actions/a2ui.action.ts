@@ -81,27 +81,15 @@ export const runA2uiAction: PageActionHandler = async (
     file: 'a2ui-finding.txt',
     headline: 'a2ui reports enabled and renders nothing',
     saw: [
-      'asked the agent for declarative ui',
-      'it understood, and answered in prose',
-      'no a2ui element mounted anywhere in the chat',
-      'no error, no warning, clean console',
+      'asked for declarative ui; the agent answered in prose',
+      'no a2ui element mounted. no error, clean console',
     ],
     why: [
-      'a2ui: {} in server.ts turns the middleware on, and',
-      '/api/copilotkit/info duly reports a2uiEnabled: true.',
-      'but the render_a2ui renderer is registered by supplying',
-      'a2ui.catalog, which nothing here does - because the',
-      'guide\'s catalog snippet references dynamicString,',
-      'beautifulCatalog, declarativeCatalog, fixedCatalog and',
-      'productCatalog, and defines none of them.',
+      'a2ui: {} enables the middleware, but the renderer needs',
+      'a2ui.catalog - the guide\'s snippet defines none of its five.',
     ],
     doc: [
-      'that a catalog is required, or what one contains.',
-      'it says the renderer "activates automatically" and that',
-      '"no extra configuration is needed" - both true only once',
-      'a catalog exists. every check a reader would run to verify',
-      'the setup reports success. the page cannot be completed',
-      'from the page.',
+      'that a catalog is required at all.',
     ],
   });
 };

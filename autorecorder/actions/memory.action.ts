@@ -51,21 +51,14 @@ export const runMemoryAction: PageActionHandler = async (
     headline: 'memory is absent, and the guide handled it correctly',
     saw: [
       'injectMemories mounted; isAvailable() returned false',
-      'the guide\'s fallback message rendered in place of controls',
-      'no error, no empty list pretending to be a loaded one',
-      'the chat beside it answered normally in the same run',
+      'the guide\'s fallback rendered; the chat beside it worked',
     ],
     why: [
-      'the memory routes come from copilotkit intelligence, which',
-      'this runtime has no key for. so the capability is genuinely',
-      'not there, and the gate the guide insists on caught it.',
+      'memory routes come from copilotkit intelligence, which this',
+      'runtime has no key for. the guide\'s gate caught it correctly.',
     ],
     doc: [
-      'nothing wrong here. this page is NOT a defect.',
-      'filing it beside a2ui or shared state would be a mistake:',
-      'those are pages that teach something that cannot work.',
-      'this is a page that works, gated on a feature we have not',
-      'licensed. same red mark, completely different fix.',
+      'nothing - this page is NOT a defect, just unlicensed.',
     ],
   });
 };
