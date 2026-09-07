@@ -23,6 +23,11 @@
  * only signal that anything is wrong is the absence of a card nobody promised a
  * specific shape for.
  *
+ * Before any of that, the take stops on the harness's own /a2ui notes route,
+ * marks the reconstructed `a2uiConfigForFeature` block and writes down that the
+ * guide never declares the catalogs it returns, so that code was written here.
+ * See actions/catalog-code.ts.
+ *
  * The legacy recorder made this a doc-only page and highlighted the missing
  * identifiers in the guide itself. This engine always drives the demo route, so
  * the finding moved onto the demo page — the substance is the same, and the doc
@@ -34,16 +39,48 @@ import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 import { sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
+import {
+  CATALOG_CODE_NOTE,
+  returnToDemo,
+  showReconstructedCatalogCode,
+} from './catalog-code';
 import { dwellOn, showFindingNote } from './finding-note';
+import { closeNotepadNote, openNotepadWindow, typeInNotepad } from './notepad';
 
 /** Anything the A2UI renderer would have mounted. */
 const A2UI_SURFACE =
   'copilot-a2ui, [class*="a2ui"], .a2ui-row, .a2ui-flight-card';
 
+/**
+ * Types the note beside the highlighted snippet.
+ *
+ * Parked hard right, above the taskbar, so the marked code stays visible to its
+ * left: the claim and the code it is about share the frame.
+ */
+async function writeCatalogCodeNote(page: Page): Promise<void> {
+  await openNotepadWindow(page, 'a2ui-catalogs.txt', {
+    top: '150px',
+    right: '48px',
+    width: '560px',
+    height: '380px',
+  });
+  await typeInNotepad(page, CATALOG_CODE_NOTE, 1600, 260);
+  await sleep(3500);
+  await closeNotepadNote(page);
+}
+
 export const runA2uiAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
+  // First, whose code the catalog snippet is. The demo below shows that no
+  // catalog is registered; this shows why one could not be — and that the
+  // block on the notes route was written here rather than lifted from a guide
+  // that never declares it.
+  if (await showReconstructedCatalogCode(page, config, writeCatalogCodeNote)) {
+    await returnToDemo(page, config);
+  }
+
   console.log(`   🎨 Asking for declarative UI: ${config.prompt}`);
   const msgCount = await sendPrompt(page, config.prompt);
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
