@@ -23,10 +23,11 @@
  * only signal that anything is wrong is the absence of a card nobody promised a
  * specific shape for.
  *
- * Before any of that, the take stops on the harness's own /a2ui notes route,
- * marks the reconstructed `a2uiConfigForFeature` block and writes down that the
- * guide never declares the catalogs it returns, so that code was written here.
- * See actions/catalog-code.ts.
+ * Before any of that, the take opens frontend/src/app/pages/a2ui.ts in the
+ * simulated VS Code — the one file in this repo carrying the reconstructed
+ * `a2uiConfigForFeature` — and writes down that the guide never declares the
+ * catalogs it returns, so that code was written here. See
+ * actions/catalog-code.ts.
  *
  * The legacy recorder made this a doc-only page and highlighted the missing
  * identifiers in the guide itself. This engine always drives the demo route, so
@@ -72,12 +73,20 @@ async function writeCatalogCodeNote(page: Page): Promise<void> {
 export const runA2uiAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  rootPath: string,
 ) => {
   // First, whose code the catalog snippet is. The demo below shows that no
-  // catalog is registered; this shows why one could not be — and that the
-  // block on the notes route was written here rather than lifted from a guide
-  // that never declares it.
-  if (await showReconstructedCatalogCode(page, config, writeCatalogCodeNote)) {
+  // catalog is registered; this shows why one could not be — and, by opening
+  // the source file itself, that the block was written here rather than lifted
+  // from a guide that never declares it.
+  if (
+    await showReconstructedCatalogCode(
+      page,
+      config,
+      rootPath,
+      writeCatalogCodeNote,
+    )
+  ) {
     await returnToDemo(page, config);
   }
 

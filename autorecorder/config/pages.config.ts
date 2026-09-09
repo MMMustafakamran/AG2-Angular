@@ -297,15 +297,18 @@ export const PAGES = definePages([
       { filePath: 'backend/main.py', startLine: 37, endLine: 44 },
       { filePath: 'backend/main.py', startLine: 60, endLine: 79 },
     ],
-    // One turn per row of the guide's table, in plain language, each asked
-    // after the browser has visibly changed the value: the shared state the
-    // priority buttons write, then the read-only context the timezone button
-    // moves. The finding is not a wrong answer — it is an agent with no
-    // visibility of either value the page is actively displaying.
+    // Three turns, read in order by actions/shared-state.action.ts, each asked
+    // after the browser has visibly changed the value: priority once `high` is
+    // written, priority again once `low` is, then the read-only context the
+    // timezone button moves. Asking the same question across two different
+    // written values is what separates a real read of agent state from a word
+    // echoed out of the question. The finding is not a wrong answer — it is an
+    // agent with no visibility of either value the page is actively displaying.
     prompt: 'What is the priority set to right now?',
     prompts: [
       'What is the priority set to right now?',
-      'What is my name, and which timezone am I in?',
+      'And now? What is the priority?',
+      'Which timezone am I on?',
     ],
     waitAfterPromptMs: 4000,
   },
