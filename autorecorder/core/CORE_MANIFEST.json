@@ -8,7 +8,7 @@
   "ide/generator.ts": "84d7d812ac58afb0",
   "overlays/cursor.ts": "519d5dc05ce0f906",
   "overlays/human.ts": "aa9fff385bba0465",
-  "overlays/taskbar.ts": "ca9aa929053a4634",
+  "overlays/taskbar.ts": "79e48a24faa75a5c",
   "prewarm.ts": "ec794b197b456de2",
   "select.ts": "60efffca20c46b2c",
   "timeouts.ts": "ba4e52b004b4fa04",
