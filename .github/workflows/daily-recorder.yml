@@ -46,7 +46,7 @@ on:
     #
     # This still cannot GUARANTEE a time -- no `schedule:` can. If exact timing
     # ever matters, drive it externally via repository_dispatch.
-    - cron: '31 5 * * *'
+    - cron: '44 23 * * *'
   workflow_dispatch:
     inputs:
       group_getting_started:
