@@ -43,7 +43,6 @@ import { loadEnvFiles, trimInheritedCredentials } from './lib/env.mjs';
 import {
   assertModelCredentials,
   assertPortsFree,
-  warmFrontendRoutes,
   warmRuntimeEndpoint,
 } from './lib/preflight.mjs';
 import { generateReport } from './lib/report.mjs';
@@ -382,7 +381,6 @@ async function main() {
 
     // 6. Warm the routes and the runtime so the recorder's own preflight is not
     // racing a first load.
-    await warmFrontendRoutes();
     await warmRuntimeEndpoint();
 
     // 7. Record

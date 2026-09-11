@@ -52,6 +52,15 @@ export function readPageIds() {
   }
 
   const ids = [...src.matchAll(/^\s*id:\s*'([^']+)'/gm)].map((m) => m[1]);
+  // The generated per-package-manager pages write their id as a template,
+  // `demo-${pm}`, over the `{ pm: '...' }` table above it. Expand it the same
+  // way, or those pages are invisible here: unselectable from the dispatch
+  // form and missing from the coverage check that claims every page is grouped.
+  for (const tpl of src.matchAll(/^\s*id:\s*`([^`$]*)\$\{(\w+)\}([^`]*)`/gm)) {
+    const [, before, variable, after] = tpl;
+    const values = [...src.matchAll(new RegExp(`\\{\\s*${variable}:\\s*'([^']+)'`, 'g'))].map((m) => m[1]);
+    for (const v of values) ids.push(`${before}${v}${after}`);
+  }
   if (ids.length === 0) {
     throw new Error(`No page ids found in ${PAGES_CONFIG}`);
   }

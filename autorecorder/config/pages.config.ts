@@ -246,6 +246,25 @@ export const PAGES = definePages([
     ],
     prompt: 'Please delete my account. Check with me before you actually do it.',
     waitAfterPromptMs: 4000,
+    demo: {
+      render: {
+        selector: 'app-approval-card',
+        timeoutMs: 25000,
+        beatMs: 1800,
+        required:
+          'app-approval-card never appeared -- the agent answered without calling requestApproval, so nothing was paused.',
+      },
+      click: {
+        selector: 'app-approval-card button:has-text("Approve")',
+        missing: 'Approval card rendered but no Approve button was found on it.',
+      },
+      // ag2 emits no interrupt event, so both panels are expected empty; the
+      // cursor still travels up to them so the clip shows that.
+      glideTo: [
+        { selector: 'app-interrupt-panel', beatMs: 1600 },
+        { selector: 'app-ticket-approval', beatMs: 1600 },
+      ],
+    },
   },
   {
     id: 'shared-state',

@@ -46,7 +46,6 @@ import { waitForPageReady } from './page-ready';
 
 import { runChatUiAction } from './chat-ui.action';
 import { runHeadlessAction } from './headless.action';
-import { runHitlAction } from './hitl.action';
 import { runInspectorAction } from './inspector.action';
 import { runQuickstartAction } from './quickstart.action';
 import { runSharedStateAction } from './shared-state.action';
@@ -62,7 +61,6 @@ export const ACTION_MAP: Record<string, PageActionHandler> = {
   'chat-ui': runChatUiAction,
   'frontend-tools-generative-ui': runToolsAction,
   'voice-multimodal': runVoiceAction,
-  'human-in-the-loop': runHitlAction,
   'shared-state': runSharedStateAction,
   threads: runThreadsAction,
   headless: runHeadlessAction,

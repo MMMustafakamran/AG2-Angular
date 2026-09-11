@@ -628,7 +628,7 @@ jobs:
             EXTRA_FLAGS="$EXTRA_FLAGS --use-lockfile"
           elif [ "${RESOLVED_HIT:-false}" = "true" ]; then
             # Fresh lockfiles from stage 2, not the committed ones.
-            EXTRA_FLAGS="$EXTRA_FLAGS --use-lockfile"
+            EXTRA_FLAGS="$EXTRA_FLAGS --use-lockfile --skip-install"
             echo "Using the trees stage 2 resolved this run (cache hit)."
             echo "- Dependencies: installed from the lockfiles stage 2 resolved this run" >> "$GITHUB_STEP_SUMMARY"
           else

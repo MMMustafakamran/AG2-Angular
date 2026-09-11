@@ -76,17 +76,6 @@ export const RUNTIME_HEALTH_URL = `http://127.0.0.1:${RUNTIME_PORT}/api/copilotk
 export const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
 
 /**
- * Routes hit before recording starts.
- *
- * `ng serve` builds the whole app up front rather than per route, so this is
- * cheaper than the Next equivalent — but the first request still pays for the
- * initial bundle transfer and the lazy chunk of the route, which is enough to
- * blow the recorder's preflight timeout on a cold CI machine. Demo routes are
- * `<route>/demo` (frontend/src/app/app.routes.ts).
- */
-export const WARMUP_ROUTES = ['/', '/quickstart/demo'];
-
-/**
  * Hit once before the first prompt of a run.
  *
  * The browser posts across origins to the runtime, and the first request there
