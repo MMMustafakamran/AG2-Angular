@@ -209,6 +209,7 @@ jobs:
           exit 0
 
       - name: Open or update the drift issue
+        continue-on-error: true
         if: steps.check.outputs.state == 'drift' && github.event_name == 'schedule'
         uses: actions/github-script@v7
         with:
@@ -345,15 +346,45 @@ jobs:
       # recorded truth comes from RUN_REPORT, which reads the installed tree
       # inside the shard that did the recording.
       #
-      # The Python side is NOT re-resolved here: the recorder runs
-      # `uv sync --upgrade`, and doing that here would mean committing a relock
-      # as a side effect of asking what moved.
+      # The Python side is re-resolved below as a lockfile only (`uv lock
+      # --upgrade`), never installed and never committed: the workers restore
+      # that uv.lock and sync from it.
       - name: Re-resolve dependencies
         run: |
           set -euo pipefail
           rm -f frontend/package-lock.json autorecorder/package-lock.json
           npm --prefix frontend install --no-audit --no-fund
           npm --prefix autorecorder install --no-audit --no-fund
+
+      # The Python side, resolved the same way the recorder would
+      # (`uv sync --upgrade`) but only the lockfile is kept: the shards install
+      # from it, so all three record against one resolution.
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Re-resolve the backend lockfile
+        run: |
+          set -euo pipefail
+          cd backend
+          uv python install 3.12
+          uv lock --upgrade
+
+      # One resolution, three shards. Before this, each worker re-resolved
+      # on its own -- three installs, and three chances to land on different
+      # versions when a release dropped mid-run. The workers restore this
+      # cache and install from the lockfiles it carries; a miss falls back
+      # to resolving locally exactly as before.
+      - name: Share the resolved trees with the workers
+        uses: actions/cache/save@v4
+        with:
+          key: resolved-deps-${{ github.run_id }}
+          path: |
+            frontend/node_modules
+            frontend/package-lock.json
+            autorecorder/node_modules
+            autorecorder/package-lock.json
+            backend/uv.lock
 
       # ci/check-versions.mjs is read-only and always exits 0: a moved version is
       # news, not a build failure, and must never decide whether demos record.
@@ -409,6 +440,9 @@ jobs:
         shard: [1, 2, 3]
 
     env:
+      # Reading and thinking pauses at 85% -- typing, mouse and scrolling are
+      # not scaled. See autorecorder/core/overlays/human.ts (PACE).
+      AUTORECORD_PACE: '0.85'
       # backend/main.py builds an OpenAIConfig unconditionally -- there is no
       # Azure branch on this backend -- and reads exactly these two.
       # OPENAI_API_KEY is exported into $GITHUB_ENV by the normalization step below
@@ -505,10 +539,38 @@ jobs:
           npm install -g "$PINNED"
           npm --version
 
+      # The trees stage 2 resolved this run. On a hit the shard installs from
+      # those lockfiles (--use-lockfile) instead of re-resolving: seconds, not
+      # minutes, and identical versions on all three workers. On a miss (stage
+      # 2 red or skipped) the shard resolves for itself as it always did.
+      - name: Restore the resolved trees from stage 2
+        id: resolved
+        uses: actions/cache/restore@v4
+        with:
+          key: resolved-deps-${{ github.run_id }}
+          path: |
+            frontend/node_modules
+            frontend/package-lock.json
+            autorecorder/node_modules
+            autorecorder/package-lock.json
+            backend/uv.lock
+
+      # The Chromium build is keyed on the installed playwright-core version,
+      # so it downloads once per Playwright release rather than once per shard
+      # per day. The runner image already ships the system libraries, so on a
+      # hit nothing is installed at all.
+      - name: Cache the Playwright browser
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('autorecorder/node_modules/playwright-core/package.json') }}
+
       - name: Install Playwright & System Chromium Dependencies
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: |
           cd autorecorder
-          npm install
+          [ -d node_modules/playwright ] || npm install
           npx playwright install --with-deps chromium
 
       # ffmpeg lives here, not in consolidate, because muxing happens once — in
@@ -548,6 +610,7 @@ jobs:
           SELECTED_PAGES: ${{ needs.prepare.outputs.pages }}
           INPUT_CUSTOM_ARGS: ${{ inputs.custom_args }}
           INPUT_USE_LOCKFILE: ${{ inputs.use_lockfile }}
+          RESOLVED_HIT: ${{ steps.resolved.outputs.cache-hit }}
           SHARD: ${{ matrix.shard }}
         run: |
           set -euo pipefail
@@ -563,6 +626,13 @@ jobs:
           EXTRA_FLAGS=""
           if [ "${INPUT_USE_LOCKFILE:-false}" = "true" ]; then
             EXTRA_FLAGS="$EXTRA_FLAGS --use-lockfile"
+          elif [ "${RESOLVED_HIT:-false}" = "true" ]; then
+            # Fresh lockfiles from stage 2, not the committed ones.
+            EXTRA_FLAGS="$EXTRA_FLAGS --use-lockfile"
+            echo "Using the trees stage 2 resolved this run (cache hit)."
+            echo "- Dependencies: installed from the lockfiles stage 2 resolved this run" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No shared trees from stage 2; resolving locally."
           fi
           # Always. The drift gate in stage 1 already decided -- it either found
           # the docs clean or was explicitly overridden -- so re-checking here
@@ -587,6 +657,24 @@ jobs:
             echo "### 🧩 Worker Shard ${{ matrix.shard }}/3 produced no report" >> $GITHUB_STEP_SUMMARY
           fi
 
+      # Consolidate downloads every shard into one folder (merge-multiple), so
+      # any file that shares a name across shards -- the reports, the server
+      # logs -- would be overwritten by whichever shard uploaded last. Suffix
+      # them with the shard number; the videos are already unique per page.
+      - name: Name shard-specific files
+        if: always()
+        run: |
+          set -euo pipefail
+          cd autorecorder/videos
+          for f in RUN_REPORT.md RUN_REPORT.json RECORD_RESULTS.json; do
+            [ -f "$f" ] && mv "$f" "${f%.*}-shard-${{ matrix.shard }}.${f##*.}" || true
+          done
+          if [ -d logs ]; then
+            for f in logs/*.log; do
+              [ -f "$f" ] && mv "$f" "${f%.log}-shard-${{ matrix.shard }}.log" || true
+            done
+          fi
+
       - name: Upload Shard Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -594,8 +682,9 @@ jobs:
           name: ${{ needs.prepare.outputs.run_name }}-shard-${{ matrix.shard }}
           path: |
             autorecorder/videos/*.webm
-            autorecorder/videos/RUN_REPORT.md
-            autorecorder/videos/RUN_REPORT.json
+            autorecorder/videos/RUN_REPORT-shard-*.md
+            autorecorder/videos/RUN_REPORT-shard-*.json
+            autorecorder/videos/RECORD_RESULTS-shard-*.json
             autorecorder/videos/logs/*.log
           if-no-files-found: ignore
           retention-days: 14
@@ -660,14 +749,6 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # One folder holding every clip from the run, named for the project and
-      # the time it ran.
-      #
-      # Clips and the manifest only. RUN_REPORT and the server logs are
-      # PER-SHARD -- three shards each write their own -- so `merge-multiple`
-      # would leave one arbitrary shard's copy standing here and it would read
-      # as the whole run's. They stay on the three `-shard-N` artifacts, where
-      # which shard produced them is part of the name.
       - name: Upload Consolidated Demo Recordings Package
         if: always()
         uses: actions/upload-artifact@v4
@@ -677,5 +758,8 @@ jobs:
             autorecorder/videos/*.webm
             autorecorder/videos/MANIFEST.md
             autorecorder/videos/manifest.json
+            autorecorder/videos/RUN_REPORT-shard-*.md
+            autorecorder/videos/RUN_REPORT-shard-*.json
+            autorecorder/videos/RECORD_RESULTS-shard-*.json
           if-no-files-found: ignore
           retention-days: 14

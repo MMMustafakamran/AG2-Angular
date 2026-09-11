@@ -37,10 +37,10 @@ export const PAGE_GROUPS = {
   // the dispatch form is already at GitHub's ten-input limit, and the page it
   // documents is reached from the quickstart's own closing step.
   getting_started: ['quickstart', 'inspector', 'chat-ui'],
-  generative_ui: ['frontend-tools-generative-ui', 'a2ui'],
+  generative_ui: ['frontend-tools-generative-ui'],
   interaction: ['voice-multimodal', 'human-in-the-loop'],
   shared_state: ['shared-state'],
-  threads: ['threads', 'memory', 'attachments', 'headless'],
+  threads: ['threads', 'headless'],
 };
 
 export function readPageIds() {

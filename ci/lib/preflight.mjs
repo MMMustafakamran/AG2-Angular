@@ -152,6 +152,38 @@ export async function assertModelCredentials() {
   } catch (err) {
     if (err instanceof Error && /rejected by OpenAI/.test(err.message)) throw err;
     process.stdout.write('⚠️ could not reach OpenAI; continuing.\n');
+    return;
+  }
+
+  // A valid key with no balance passes /v1/models and then fails every
+  // prompt. On 2026-09-11 that recorded 30 "agent never answered" pages
+  // across the repos before anyone read a backend log. One one-token
+  // completion tells the difference up front.
+  process.stdout.write('⏳ [Preflight] Verifying model balance... ');
+  try {
+    const model = process.env.OPENAI_CHAT_MODEL_ID || process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (res.status === 429) {
+      const body = await res.text().catch(() => '');
+      if (/insufficient_quota|credit_balance|no credits/i.test(body)) {
+        process.stdout.write('❌\n');
+        throw new Error(
+          'OpenAI account has no credits remaining (insufficient_quota). ' +
+            'Every page would record an agent that never answers. Add credits, then re-run.',
+        );
+      }
+      process.stdout.write('⚠️ rate limited; continuing.\n');
+      return;
+    }
+    process.stdout.write(res.ok ? '✅ has balance\n' : `⚠️ inconclusive (HTTP ${res.status}); continuing.\n`);
+  } catch (err) {
+    if (err instanceof Error && /no credits remaining/.test(err.message)) throw err;
+    process.stdout.write('⚠️ could not probe; continuing.\n');
   }
 }
 

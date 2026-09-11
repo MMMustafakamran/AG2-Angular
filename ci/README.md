@@ -42,6 +42,7 @@ exactly one implementation:
 | `frontend/VERSIONS.md` | `frontend/scripts/write-versions.ts` (`npm run gen:versions`) | The recorder's doctor already calls it, and the Quickstart clip puts the file on screen. `automate.mjs` invokes it after install. |
 | Recording manifest | `autorecorder/manifest.ts` (`npm run manifest`) | Provenance for the clips on disk. Run by the **consolidate** job, never by a shard — see below. |
 
+
 ## Commands
 
 ```bash
@@ -154,6 +155,13 @@ publish three different wrong manifests.
 `verify.yml` stays separate. It is the per-push gate — no secrets, no browser,
 no model calls — and its red light means someone broke the code in this repo.
 This pipeline's red light means the docs moved or a recording failed.
+
+`versions` resolves the dependency trees once (lockfile-free npm installs and
+`uv lock --upgrade`) and shares them through a run-scoped cache. Each worker
+restores that cache and runs `automate.mjs --use-lockfile` against the fresh
+lockfiles, so all three shards record against one resolution and skip the
+minutes of re-resolving. A cache miss (`versions` red or skipped) falls back to
+resolving in the worker.
 
 ## Artifact names
 

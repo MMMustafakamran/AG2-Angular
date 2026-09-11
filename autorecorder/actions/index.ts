@@ -44,13 +44,10 @@ import { type Page } from 'playwright';
 
 import { waitForPageReady } from './page-ready';
 
-import { runA2uiAction } from './a2ui.action';
-import { runAttachmentsAction } from './attachments.action';
 import { runChatUiAction } from './chat-ui.action';
 import { runHeadlessAction } from './headless.action';
 import { runHitlAction } from './hitl.action';
 import { runInspectorAction } from './inspector.action';
-import { runMemoryAction } from './memory.action';
 import { runQuickstartAction } from './quickstart.action';
 import { runSharedStateAction } from './shared-state.action';
 import { runThreadsAction } from './threads.action';
@@ -64,13 +61,10 @@ export const ACTION_MAP: Record<string, PageActionHandler> = {
   quickstart: runQuickstartAction,
   'chat-ui': runChatUiAction,
   'frontend-tools-generative-ui': runToolsAction,
-  a2ui: runA2uiAction,
   'voice-multimodal': runVoiceAction,
   'human-in-the-loop': runHitlAction,
   'shared-state': runSharedStateAction,
   threads: runThreadsAction,
-  memory: runMemoryAction,
-  attachments: runAttachmentsAction,
   headless: runHeadlessAction,
   // The Inspector page's own subject is the panel, so the clip has to open
   // it. Falling through to runStandardAction would record a chat and

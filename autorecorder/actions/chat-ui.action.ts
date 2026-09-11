@@ -14,7 +14,7 @@
 import { type Page } from 'playwright';
 
 import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 import { waitForDomSettled } from './page-ready';
@@ -58,9 +58,9 @@ async function openLauncher(page: Page, label: string, restAt: [number, number])
     await btn.click();
   }
 
-  await sleep(2000);
+  await beat(2000);
   await humanGlide(page, restAt[0], restAt[1], 22);
-  await sleep(2000);
+  await beat(2000);
   return true;
 }
 

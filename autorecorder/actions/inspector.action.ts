@@ -1,7 +1,7 @@
 import { type Page } from 'playwright';
 
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 /**
@@ -134,7 +134,7 @@ export async function openInspector(page: Page): Promise<boolean> {
 
   await humanGlide(page, triggerPos.x, triggerPos.y, 22);
   await humanClick(page);
-  await sleep(2500);
+  await beat(2500);
   return true;
 }
 
@@ -244,7 +244,7 @@ export async function openInspectorPanel(
   );
   await humanGlide(page, pos.x, pos.y, 20);
   await humanClick(page);
-  await sleep(1200);
+  await beat(1200);
 
   const active = await page.evaluate((key) => {
     const stack: (Document | ShadowRoot)[] = [document];
@@ -325,7 +325,7 @@ export async function selectInspectorAgent(
 
   await humanGlide(page, openerPos.x, openerPos.y, 20);
   await humanClick(page);
-  await sleep(900);
+  await beat(900);
 
   const optionPos = await page.evaluate((id) => {
     const stack: (Document | ShadowRoot)[] = [document];
@@ -361,7 +361,7 @@ export async function selectInspectorAgent(
 
   await humanGlide(page, optionPos.x, optionPos.y, 18);
   await humanClick(page);
-  await sleep(1500);
+  await beat(1500);
   console.log(`   Selected agent "${agentId}" in the Inspector sidebar.`);
   return true;
 }
@@ -417,7 +417,7 @@ async function reportMountProbe(page: Page): Promise<void> {
   if (box) {
     await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2, 20);
   }
-  await sleep(2500);
+  await beat(2500);
 
   switch (state) {
     case 'mounted':
@@ -500,17 +500,17 @@ export const runInspectorAction: PageActionHandler = async (
   // then the events are moving.
   console.log(`   Selecting the Agents panel (quickstart step 1)...`);
   await openInspectorPanel(page, 'agents');
-  await sleep(2000);
+  await beat(2000);
   // Opening the panel is only half the documented step. On arrival it reads
   // "No agent selected"; the agent is listed once one is picked in the sidebar.
   console.log(`   Agents panel on arrival: ${await readInspectorText(page)}`);
   await selectInspectorAgent(page, 'default');
-  await sleep(2000);
+  await beat(2000);
   console.log(`   Agents panel after selecting: ${await readInspectorText(page)}`);
 
   console.log(`   Selecting the AG-UI Events panel (quickstart step 2)...`);
   await openInspectorPanel(page, 'ag-ui-events');
-  await sleep(4000);
+  await beat(4000);
   console.log(`   AG-UI Events panel reads: ${await readInspectorText(page)}`);
 
   // Rest over the panel so the closing frames are the evidence, not the cursor.

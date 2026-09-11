@@ -5,6 +5,7 @@ import { executePageAction } from '../actions';
 import { diagnoseError } from './diagnostics';
 import { SELECTORS } from '../config/selectors.config';
 import { captureConsole, type ConsoleEntry } from './console-capture';
+import { buildFailureEvidence, snapshotLogOffsets, writeFailureLog, type LogSource } from './failure-evidence';
 import { generateIdeHtml, type IdeTabConfig } from './ide/generator';
 import { humanClick, humanGlide, humanScrollDown, restCursorSomewhere, sleep } from './overlays/cursor';
 import { pause, seedTake } from './overlays/human';
@@ -110,6 +111,13 @@ export class RecordingEngine {
   private readonly videosDir: string;
   private readonly rootDir: string;
   private readonly tempVideoDir: string;
+  /**
+   * One Chromium for the whole run. Every take used to launch and tear down
+   * its own browser, which cost about five seconds per page off camera; the
+   * context (and with it the video) is still fresh per take, so the clips are
+   * unchanged. `shutdown()` closes it once the suite is done.
+   */
+  private browser?: Browser;
 
   constructor(rootDir: string) {
     this.rootDir = rootDir;
@@ -131,14 +139,17 @@ export class RecordingEngine {
     context: BrowserContext;
     page: Page;
   }> {
-    const browser = await chromium.launch({
-      headless: false,
-      args: [
-        '--start-maximized',
-        '--force-dark-mode',
-        '--background-color=#1e1e1e',
-      ],
-    });
+    if (!this.browser || !this.browser.isConnected()) {
+      this.browser = await chromium.launch({
+        headless: false,
+        args: [
+          '--start-maximized',
+          '--force-dark-mode',
+          '--background-color=#1e1e1e',
+        ],
+      });
+    }
+    const browser = this.browser;
 
     const context = await browser.newContext({
       viewport: { width: 1920, height: 1080 },
@@ -183,6 +194,28 @@ export class RecordingEngine {
    *
    * Returns the filename actually written, which is what the summary reports.
    */
+  /**
+   * Closes a failed take on the evidence: the log file always. The React
+   * recorders also replay it in the simulated terminal window; this engine has
+   * no terminal (no `core/cli`), so the log is the whole of it.
+   */
+  private showFailureEvidence(
+    pageId: string,
+    error: string,
+    consoleEntries: ConsoleEntry[],
+    logs: LogSource[],
+    logsDir: string,
+  ): void {
+    try {
+      const evidence = buildFailureEvidence({ pageId, error, consoleEntries, logs });
+      const file = writeFailureLog(logsDir, evidence);
+      console.log(`   📝 Failure evidence: ${file}`);
+      console.log('   Evidence note: no terminal window in this recorder; the error log is the evidence.');
+    } catch (e) {
+      console.warn(`   Evidence note: could not write the error log: ${e}`);
+    }
+  }
+
   private async closeStage(
     browser: Browser,
     context: BrowserContext,
@@ -210,7 +243,8 @@ export class RecordingEngine {
       }
     }
 
-    await browser.close().catch(() => {});
+    // The browser stays up for the next take; see `shutdown()`.
+    void browser;
 
     // Playwright's raw chunk lands here before saveAs moves it out. Nothing
     // should survive the run; left alone it accumulated one stray .webm per
@@ -220,6 +254,13 @@ export class RecordingEngine {
     } catch {}
 
     return savedFilename;
+  }
+
+  /** Closes the shared browser. Call once, after the last take. */
+  async shutdown(): Promise<void> {
+    const browser = this.browser;
+    this.browser = undefined;
+    if (browser) await browser.close().catch(() => {});
   }
 
   /**
@@ -375,7 +416,13 @@ export class RecordingEngine {
       await pause(opts.dwellMs);
     }
 
-    await page.unroute(ideUrl).catch(() => {});
+    // Bounded, because unbounded it can hang the whole run. `unroute` waits for
+    // in-flight handlers of the route it removes, and after some doc pages one
+    // never settles: seen 4/4 on the Learning page, whose Loom embed is the one
+    // thing it has that the others don't. The IDE window is finished with by
+    // now either way, and a leftover handler on a URL nothing else requests is
+    // harmless.
+    await Promise.race([page.unroute(ideUrl).catch(() => {}), sleep(3000)]);
   }
 
   async recordPage(config: PageRecordConfig): Promise<RecordResult> {
@@ -391,6 +438,11 @@ export class RecordingEngine {
     let recordError: string | undefined;
     let finalSavedFilename = '';
     const warnings: string[] = [];
+
+    // Where the server logs stand as this take begins. If it fails, the
+    // evidence written is this page's slice of the logs, not the whole run's.
+    const logsDir = join(this.videosDir, 'logs');
+    const logSources: LogSource[] = snapshotLogOffsets(logsDir);
 
     /** A step that renders the thing under test failed -- the video is not usable. */
     const fail = (message: string): void => {
@@ -553,6 +605,14 @@ export class RecordingEngine {
       console.error(`❌ Recording error for ${config.id}:`, recordError);
     } finally {
       console_?.stop();
+
+      // A failed take leaves the diagnosed error, the browser console and this
+      // page's slice of the server logs in videos/logs/<id>.error.log. Never
+      // lets an evidence problem hide the original failure.
+      if (recordError) {
+        this.showFailureEvidence(config.id, recordError, console_?.entries ?? [], logSources, logsDir);
+      }
+
       finalSavedFilename = await this.closeStage(
         browser,
         context,

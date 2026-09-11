@@ -62,7 +62,7 @@
 import { type Page } from 'playwright';
 
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 import { attachImage } from './attach-image';
@@ -260,7 +260,7 @@ async function runMicrophoneHalf(page: Page): Promise<MicOutcome> {
   // Rest on the composer so the recording state, the elapsed timer and the stop
   // control are all on screen for long enough to read.
   await humanGlide(page, micBox.x - 120, micBox.y + micBox.height / 2, 20);
-  await sleep(4000);
+  await beat(4000);
 
   // Stopping is what posts the audio for transcription -- i.e. what fails.
   let posted = false;
@@ -271,7 +271,7 @@ async function runMicrophoneHalf(page: Page): Promise<MicOutcome> {
       await humanGlide(page, stopBox.x + stopBox.width / 2, stopBox.y + stopBox.height / 2, 20);
       await sleep(400);
       await humanClick(page);
-      await sleep(3000);
+      await beat(3000);
       posted = finishes;
     }
   }
@@ -296,7 +296,7 @@ export const runVoiceAction: PageActionHandler = async (
 
   const msgCount = await sendPrompt(page, config.prompt);
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
-  await sleep(1200);
+  await beat(1200);
 
   // ── Half two: the microphone, which records and then cannot transcribe ────
   const mic = await runMicrophoneHalf(page);
@@ -319,5 +319,5 @@ export const runVoiceAction: PageActionHandler = async (
     ],
   });
 
-  await sleep(800);
+  await beat(800);
 };

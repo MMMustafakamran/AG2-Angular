@@ -162,6 +162,9 @@ function listVideos() {
         filename: r.filename || '',
         status: !r.success ? 'failed' : r.warnings?.length ? 'pass-with-notes' : 'pass',
         notes: [...(r.warnings ?? []), ...(r.error ? [r.error] : [])],
+        // Kept verbatim so a downloaded package can be re-compared without the raw file.
+        error: r.error ?? null,
+        consoleErrors: r.consoleErrors ?? [],
         sizeMB: r.filename ? sizeOf(path.join(VIDEOS_DIR, r.filename)) : 'n/a',
         durationSec: r.durationSec,
       })),

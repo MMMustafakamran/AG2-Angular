@@ -201,32 +201,6 @@ export const PAGES = definePages([
     waitAfterPromptMs: 4000,
   },
 
-  {
-    id: 'a2ui',
-    name: 'Guides - A2UI schemas, styling, and recovery',
-    videoName: 'A2ui',
-    docPath: 'guides/a2ui',
-    route: 'a2ui',
-    // The catalog CSS the guide prescribes, in the global stylesheet. It is the
-    // only A2UI code this repo has, because the guide's catalog snippet cannot
-    // be completed — which is the finding.
-    ideFile: 'frontend/src/app/features/a2ui/a2ui-chat.component.ts',
-    startLine: 1,
-    endLine: 25,
-    extraTabs: [
-      // `a2ui : recover incomplete streams start|end`, plus the provider that
-      // reports a2uiEnabled: true while rendering nothing.
-      {
-        filePath: 'frontend/src/app/app.config.ts',
-        startLine: 44,
-        endLine: 68,
-      },
-    ],
-    // Asks for something only a catalog could render. The prose answer that
-    // comes back instead IS the finding — see actions/a2ui.action.ts.
-    prompt: 'Can you put together a flight booking card for London? I want a confirm button on it.',
-    waitAfterPromptMs: 4000,
-  },
 
   {
     id: 'voice-multimodal',
@@ -297,15 +271,18 @@ export const PAGES = definePages([
       { filePath: 'backend/main.py', startLine: 37, endLine: 44 },
       { filePath: 'backend/main.py', startLine: 60, endLine: 79 },
     ],
-    // One turn per row of the guide's table, in plain language, each asked
-    // after the browser has visibly changed the value: the shared state the
-    // priority buttons write, then the read-only context the timezone button
-    // moves. The finding is not a wrong answer — it is an agent with no
-    // visibility of either value the page is actively displaying.
+    // Three turns, read in order by actions/shared-state.action.ts, each asked
+    // after the browser has visibly changed the value: priority once `high` is
+    // written, priority again once `low` is, then the read-only context the
+    // timezone button moves. Asking the same question across two different
+    // written values is what separates a real read of agent state from a word
+    // echoed out of the question. The finding is not a wrong answer — it is an
+    // agent with no visibility of either value the page is actively displaying.
     prompt: 'What is the priority set to right now?',
     prompts: [
       'What is the priority set to right now?',
-      'What is my name, and which timezone am I in?',
+      'And now? What is the priority?',
+      'Which timezone am I on?',
     ],
     waitAfterPromptMs: 4000,
   },
@@ -339,42 +316,7 @@ export const PAGES = definePages([
     waitAfterPromptMs: 4000,
   },
 
-  {
-    id: 'memory',
-    name: 'Memory',
-    videoName: 'Memory',
-    docPath: 'guides/threads-memory-attachments-headless',
-    route: 'memory',
-    // `memory : list memories start|end` — injectMemories behind the
-    // isAvailable() gate the guide requires.
-    ideFile: 'frontend/src/app/features/memory/memory-list.component.ts',
-    startLine: 10,
-    endLine: 44,
-    // Recorded even though the feature is absent, because the absence is
-    // handled correctly and that is worth showing: the gate the guide insists
-    // on is what keeps this page from breaking. See actions/memory.action.ts.
-    prompt: 'Do you remember anything about me from earlier chats?',
-    waitAfterPromptMs: 4000,
-  },
 
-  {
-    id: 'attachments',
-    name: 'Attachments',
-    videoName: 'Attachments',
-    docPath: 'guides/threads-memory-attachments-headless',
-    route: 'attachments',
-    // `attachments : enable attachments` and the config block inside it.
-    ideFile: 'frontend/src/app/features/attachments/media-chat.component.ts',
-    startLine: 11,
-    endLine: 27,
-    // Asks for two values that exist only inside the attached image, so a
-    // correct answer is proof the file reached the model. A generic "what types
-    // of attachments are supported?" could be answered from the system prompt
-    // alone, which is how a broken upload comes to look fine on video.
-    prompt:
-      'I attached a chart. What is its title, and what is the Q4 number?',
-    waitAfterPromptMs: 4000,
-  },
   {
     id: 'headless',
     name: 'Headless UI',

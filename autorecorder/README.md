@@ -56,7 +56,7 @@ npm run record            # all pages, in order
 | `--list`, `--help` | Print every registered route and exit |
 | `--doctor` | Validate the configuration; exits 1 on error |
 | `--doctor --online` | Also probe every doc/demo URL and the selectors |
-| `--<page-id>` | Record one page — `--quickstart`, `--a2ui` |
+| `--<page-id>` | Record one page — `--quickstart`, `--threads` |
 | `--page=<id>` | Same thing, explicit form |
 | `--filter=<query>` | Record every page whose id or name contains the query |
 | `--force` | Record even if the pre-flight health check fails |
@@ -181,6 +181,26 @@ reads it, so the CI report lists what *this run* recorded rather than every
 
 ---
 
+## When a take fails
+
+A failed take leaves evidence behind. Before the browser closes, the
+recorder gathers what it saw -- the diagnosed verdict, the browser console
+errors, and this page's slice of `videos/logs/backend.log` and
+`frontend.log` (from where they stood when the take began) -- and writes it
+to `videos/logs/<page-id>.error.log`. Each section is windowed around the
+line most worth reading (a traceback, an `Error`, a 4xx/5xx) and that line
+is marked `>>`, so an agent can diagnose from the log without re-running
+anything locally. CI uploads the file with the run (the shard upload glob
+covers `videos/logs/*.log`).
+
+The React recorders also replay the same text in their simulated terminal
+window at the end of the clip. This recorder has no terminal window
+(`core/cli/` is not part of the Angular port), so the evidence is log-only
+and the console says so. Passing takes are untouched.
+`core/failure-evidence.ts` holds the logic; the engine calls it from the
+`finally` of `recordPage`.
+
+
 ## Layout
 
 The split between what you edit and what you don't is the point of this folder.
@@ -250,7 +270,9 @@ last night's, which keeps two recordings of the same page comparable.
   typed quickly instead — that is the recorder recovering, not a performance.
 - **Scrolling** is in bursts: a few wheel notches, a reading pause, a few more,
   sometimes a nudge back up.
-- **Pauses** vary by about a quarter around their nominal length.
+- **Pauses** vary by about a quarter around their nominal length. They are
+  the only thing `AUTORECORD_PACE` scales (CI sets `0.85`): a reading or
+  thinking pause gets shorter, the typing, the mouse and the scrolling do not.
 - **The cursor** overshoots slightly on long travel and settles, hovers a
   variable moment before a click, drifts while a reply streams instead of
   freezing, and starts each take somewhere plausible rather than dead centre.

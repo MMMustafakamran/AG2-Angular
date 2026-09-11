@@ -177,7 +177,7 @@ async function run() {
   fs.mkdirSync(pagesDir, { recursive: true });
   fs.mkdirSync(reportsDir, { recursive: true });
 
-  let existingManifest: { pages?: Record<string, any> } = {};
+  let existingManifest: { pages?: Record<string, any>; sitemap?: { knownUnmapped?: string[] } } = {};
   if (fs.existsSync(manifestPath)) {
     try {
       existingManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -299,11 +299,39 @@ async function run() {
     }
   }
 
+  // Sitemap: the pages upstream lists under this repo's docs root. The drift
+  // gate (ci/check-doc-drift.mjs `checkSitemapGaps`) compares the same set
+  // against `pages` + `sitemap.knownUnmapped` and exits 2 on anything new.
+  // Modelled on Agno-angular's sync-docs.ts, with two differences: the prefix
+  // is the framework root (`/angular/ag2/`), not every `/angular/` URL, and
+  // `knownUnmapped` is carried over from the existing manifest rather than
+  // re-seeded from whatever is unmapped today -- re-seeding would acknowledge
+  // every new page the moment it appeared, which is exactly what the gate is
+  // there to catch. Acknowledge a page by adding it to the manifest by hand.
+  const sitemapRes = await fetchText(`${BASE_URL}/sitemap.xml`);
+  const sitemapUrls =
+    sitemapRes.status === 200
+      ? [...sitemapRes.body.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1].trim())
+      : [];
+  const rootPrefix = `${DOCS_ROOT.replace(/\/+$/, '')}/`;
+  // The section root itself is listed without the trailing slash.
+  const urlsUnderRoot = sitemapUrls.filter((url) => url.startsWith(rootPrefix) || url === DOCS_ROOT);
+  const mappedUrls = new Set(DOC_PAGES.map((p) => `${BASE_URL}${p.docPath}`));
+  const knownUnmapped: string[] = Array.isArray(existingManifest.sitemap?.knownUnmapped)
+    ? existingManifest.sitemap.knownUnmapped
+    : [];
+  const newUnmapped = urlsUnderRoot.filter((url) => !mappedUrls.has(url) && !knownUnmapped.includes(url));
+
   const manifest = {
     schema: 1,
     docsRoot: DOCS_ROOT,
     syncedAt: isoTimestamp,
     pages: manifestPages,
+    sitemap: {
+      fetchedAt: isoTimestamp,
+      urlsUnderRoot: urlsUnderRoot.length,
+      knownUnmapped,
+    },
   };
 
   if (!isCheckOnly) {
@@ -382,6 +410,14 @@ async function run() {
     console.log(`⚠️ Status: ${changedPages.length} page(s) changed:`);
     for (const p of changedPages) {
       console.log(`  - [${p.severity.toUpperCase()}] ${p.docPath} (${p.title}): ${p.codeLines} code, ${p.proseLines} prose lines`);
+    }
+  }
+  if (sitemapRes.status !== 200) {
+    console.log(`ℹ️ Sitemap unreachable (HTTP ${sitemapRes.status}); new upstream pages not checked.`);
+  } else {
+    console.log(`🗺️ Sitemap: ${urlsUnderRoot.length} URL(s) under ${DOCS_ROOT}, ${newUnmapped.length} not tracked here.`);
+    for (const url of newUnmapped) {
+      console.log(`  - NEW: ${url} (add to DOC_PAGES, or to sitemap.knownUnmapped in the manifest to acknowledge)`);
     }
   }
   console.log('----------------------------------------------------\n');

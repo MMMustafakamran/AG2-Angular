@@ -18,7 +18,7 @@
 import { type Page } from 'playwright';
 
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 import { dwellOn } from './finding-note';
@@ -72,7 +72,7 @@ export const runHitlAction: PageActionHandler = async (
     );
   } else {
     console.log(`   ⏸️ Run paused on the approval card. Reading it...`);
-    await sleep(1800);
+    await beat(1800);
 
     const approveBtn = page
       .locator('app-approval-card button:has-text("Approve")')
@@ -93,7 +93,7 @@ export const runHitlAction: PageActionHandler = async (
   // The decision returns to the agent and the run continues, so the reply that
   // matters is the one after the click.
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
-  await sleep(1200);
+  await beat(1200);
 
   // ── Half two: the interrupt controllers ──────────────────────────────────
   //
