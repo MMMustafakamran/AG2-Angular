@@ -17,7 +17,7 @@
  * person would open one.
  */
 import { type Page } from 'playwright';
-import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 
 export interface NotepadPosition {
   top?: string;
@@ -176,7 +176,7 @@ export async function showNotepadNote(
 ): Promise<void> {
   await openNotepadWindow(page, title);
   await typeInNotepad(page, textLines, 960, 240);
-  await sleep(4000);
+  await beat(4000);
 }
 
 /** Smoothly closes the Notepad overlay and dims the taskbar indicator */

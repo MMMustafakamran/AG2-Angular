@@ -27,7 +27,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type FileChooser, type Page } from 'playwright';
 
-import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 
 import { closeFileDialog, openFileDialog, pickFileInDialog } from './file-dialog';
 
@@ -152,7 +152,7 @@ export async function attachImage(page: Page, rootPath: string): Promise<Buffer>
 
   await chooser.setFiles({ name: FIXTURE_NAME, mimeType: 'image/png', buffer });
   console.log(`   📁 ${FIXTURE_NAME} attached (${buffer.length} bytes).`);
-  await sleep(1800);
+  await beat(1800);
 
   const queue = page
     .locator('copilot-chat-attachment-queue, [data-testid="copilot-attachment-queue"]')
@@ -161,7 +161,7 @@ export async function attachImage(page: Page, rootPath: string): Promise<Buffer>
   if (queueBox) {
     console.log(`   🎯 Showing the queued attachment.`);
     await humanGlide(page, queueBox.x + queueBox.width / 2, queueBox.y + queueBox.height / 2, 22);
-    await sleep(1400);
+    await beat(1400);
   } else {
     console.warn(`   ⚠️ nothing rendered in the attachment queue.`);
   }

@@ -11,7 +11,7 @@
 import { type Page } from 'playwright';
 
 import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 export const runSharedStateAction: PageActionHandler = async (
@@ -38,7 +38,7 @@ export const runSharedStateAction: PageActionHandler = async (
     await humanGlide(page, highBox.x + highBox.width / 2, highBox.y + highBox.height / 2, 20);
     await sleep(400);
     await humanClick(page);
-    await sleep(1000);
+    await beat(1000);
   } else {
     ctx.warn('"Mark high priority" button not found -- turn 1 asked about state nothing had set.');
   }
@@ -46,7 +46,7 @@ export const runSharedStateAction: PageActionHandler = async (
   console.log(`   💬 Turn 1: ${highPrompt}`);
   const count1 = await sendPrompt(page, highPrompt);
   await waitForAgentResponseCompletion(page, wait, count1);
-  await sleep(1000);
+  await beat(1000);
 
   // ── Turn 2: Mark Low Priority ──────────────────────────────────────────────
   console.log(`   🔄 Step 2: Clicking "Mark low priority"...`);
@@ -59,7 +59,7 @@ export const runSharedStateAction: PageActionHandler = async (
     await humanGlide(page, lowBox.x + lowBox.width / 2, lowBox.y + lowBox.height / 2, 20);
     await sleep(400);
     await humanClick(page);
-    await sleep(1000);
+    await beat(1000);
   } else {
     ctx.warn('"Mark low priority" button not found -- turn 2 asked about state nothing had changed.');
   }
@@ -67,7 +67,7 @@ export const runSharedStateAction: PageActionHandler = async (
   console.log(`   💬 Turn 2: ${lowPrompt}`);
   const count2 = await sendPrompt(page, lowPrompt);
   await waitForAgentResponseCompletion(page, wait, count2);
-  await sleep(1000);
+  await beat(1000);
 
   // ── Turn 3: Timezone Context ───────────────────────────────────────────────
   const timezoneBtn = page
@@ -79,7 +79,7 @@ export const runSharedStateAction: PageActionHandler = async (
     await humanGlide(page, tzBox.x + tzBox.width / 2, tzBox.y + tzBox.height / 2, 20);
     await sleep(400);
     await humanClick(page);
-    await sleep(1000);
+    await beat(1000);
   } else {
     ctx.warn('"Use London time" button not found -- turn 3 asked about context nothing had set.');
   }
@@ -94,7 +94,7 @@ export const runSharedStateAction: PageActionHandler = async (
   if (ctxBox) {
     console.log(`   🎯 Resting on the read-only context component.`);
     await humanGlide(page, ctxBox.x + ctxBox.width / 2, ctxBox.y + ctxBox.height / 2, 22);
-    await sleep(1500);
+    await beat(1500);
   }
 };
 

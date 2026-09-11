@@ -20,7 +20,7 @@
 import { type Page } from 'playwright';
 
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 import { closeNotepadNote, openNotepadWindow, typeInNotepad } from './notepad';
@@ -41,7 +41,7 @@ async function clickIfPresent(page: Page, selector: string, label: string): Prom
   await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2, 22);
   await sleep(250);
   await humanClick(page);
-  await sleep(1000);
+  await beat(1000);
 };
 
 export const runThreadsAction: PageActionHandler = async (
@@ -73,7 +73,7 @@ export const runThreadsAction: PageActionHandler = async (
     1550,
     280,
   );
-  await sleep(1500);
+  await beat(1500);
 
   // ── The headless list: New conversation, then Retry if it errored ─────────
   console.log(`   🧵 Driving the hand-built injectThreads list...`);
@@ -92,7 +92,7 @@ export const runThreadsAction: PageActionHandler = async (
     await humanGlide(page, drawerBox.x + 30, drawerBox.y + 30, 22);
     await sleep(350);
     await humanClick(page);
-    await sleep(1200);
+    await beat(1200);
   }
 
   // ── The chat beside it is not licensed and answers normally ──────────────
@@ -115,7 +115,7 @@ export const runThreadsAction: PageActionHandler = async (
     1550,
     380,
   );
-  await sleep(4000);
+  await beat(4000);
   await closeNotepadNote(page);
-  await sleep(1200);
+  await beat(1200);
 };

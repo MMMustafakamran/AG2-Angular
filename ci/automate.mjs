@@ -224,22 +224,22 @@ function tailLog(logPath, lines = 25) {
 
 async function waitForHealth(url, name, logPath, timeoutMs = 60000) {
   const start = Date.now();
-  process.stdout.write(`⏳ Waiting for ${name} (${url})... `);
+  // Whole lines, not a dotted progress line: several of these run at once.
+  console.log(`⏳ Waiting for ${name} (${url})...`);
   while (Date.now() - start < timeoutMs) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (res.ok || res.status < 500) {
         const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-        process.stdout.write(`✅ READY (${elapsed}s)!\n`);
+        console.log(`✅ ${name} READY (${elapsed}s)!`);
         return { ok: true, elapsedSec: Number(elapsed) };
       }
     } catch {
       // keep polling
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    process.stdout.write('.');
   }
-  process.stdout.write('❌ TIMEOUT\n');
+  console.log(`❌ ${name} TIMEOUT`);
   console.error(`\n──── last lines of ${path.basename(logPath)} ────`);
   console.error(tailLog(logPath));
   console.error('────────────────────────────────────────────\n');

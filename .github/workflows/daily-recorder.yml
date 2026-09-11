@@ -440,6 +440,9 @@ jobs:
         shard: [1, 2, 3]
 
     env:
+      # Reading and thinking pauses at 85% -- typing, mouse and scrolling are
+      # not scaled. See autorecorder/core/overlays/human.ts (PACE).
+      AUTORECORD_PACE: '0.85'
       # backend/main.py builds an OpenAIConfig unconditionally -- there is no
       # Azure branch on this backend -- and reads exactly these two.
       # OPENAI_API_KEY is exported into $GITHUB_ENV by the normalization step below
@@ -552,10 +555,22 @@ jobs:
             autorecorder/package-lock.json
             backend/uv.lock
 
+      # The Chromium build is keyed on the installed playwright-core version,
+      # so it downloads once per Playwright release rather than once per shard
+      # per day. The runner image already ships the system libraries, so on a
+      # hit nothing is installed at all.
+      - name: Cache the Playwright browser
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('autorecorder/node_modules/playwright-core/package.json') }}
+
       - name: Install Playwright & System Chromium Dependencies
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: |
           cd autorecorder
-          npm install
+          [ -d node_modules/playwright ] || npm install
           npx playwright install --with-deps chromium
 
       # ffmpeg lives here, not in consolidate, because muxing happens once — in

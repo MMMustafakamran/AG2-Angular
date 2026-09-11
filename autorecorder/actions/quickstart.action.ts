@@ -11,7 +11,7 @@
 import { type Page } from 'playwright';
 
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { sleep } from '../core/overlays/cursor';
+import { beat, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 export const runQuickstartAction: PageActionHandler = async (
@@ -26,5 +26,5 @@ export const runQuickstartAction: PageActionHandler = async (
     initialMsgCount,
   );
 
-  await sleep(2400);
+  await beat(2400);
 };

@@ -34,7 +34,7 @@
  */
 import { type Page } from 'playwright';
 
-import { humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanGlide, sleep } from '../core/overlays/cursor';
 
 import { closeNotepadNote, openNotepadWindow, typeInNotepad } from './notepad';
 
@@ -121,5 +121,5 @@ export async function showFindingNote(page: Page, note: FindingNote): Promise<vo
   await sleep(readMs);
 
   await closeNotepadNote(page);
-  await sleep(1200);
+  await beat(1200);
 }

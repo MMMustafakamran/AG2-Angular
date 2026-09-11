@@ -37,7 +37,7 @@
 import { type Page } from 'playwright';
 
 import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { humanGlide, sleep } from '../core/overlays/cursor';
+import { beat, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 import { closeNotepadNote, openNotepadWindow, typeInNotepad } from './notepad';
 
@@ -117,9 +117,9 @@ export const runToolsAction: PageActionHandler = async (
   if (cardBox) {
     console.log(`   🎯 Resting on the card.`);
     await humanGlide(page, cardBox.x + 60, cardBox.y + 18, 22);
-    await sleep(2600);
+    await beat(2600);
     await humanGlide(page, cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2, 18);
-    await sleep(1600);
+    await beat(1600);
   }
 
   // ── Browser-side tool, whose only output is the page repainting ───────────
@@ -130,9 +130,9 @@ export const runToolsAction: PageActionHandler = async (
 
     console.log(`   ✨ Showing the repainted background.`);
     await humanGlide(page, 500, 350, 25);
-    await sleep(1000);
+    await beat(1000);
     await humanGlide(page, 700, 520, 25);
-    await sleep(2000);
+    await beat(2000);
   }
 
   // ── Display-only registration: the guide's new section, and the finding ───
@@ -168,10 +168,10 @@ export const runToolsAction: PageActionHandler = async (
   if (incidentBox) {
     console.log(`   🎯 Resting on the correct card.`);
     await humanGlide(page, incidentBox.x + 60, incidentBox.y + 18, 22);
-    await sleep(2400);
+    await beat(2400);
     console.log(`   👇 Travelling to the apology beneath it.`);
     await humanGlide(page, incidentBox.x + 80, incidentBox.y + incidentBox.height + 70, 20);
-    await sleep(2600);
+    await beat(2600);
   }
 
   // Anchored left, over the repainted background rather than the chat: the
@@ -196,7 +196,7 @@ export const runToolsAction: PageActionHandler = async (
     340,
     260,
   );
-  await sleep(3000);
+  await beat(3000);
 
   await typeInNotepad(
     page,
@@ -209,7 +209,7 @@ export const runToolsAction: PageActionHandler = async (
     340,
     340,
   );
-  await sleep(3400);
+  await beat(3400);
 
   await typeInNotepad(
     page,
@@ -222,7 +222,7 @@ export const runToolsAction: PageActionHandler = async (
     340,
     420,
   );
-  await sleep(4200);
+  await beat(4200);
   await closeNotepadNote(page);
-  await sleep(1200);
+  await beat(1200);
 };
