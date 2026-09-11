@@ -130,5 +130,12 @@
   "sitemap": {
     "urlsUnderRoot": 0,
     "knownUnmapped": []
+  },
+  "coverage": {
+    "ignoreRoutes": [
+      "/a2ui",
+      "/attachments",
+      "/memory"
+    ]
   }
 }

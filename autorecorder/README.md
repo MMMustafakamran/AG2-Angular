@@ -56,7 +56,7 @@ npm run record            # all pages, in order
 | `--list`, `--help` | Print every registered route and exit |
 | `--doctor` | Validate the configuration; exits 1 on error |
 | `--doctor --online` | Also probe every doc/demo URL and the selectors |
-| `--<page-id>` | Record one page — `--quickstart`, `--a2ui` |
+| `--<page-id>` | Record one page — `--quickstart`, `--threads` |
 | `--page=<id>` | Same thing, explicit form |
 | `--filter=<query>` | Record every page whose id or name contains the query |
 | `--force` | Record even if the pre-flight health check fails |

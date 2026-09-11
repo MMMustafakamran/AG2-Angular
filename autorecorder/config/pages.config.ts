@@ -201,32 +201,6 @@ export const PAGES = definePages([
     waitAfterPromptMs: 4000,
   },
 
-  {
-    id: 'a2ui',
-    name: 'Guides - A2UI schemas, styling, and recovery',
-    videoName: 'A2ui',
-    docPath: 'guides/a2ui',
-    route: 'a2ui',
-    // The catalog CSS the guide prescribes, in the global stylesheet. It is the
-    // only A2UI code this repo has, because the guide's catalog snippet cannot
-    // be completed — which is the finding.
-    ideFile: 'frontend/src/app/features/a2ui/a2ui-chat.component.ts',
-    startLine: 1,
-    endLine: 25,
-    extraTabs: [
-      // `a2ui : recover incomplete streams start|end`, plus the provider that
-      // reports a2uiEnabled: true while rendering nothing.
-      {
-        filePath: 'frontend/src/app/app.config.ts',
-        startLine: 44,
-        endLine: 68,
-      },
-    ],
-    // Asks for something only a catalog could render. The prose answer that
-    // comes back instead IS the finding — see actions/a2ui.action.ts.
-    prompt: 'Can you put together a flight booking card for London? I want a confirm button on it.',
-    waitAfterPromptMs: 4000,
-  },
 
   {
     id: 'voice-multimodal',
@@ -342,42 +316,7 @@ export const PAGES = definePages([
     waitAfterPromptMs: 4000,
   },
 
-  {
-    id: 'memory',
-    name: 'Memory',
-    videoName: 'Memory',
-    docPath: 'guides/threads-memory-attachments-headless',
-    route: 'memory',
-    // `memory : list memories start|end` — injectMemories behind the
-    // isAvailable() gate the guide requires.
-    ideFile: 'frontend/src/app/features/memory/memory-list.component.ts',
-    startLine: 10,
-    endLine: 44,
-    // Recorded even though the feature is absent, because the absence is
-    // handled correctly and that is worth showing: the gate the guide insists
-    // on is what keeps this page from breaking. See actions/memory.action.ts.
-    prompt: 'Do you remember anything about me from earlier chats?',
-    waitAfterPromptMs: 4000,
-  },
 
-  {
-    id: 'attachments',
-    name: 'Attachments',
-    videoName: 'Attachments',
-    docPath: 'guides/threads-memory-attachments-headless',
-    route: 'attachments',
-    // `attachments : enable attachments` and the config block inside it.
-    ideFile: 'frontend/src/app/features/attachments/media-chat.component.ts',
-    startLine: 11,
-    endLine: 27,
-    // Asks for two values that exist only inside the attached image, so a
-    // correct answer is proof the file reached the model. A generic "what types
-    // of attachments are supported?" could be answered from the system prompt
-    // alone, which is how a broken upload comes to look fine on video.
-    prompt:
-      'I attached a chart. What is its title, and what is the Q4 number?',
-    waitAfterPromptMs: 4000,
-  },
   {
     id: 'headless',
     name: 'Headless UI',
