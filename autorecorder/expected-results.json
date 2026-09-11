@@ -22,5 +22,61 @@
     "net::ERR_ABORTED",
     "Thread count unchanged"
   ],
-  "pages": {}
+  "pages": {
+    "a2ui": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "attachments": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "chat-ui": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "frontend-tools-generative-ui": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)",
+      "notes": [
+        "Weather card heading rendered empty -- the argument names in the renderer do not match the tool call"
+      ]
+    },
+    "headless": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "human-in-the-loop": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "inspector": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "memory": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "quickstart": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "shared-state": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "threads": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)"
+    },
+    "voice-multimodal": {
+      "status": "pass",
+      "reason": "accepted from run on 2026-09-11 (untracked)",
+      "notes": [
+        "console Failed to load resource: the server responded with a status of <n> () (transcrib",
+        "console Transcription failed: TranscriptionError: Transcription service is not configure"
+      ]
+    }
+  }
 }
