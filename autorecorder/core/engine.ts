@@ -60,6 +60,129 @@ async function humanScrollCodeViewport(
   await sleep(350);
 }
 
+/** Current scroll offset of the doc page's scroller (or the window). */
+async function docScrollTop(page: Page): Promise<number> {
+  return page
+    .evaluate(() => {
+      const el = (window as any).__autorecordScroller as HTMLElement | null;
+      return el ? el.scrollTop : window.scrollY;
+    })
+    .catch(() => 0);
+}
+
+/**
+ * Scrolls the doc page back up so its first real code block sits in the upper
+ * half of the viewport, and returns that block's on-screen box. Uses the same
+ * scroller `humanScrollDown` resolved, smoothly, so it reads as the reader
+ * going back for the code. Null when the page has no code block.
+ */
+async function scrollDocCodeBlockIntoView(
+  page: Page,
+): Promise<{ x: number; y: number; width: number; height: number } | null> {
+  const found = await page
+    .evaluate((sel) => {
+      const scroller = ((window as any).__autorecordScroller as HTMLElement | null) ?? null;
+      const pres = Array.from(document.querySelectorAll(sel)).filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.height > 60 && r.width > 200;
+      });
+      const pre = pres[0] as HTMLElement | undefined;
+      if (!pre) return false;
+      const r = pre.getBoundingClientRect();
+      const wanted = 160; // where the block's top should land
+      if (scroller) scroller.scrollTo({ top: scroller.scrollTop + r.top - wanted, behavior: 'smooth' });
+      else window.scrollTo({ top: window.scrollY + r.top - wanted, behavior: 'smooth' });
+      (window as any).__autorecordDocCode = pre;
+      return true;
+    }, SELECTORS.docCodeBlock)
+    .catch(() => false);
+  if (!found) return null;
+  await sleep(900);
+  return page
+    .evaluate(() => {
+      const pre = (window as any).__autorecordDocCode as HTMLElement | null;
+      if (!pre) return null;
+      const r = pre.getBoundingClientRect();
+      return { x: r.left, y: r.top, width: r.width, height: r.height };
+    })
+    .catch(() => null);
+}
+
+/**
+ * Selects a doc-page code block the way a reader does: press at its first
+ * line, drag to its last. The selection is the browser's own -- extended with
+ * `caretRangeFromPoint` under the cursor on every step -- so it paints exactly
+ * as a real drag would on that site. A page that refuses selection (user-select:
+ * none) gets the other gesture a reader makes: the cursor circling the block.
+ * Either way about a second.
+ */
+async function dragSelectDocCode(
+  page: Page,
+  box: { x: number; y: number; width: number; height: number },
+): Promise<void> {
+  const pad = 12;
+  const x0 = box.x + pad + 2;
+  const y0 = box.y + 10;
+  const y1 = Math.min(box.y + box.height - pad - 4, 1010);
+  const x1 = box.x + Math.min(box.width - pad, pad + 460);
+  await humanGlide(page, x0, y0, 18);
+  await sleep(between(60, 140));
+  await page.evaluate(`(function(){var c=document.getElementById('playwright-virtual-mouse');if(c)c.style.transform='translate(-4px, -2px) scale(0.9)';})()`).catch(() => {});
+
+  const steps = 16;
+  const stepMs = Math.min(70, Math.max(30, 950 / steps));
+  let selecting = true;
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const x = x0 + (x1 - x0) * t + between(-3, 3);
+    const y = y0 + (y1 - y0) * t;
+    const selected = (await page
+      .evaluate(
+        ({ sx, sy, x, y }) => {
+          const c = document.getElementById('playwright-virtual-mouse');
+          if (c) {
+            c.style.left = x.toFixed(1) + 'px';
+            c.style.top = y.toFixed(1) + 'px';
+          }
+          const pre = (window as any).__autorecordDocCode as HTMLElement | null;
+          const sel = window.getSelection();
+          const from = (document as any).caretRangeFromPoint?.(sx, sy) as Range | null;
+          const to = (document as any).caretRangeFromPoint?.(x, y) as Range | null;
+          if (!pre || !sel || !from || !to || !pre.contains(to.startContainer)) return sel ? sel.toString().length : 0;
+          const range = document.createRange();
+          range.setStart(from.startContainer, from.startOffset);
+          range.setEnd(to.startContainer, to.startOffset);
+          sel.removeAllRanges();
+          sel.addRange(range);
+          return sel.toString().length;
+        },
+        { sx: x0, sy: y0, x, y },
+      )
+      .catch(() => 0)) as number;
+    if (i === 4 && selected === 0) {
+      selecting = false;
+      break;
+    }
+    await sleep(jitter(stepMs, 0.35));
+  }
+  await sleep(between(50, 110));
+  await page.evaluate(`(function(){var c=document.getElementById('playwright-virtual-mouse');if(c)c.style.transform='translate(-4px, -2px) scale(1)';})()`).catch(() => {});
+
+  if (!selecting) {
+    // Nothing selectable here: circle the block twice instead, loosely.
+    const cx = box.x + Math.min(box.width / 2, 320);
+    const cy = box.y + box.height / 2;
+    const rx = Math.min(box.width / 2 - 10, 300);
+    const ry = Math.min(box.height / 2 + 6, 120);
+    for (let k = 0; k < 2; k++) {
+      for (let a = 0; a <= 8; a++) {
+        const ang = (a / 8) * Math.PI * 2;
+        await humanGlide(page, cx + rx * Math.cos(ang) + between(-6, 6), cy + ry * Math.sin(ang) + between(-4, 4), 6);
+      }
+    }
+  }
+}
+
 /**
  * A short fade as a simulated window comes up.
  *
@@ -346,45 +469,39 @@ export class RecordingEngine {
       // Scrolling is the part that must wait: a hydration remount snaps the
       // page back to the top mid-scroll. Start the wait now and let the intro
       // play over it rather than stalling on a frozen frame.
-      const hydration = waitForHydration(page);
+      const hydration = waitForHydration(page, 15000);
 
       // Crisp pause so viewer registers the doc title, then glide straight into reading
       await sleep(500);
       await humanGlide(page, 960, 380, 16);
 
       if (!(await hydration)) {
-        console.warn(`   ⚠️ Doc page hydration not observed within 8s; scrolling anyway.`);
+        console.warn(`   ⚠️ Doc page hydration not observed within 15s; scrolling anyway.`);
       }
 
-      // Smooth scrolling down doc page (~75% depth to reveal first code block without overscroll).
-      console.log(`   Smooth scrolling down doc page...`);
-      await humanScrollDown(page, 1600, 3200);
-
-      // Find the visible code block on screen and glide cursor over it
-      const visibleCodePos = (await page.evaluate(`
-        (function() {
-          var pres = document.querySelectorAll('${SELECTORS.docCodeBlock}');
-          for (var i = 0; i < pres.length; i++) {
-            var r = pres[i].getBoundingClientRect();
-            if (r.height > 60 && r.top >= 120 && r.top <= window.innerHeight - 200) {
-              return {
-                x: r.left + Math.min(r.width / 2, 400),
-                y: r.top + Math.min(r.height / 3, 70),
-              };
-            }
-          }
-          return null;
-        })()
-      `)) as { x: number; y: number } | null;
-
-      if (visibleCodePos) {
-        await humanGlide(page, visibleCodePos.x, visibleCodePos.y, 20);
+      // Skim the whole page to the bottom in wheel bursts, so the clip shows
+      // all of the doc, then come back up to its first code block.
+      console.log(`   Skimming the doc page to the bottom...`);
+      await humanScrollDown(page, 20000, 4500, { toBottom: true });
+      // A late hydration remount resets the scroller to the top. If that
+      // happened under the skim, do it once more now that the page is settled.
+      if ((await docScrollTop(page)) < 200) {
+        console.log(`   Page snapped back to the top (late hydration); skimming again...`);
+        await pause(400);
+        await humanScrollDown(page, 20000, 4500, { toBottom: true });
+      }
+      await pause(500);
+      const codeBox = await scrollDocCodeBlockIntoView(page);
+      if (codeBox) {
+        // Select the snippet on the doc page with the cursor -- the same
+        // gesture the IDE step makes on the project file a moment later, so
+        // the two read as "this code, in our file".
+        await dragSelectDocCode(page, codeBox);
       } else {
         await humanGlide(page, 650, 450, 18);
       }
-
-      // Reading pause on the doc code snippet
-      await pause(2000);
+      // A beat on the selected snippet before switching apps.
+      await pause(900);
 
       console.log(`   🖱️ Switching to ${nextApp} via Windows 11 Taskbar...`);
       await clickTaskbarApp(page, nextApp);
