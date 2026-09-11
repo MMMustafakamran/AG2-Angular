@@ -7,9 +7,13 @@
  *
  *   node ci/validate-pages.mjs "quickstart,readables"
  */
-import { resolvePageSelection } from './lib/pages.mjs';
+import { assertGroupsCoverAllPages, resolvePageSelection } from './lib/pages.mjs';
 
 try {
+  // Same guard as resolve-selection.mjs: an ungrouped page is a config error
+  // whether or not this particular run names it.
+  assertGroupsCoverAllPages();
+
   const selected = resolvePageSelection(process.argv[2]);
   console.log(
     selected.length > 0

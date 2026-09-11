@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "project": "AG2-angular",
+  "updatedAt": "2026-09-11",
+  "source": "Tested-Report.md 2026-09-11 (Angular Guides table); no machine seed available",
+  "note": "Could not be machine-seeded: every consolidated AG2-angular package under 1-Demos (2026-09-03 through 2026-09-11) holds only the clips and MANIFEST.md/manifest.json -- the consolidate job deliberately excluded RUN_REPORT.json because the three shards overwrote each other. The workflow now suffixes and uploads RECORD_RESULTS-shard-*.json and RUN_REPORT-shard-*.json, so the first CI run after this change will add all 12 pages as `untracked`; review them against the Tested-Report verdicts listed in `reviewHints`, then fold them in with `node ci/compare-results.mjs --dir <package> --accept` and edit the `reason` fields.",
+  "reviewHints": {
+    "quickstart": "Tested-Report 2026-09-11: ✅ (Quickstarts: Angular ✅)",
+    "chat-ui": "Tested-Report 2026-09-11: ✅",
+    "frontend-tools-generative-ui": "Tested-Report 2026-09-11: ✅ (register component not rendering correctly)",
+    "a2ui": "Tested-Report 2026-09-11: ❌ Catalog code not defined",
+    "voice-multimodal": "Tested-Report 2026-09-11: ✅ (no backend TTS)",
+    "human-in-the-loop": "Tested-Report 2026-09-11: ✅",
+    "shared-state": "Tested-Report 2026-09-11: ❌",
+    "threads": "Tested-Report 2026-09-11: Threads ❌",
+    "memory": "Not in Tested-Report 2026-09-11",
+    "attachments": "Not in Tested-Report 2026-09-11",
+    "headless-ui": "Tested-Report 2026-09-11: Headless UI ✅",
+    "inspector": "Tested-Report 2026-09-11: Inspector ✅"
+  },
+  "ignoreNotes": [
+    "net::ERR_ABORTED",
+    "Thread count unchanged"
+  ],
+  "pages": {}
+}

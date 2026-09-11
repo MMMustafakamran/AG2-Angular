@@ -21,12 +21,14 @@ ci/
   list-pages.mjs         print the recorder's page ids
   validate-pages.mjs     fail a bad --pages= selection early
   resolved-versions.json committed snapshot; written by check-versions --snapshot
+  compare-results.mjs    diffs a run against autorecorder/expected-results.json
   lib/
     config.mjs           paths, ports, URLs — the only place they are written down
     pages.mjs            PAGE_GROUPS + page ids, read from the recorder's config
     env.mjs              .env loading and credential trimming
     preflight.mjs        ports free, model key usable, routes warmed
     report.mjs           RUN_REPORT.md / RUN_REPORT.json
+    signature.mjs        reduces a page result to a comparable signature
 ```
 
 ## What is NOT here, on purpose
@@ -41,6 +43,27 @@ exactly one implementation:
 | Muxing narration | `autorecorder/mux.mjs` | The track table is repo-specific: this repo's Shared State narration is its own, longer clip rather than the one the sibling Angular repos share. Two tables can disagree; one cannot. |
 | `frontend/VERSIONS.md` | `frontend/scripts/write-versions.ts` (`npm run gen:versions`) | The recorder's doctor already calls it, and the Quickstart clip puts the file on screen. `automate.mjs` invokes it after install. |
 | Recording manifest | `autorecorder/manifest.ts` (`npm run manifest`) | Provenance for the clips on disk. Run by the **consolidate** job, never by a shard — see below. |
+
+## Result baseline
+
+`autorecorder/expected-results.json` holds the verdict a person signed off on
+for every page: `pass`, or `fail` with an `errorClass` and a normalised
+`message`, plus a `reason`. After every CI run the consolidate job runs
+`compare-results.mjs` over all shards and classifies each page as
+`unchanged`, `new-error`, `resolved`, `error-changed`, `notes-changed`,
+`untracked` or `not-run`. All unchanged → the package is safe to publish
+unseen. Anything else → a `results-changed` issue names the pages.
+
+| Command | What it does |
+|---|---|
+| `npm run results:compare` | Compare `autorecorder/videos/` against the baseline (exit 3 on change) |
+| `npm run results:compare -- --dir <folder>` | Same, over a downloaded package |
+| `npm run results:accept -- --dir <folder>` | Fold the run's changes into the baseline; then edit the `reason` fields |
+| `npm run results:seed` | Write a baseline from scratch (first run only) |
+
+`ignoreNotes` in the baseline is a list of regexes for warnings that carry no
+information (a console line every page logs). The signature drops ports,
+URLs, timings and hex ids before comparing, so only the kind of failure counts.
 
 ## Commands
 
@@ -154,6 +177,13 @@ publish three different wrong manifests.
 `verify.yml` stays separate. It is the per-push gate — no secrets, no browser,
 no model calls — and its red light means someone broke the code in this repo.
 This pipeline's red light means the docs moved or a recording failed.
+
+`versions` resolves the dependency trees once (lockfile-free npm installs and
+`uv lock --upgrade`) and shares them through a run-scoped cache. Each worker
+restores that cache and runs `automate.mjs --use-lockfile` against the fresh
+lockfiles, so all three shards record against one resolution and skip the
+minutes of re-resolving. A cache miss (`versions` red or skipped) falls back to
+resolving in the worker.
 
 ## Artifact names
 

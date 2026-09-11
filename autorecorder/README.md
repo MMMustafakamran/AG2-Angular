@@ -181,6 +181,26 @@ reads it, so the CI report lists what *this run* recorded rather than every
 
 ---
 
+## When a take fails
+
+A failed take leaves evidence behind. Before the browser closes, the
+recorder gathers what it saw -- the diagnosed verdict, the browser console
+errors, and this page's slice of `videos/logs/backend.log` and
+`frontend.log` (from where they stood when the take began) -- and writes it
+to `videos/logs/<page-id>.error.log`. Each section is windowed around the
+line most worth reading (a traceback, an `Error`, a 4xx/5xx) and that line
+is marked `>>`, so an agent can diagnose from the log without re-running
+anything locally. CI uploads the file with the run (the shard upload glob
+covers `videos/logs/*.log`).
+
+The React recorders also replay the same text in their simulated terminal
+window at the end of the clip. This recorder has no terminal window
+(`core/cli/` is not part of the Angular port), so the evidence is log-only
+and the console says so. Passing takes are untouched.
+`core/failure-evidence.ts` holds the logic; the engine calls it from the
+`finally` of `recordPage`.
+
+
 ## Layout
 
 The split between what you edit and what you don't is the point of this folder.
