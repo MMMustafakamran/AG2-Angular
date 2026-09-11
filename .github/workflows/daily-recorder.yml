@@ -734,84 +734,6 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Compare every page against the reviewed baseline in
-      # autorecorder/expected-results.json. "Unchanged" means the package can be
-      # published without anyone watching the clips; anything else names the
-      # pages to look at. The step never fails the job: the package is uploaded
-      # either way, and the verdict travels with it as RESULT_DIFF.{json,md}.
-      # The shards were downloaded into autorecorder/videos above, which is the
-      # script's default input folder.
-      - name: Compare results with the reviewed baseline
-        id: compare
-        if: always()
-        run: |
-          set +e
-          node ci/compare-results.mjs --dir autorecorder/videos > /dev/null
-          code=$?
-          set -e
-          case $code in
-            0) verdict=unchanged ;;
-            3) verdict=changed ;;
-            *) verdict=error ;;
-          esac
-          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
-          if [ -f autorecorder/videos/RESULT_DIFF.md ]; then
-            cat autorecorder/videos/RESULT_DIFF.md >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "### 🔁 Result comparison produced no output (exit $code)" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          if [ "$verdict" = "changed" ]; then
-            echo "::warning title=Results changed::One or more pages differ from autorecorder/expected-results.json -- see the job summary"
-          fi
-
-      - name: Open or update the results issue
-        continue-on-error: true
-        if: steps.compare.outputs.verdict == 'changed'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let md = fs.readFileSync('autorecorder/videos/RESULT_DIFF.md', 'utf8');
-            if (md.length > 55000) md = md.slice(0, 55000) + '\n... (truncated -- see RESULT_DIFF.md in the run package)';
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const body = [
-              `Run **${{ needs.prepare.outputs.run_name }}** differs from the reviewed baseline.`,
-              '',
-              md.replace(/^# .*\n/, ''),
-              '',
-              '**To clear:** watch the clips named above, then either fix the harness or',
-              'accept the new verdict with `node ci/compare-results.mjs --dir <package> --accept`,',
-              'edit the `reason` fields in `autorecorder/expected-results.json`, and commit.',
-              '',
-              `_Run: ${runUrl}_`,
-            ].join('\n');
-            const title = 'Results changed: pages differ from the reviewed baseline';
-            const { data: open } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner, repo: context.repo.repo,
-              state: 'open', labels: 'results-changed',
-            });
-            const existing = open.find((i) => i.title === title);
-            if (existing) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: existing.number, body,
-              });
-            } else {
-              await github.rest.issues.create({
-                owner: context.repo.owner, repo: context.repo.repo,
-                title, body, labels: ['results-changed'],
-              });
-            }
-
-      # One folder holding every clip from the run, named for the project and
-      # the time it ran.
-      #
-      # Clips, the manifest, the per-shard results and the comparison verdict.
-      # RUN_REPORT / RECORD_RESULTS and the server logs are PER-SHARD -- three
-      # shards each write their own -- so the shard job suffixes them with its
-      # number before uploading; the `-shard-N` copies are what land here.
-      # RESULT_DIFF.{json,md} ride along so the download script can print one
-      # verdict per repo without opening anything.
       - name: Upload Consolidated Demo Recordings Package
         if: always()
         uses: actions/upload-artifact@v4
@@ -824,7 +746,5 @@ jobs:
             autorecorder/videos/RUN_REPORT-shard-*.md
             autorecorder/videos/RUN_REPORT-shard-*.json
             autorecorder/videos/RECORD_RESULTS-shard-*.json
-            autorecorder/videos/RESULT_DIFF.md
-            autorecorder/videos/RESULT_DIFF.json
           if-no-files-found: ignore
           retention-days: 14

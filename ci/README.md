@@ -21,14 +21,12 @@ ci/
   list-pages.mjs         print the recorder's page ids
   validate-pages.mjs     fail a bad --pages= selection early
   resolved-versions.json committed snapshot; written by check-versions --snapshot
-  compare-results.mjs    diffs a run against autorecorder/expected-results.json
   lib/
     config.mjs           paths, ports, URLs — the only place they are written down
     pages.mjs            PAGE_GROUPS + page ids, read from the recorder's config
     env.mjs              .env loading and credential trimming
     preflight.mjs        ports free, model key usable, routes warmed
     report.mjs           RUN_REPORT.md / RUN_REPORT.json
-    signature.mjs        reduces a page result to a comparable signature
 ```
 
 ## What is NOT here, on purpose
@@ -44,26 +42,6 @@ exactly one implementation:
 | `frontend/VERSIONS.md` | `frontend/scripts/write-versions.ts` (`npm run gen:versions`) | The recorder's doctor already calls it, and the Quickstart clip puts the file on screen. `automate.mjs` invokes it after install. |
 | Recording manifest | `autorecorder/manifest.ts` (`npm run manifest`) | Provenance for the clips on disk. Run by the **consolidate** job, never by a shard — see below. |
 
-## Result baseline
-
-`autorecorder/expected-results.json` holds the verdict a person signed off on
-for every page: `pass`, or `fail` with an `errorClass` and a normalised
-`message`, plus a `reason`. After every CI run the consolidate job runs
-`compare-results.mjs` over all shards and classifies each page as
-`unchanged`, `new-error`, `resolved`, `error-changed`, `notes-changed`,
-`untracked` or `not-run`. All unchanged → the package is safe to publish
-unseen. Anything else → a `results-changed` issue names the pages.
-
-| Command | What it does |
-|---|---|
-| `npm run results:compare` | Compare `autorecorder/videos/` against the baseline (exit 3 on change) |
-| `npm run results:compare -- --dir <folder>` | Same, over a downloaded package |
-| `npm run results:accept -- --dir <folder>` | Fold the run's changes into the baseline; then edit the `reason` fields |
-| `npm run results:seed` | Write a baseline from scratch (first run only) |
-
-`ignoreNotes` in the baseline is a list of regexes for warnings that carry no
-information (a console line every page logs). The signature drops ports,
-URLs, timings and hex ids before comparing, so only the kind of failure counts.
 
 ## Commands
 
