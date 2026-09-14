@@ -446,7 +446,7 @@ jobs:
       # backend/main.py builds an OpenAIConfig unconditionally -- there is no
       # Azure branch on this backend -- and reads exactly these two.
       # OPENAI_API_KEY is exported into $GITHUB_ENV by the normalization step below
-      OPENAI_CHAT_MODEL_ID: ${{ vars.OPENAI_CHAT_MODEL_ID || 'gpt-4o-mini' }}
+      OPENAI_CHAT_MODEL_ID: ${{ vars.OPENAI_CHAT_MODEL_ID || 'gpt-5.6-luna' }}
       # Where the Copilot Runtime (frontend/server.ts) finds the backend. It
       # already defaults to this, but a default that silently moves would send
       # every recording at a dead port, so it is stated.

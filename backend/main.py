@@ -112,7 +112,7 @@ def _build_config() -> OpenAIConfig:
         )
 
     return OpenAIConfig(
-        model=_env("OPENAI_CHAT_MODEL_ID", "gpt-4o-mini"),
+        model=_env("OPENAI_CHAT_MODEL_ID", "gpt-5.6-luna"),
         api_key=api_key,
         streaming=True,
     )
