@@ -332,17 +332,19 @@ async function main() {
 
       installNodeDeps(FRONTEND_DIR, 'Installing Frontend Dependencies');
       installNodeDeps(RECORDER_DIR, 'Installing Autorecorder Dependencies');
-
-      // Written here, after the installs and before anything is recorded, so
-      // the file the Quickstart clip puts on screen names the versions this run
-      // actually resolved rather than the ranges package.json declares.
-      //
-      // This repo already owns that generator (frontend/scripts/write-versions.ts,
-      // `npm run gen:versions`) and the recorder's doctor calls the same script,
-      // so it is invoked rather than reimplemented under ci/ — one writer of
-      // frontend/VERSIONS.md, not two that can disagree.
-      runOptional('npm run gen:versions', FRONTEND_DIR, 'Writing frontend/VERSIONS.md');
     }
+
+    // Outside the install block on purpose. VERSIONS.md is gitignored, so a
+    // CI checkout never carries one, and --skip-install -- the normal path
+    // once a shard restores stage 2's resolved trees -- used to skip this
+    // along with the installs. The Quickstart clip then filmed the recorder
+    // fallback, '// File not found', instead of the versions. This reads
+    // node_modules and uv.lock, both present on either path.
+    // This repo already owns that generator (frontend/scripts/write-versions.ts,
+    // `npm run gen:versions`); the recorder's doctor calls the same script, so
+    // it is invoked rather than reimplemented under ci/ — one writer of
+    // frontend/VERSIONS.md, not two that can disagree.
+    runOptional('npm run gen:versions', FRONTEND_DIR, 'Writing frontend/VERSIONS.md');
 
     // 4. Servers — skipped for any port already being served.
     let backendLog = path.join(LOGS_DIR, 'backend.log');
