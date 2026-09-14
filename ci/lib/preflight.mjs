@@ -160,7 +160,7 @@ export async function assertModelCredentials() {
   // completion tells the difference up front.
   process.stdout.write('⏳ [Preflight] Verifying model balance... ');
   try {
-    const model = process.env.OPENAI_CHAT_MODEL_ID || process.env.OPENAI_MODEL || 'gpt-5.6-luna';
+    const model = process.env.OPENAI_CHAT_MODEL_ID || process.env.OPENAI_MODEL || 'gpt-5.4-mini';
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
