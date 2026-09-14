@@ -129,7 +129,10 @@
   },
   "sitemap": {
     "urlsUnderRoot": 0,
-    "knownUnmapped": []
+    "knownUnmapped": [
+      "https://docs.copilotkit.ai/angular/ag2/copilot-runtime",
+      "https://docs.copilotkit.ai/angular/ag2/ag-ui"
+    ]
   },
   "coverage": {
     "ignoreRoutes": [
