@@ -555,23 +555,36 @@ jobs:
             autorecorder/package-lock.json
             backend/uv.lock
 
-      # The Chromium build is keyed on the installed playwright-core version,
-      # so it downloads once per Playwright release rather than once per shard
-      # per day. The runner image already ships the system libraries, so on a
-      # hit nothing is installed at all.
+      # The Chromium build is keyed on the recorder's lockfile, so it downloads
+      # once per Playwright release rather than once per shard per day. Keyed on
+      # the lockfile rather than on node_modules/playwright-core: that path does
+      # not exist yet in every repo at this point, and hashFiles on a missing
+      # file returns '', which collapses the key to a constant that always hits
+      # and is never rewritten -- the runner then restores a Chromium the
+      # installed Playwright does not use.
       - name: Cache the Playwright browser
         id: pw-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('autorecorder/node_modules/playwright-core/package.json') }}
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('autorecorder/package-lock.json') }}
 
       - name: Install Playwright & System Chromium Dependencies
-        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: |
           cd autorecorder
           [ -d node_modules/playwright ] || npm install
-          npx playwright install --with-deps chromium
+          # Runs on a cache hit too. The key is a version hash, but a restored
+          # cache can still hold a Chromium build the installed Playwright does
+          # not use, and then every shard dies at browserType.launch with
+          # "Executable doesn't exist" before a single frame is filmed.
+          # `playwright install` is a no-op when the build is already there, so
+          # being sure costs seconds; the system libraries ship with the runner
+          # image, so --with-deps is only worth paying for on a miss.
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       # ffmpeg lives here, not in consolidate, because muxing happens once — in
       # the worker that produced the video.
