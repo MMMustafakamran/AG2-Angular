@@ -1,13 +1,10 @@
 # `ci/` — the recording pipeline
 
-One entry point, used identically by a developer and by GitHub Actions:
+One entry point:
 
 ```bash
 node ci/automate.mjs            # check docs, install, start three servers, record all pages
 ```
-
-`.github/workflows/daily-recorder.yml` is the same thing in four stages, with
-the drift check hoisted out in front of three sharded workers.
 
 ## Layout
 

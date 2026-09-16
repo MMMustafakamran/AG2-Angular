@@ -1,7 +1,6 @@
 # Version Watch — scenario and rationale
 
-Implemented by `ci/check-versions.mjs` and the **2. Versions & setup** stage in
-`.github/workflows/daily-recorder.yml`.
+Implemented by `ci/check-versions.mjs`.
 
 ## The scenario
 

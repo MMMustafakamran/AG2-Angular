@@ -21,21 +21,14 @@ process, and records. Every step stays individually runnable (`npm run drift`,
 `npm run versions`, `npm run record`, `npm run record:consistency`). See
 `ci/README.md`.
 
-| Workflow | When | A red run means |
-|---|---|---|
-| `verify.yml` | push, PR | someone broke the code in this repo |
-| `daily-recorder.yml` | nightly 05:31 UTC, dispatch | the docs moved, or a clip failed to capture what it was meant to |
-| `doc-sync.yml` | dispatch | — it opens a PR accepting the new docs as the baseline |
+The pipeline is four stages — drift gate, version watch, recording, consolidate
+— each gating the next: a moved doc stops the run before three shards each spend
+two minutes on a toolchain.
 
-`daily-recorder.yml` is one pipeline in four stages — drift gate, version watch,
-three recording shards, consolidate — each gating the next. It replaced the
-separate `doc-drift.yml` and `record.yml`, which ran on schedules four minutes
-apart and so could never let one inform the other.
-
-`verify.yml` also closes two of the gaps listed below: it fails if
-`generated-sources.ts` is stale (so no clip can show code that is not running),
-and `autorecorder/consistency.ts` fails if a `hasDemo` route has no recorder
-page, or vice versa.
+Two of the gaps listed below are closed by checks that run before a push: the
+build fails if `generated-sources.ts` is stale (so no clip can show code that is
+not running), and `autorecorder/consistency.ts` fails if a `hasDemo` route has
+no recorder page, or vice versa.
 
 ## Cycle
 

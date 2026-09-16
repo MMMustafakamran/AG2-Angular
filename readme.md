@@ -360,93 +360,51 @@ npm run drift:sync     # synchronize snapshots, manifest, changelog, diff report
 
 ---
 
-### Continuous integration
+### Checks before you push
 
-One recording pipeline, plus the cheap per-push gate beside it.
+Everything the recording pipeline does is one local command — `node
+ci/automate.mjs`, documented in [`ci/README.md`](ci/README.md). The cheap checks
+beside it are worth running on their own, because each one covers a gap
+`project-context.md` lists:
 
-| Workflow | Trigger | A red run means |
-| :--- | :--- | :--- |
-| [`verify.yml`](.github/workflows/verify.yml) | push, PR | someone broke the code in this repo |
-| [`daily-recorder.yml`](.github/workflows/daily-recorder.yml) | nightly 05:31 UTC, dispatch | upstream edited a doc page, or a clip failed to capture what it was meant to |
-| [`doc-sync.yml`](.github/workflows/doc-sync.yml) | dispatch | — it opens a PR accepting the live docs as the new baseline |
+```bash
+npm --prefix frontend run build     # generates, typechecks and builds
+npm run record:consistency          # app routes vs. the recorder's page registry
+npm run drift                       # doc drift, without touching any file
+```
 
-The two are kept apart because their red lights say different things:
-`verify.yml` means the code here is broken, the pipeline means the docs moved or
-a recording failed. Merging them would teach everyone to ignore both.
-
-Everything the pipeline does is also one local command — `node ci/automate.mjs`,
-documented in [`ci/README.md`](ci/README.md).
-
-**`verify.yml`** — no secrets, no browser, no model calls, about two minutes.
-Frontend generates, typechecks and builds. Backend runs `uv sync --locked` and
-then *imports* the agent, which constructs it, resolves both `@tool` schemas
-through `fast_depends` and mounts the `AGUIStream` — most ways of breaking
-`main.py` fail right there rather than at request time. Recorder typechecks and
-runs the static doctor.
-
-It also closes two gaps `project-context.md` lists as things the pipeline
-misses:
-
-- `generated-sources.ts` is regenerated and the run fails if it differs from
-  the committed copy. A stale map means every recording taken against it showed
-  code that is no longer running.
+- Backend: `uv sync --locked`, then *import* the agent. Constructing it resolves
+  both `@tool` schemas through `fast_depends` and mounts the `AGUIStream`, so
+  most ways of breaking `main.py` fail right there rather than at request time.
+- `generated-sources.ts` must be regenerated and match the committed copy. A
+  stale map means every recording taken against it showed code that is no longer
+  running.
 - `autorecorder/consistency.ts` compares the app's `hasDemo` routes against the
   recorder's page registry, in both directions. A guide route added without a
   recorder entry is otherwise dropped from every future run in silence.
-  Runnable locally the same way CI runs it: `npm run record:consistency`.
 
-**`daily-recorder.yml`** is one pipeline in four stages, each gating the next:
+A recording run needs `OPENAI_API_KEY`, and `ci/automate.mjs` checks its shape
+in the first step — never printing it — rather than recording twelve videos of a
+dead chat. Everything after that happens inside one Node process: it brings up
+all three services, waits on each with its own health check, warms the routes
+and the runtime, records under a display (`core/engine.ts` launches
+`headless: false`, so a virtual display is not optional off a desktop), muxes
+the narration and writes `RUN_REPORT.md`.
 
-| Stage | Job | Gates the next? |
-| :--- | :--- | :--- |
-| 1 | drift gate, run name, page selection | **yes** — a moved doc stops a scheduled run and files an issue |
-| 2 | version watch — what resolved, what is out of reach | no, reports only |
-| 3 | three recording shards, each a full stack | — |
-| 4 | consolidate the clips, then write the manifest once | — |
+The drift gate deliberately does not auto-commit a refreshed snapshot: drift is
+the finding, and folding it into a bot commit would silently re-baseline the
+harness to a page nobody read. `npm run drift:sync` is the deliberate button —
+it carries the diff and the CHANGELOG entry the QA report cites.
 
-Stage 1 runs on a bare checkout with no install, so a moved doc is caught in
-seconds rather than after three shards each spend two minutes on a toolchain.
-It deliberately does not auto-commit the refreshed snapshot: drift is the
-finding, and folding it into a bot commit would silently re-baseline the harness
-to a page nobody read. **`doc-sync.yml`** is the button the issue points at —
-`npm run drift:sync` in CI, opening a PR that carries the diff and the CHANGELOG
-entry the QA report cites.
+`npm run manifest` rewrites `manifest.json` against whatever clips are on disk,
+so run it only after a full recording pass — against a partial set it marks
+every page it cannot see as missing.
 
-The recording stage needs an `OPENAI_API_KEY` repository secret and checks its
-shape in its first step — never printing it — rather than recording twelve
-videos of a dead chat. Everything after that happens inside one Node process
-(`ci/automate.mjs`): it brings up all three services, waits on each with its own
-health check, warms the routes and the runtime, records under `xvfb`
-(`core/engine.ts` launches `headless: false`, so a virtual display is not
-optional), muxes the narration and writes `RUN_REPORT.md`. One process because
-each `run:` step is its own subshell, and a server backgrounded in one step is
-reaped before the next begins.
-
-The recording manifest is written in stage 4 rather than by a shard: `npm run
-manifest` rewrites `manifest.json` against whatever clips are on disk, so a
-shard holding four of twelve pages would mark the other eight missing.
-
-What a green pipeline run means is worth stating plainly, because it is not the
-obvious thing: **not that the features work**. Eight of the twelve pages are
-recorded to demonstrate a defect. Green means every clip captured what it was
-supposed to — including the empty A2UI surface, the dropped state write, and the
-interrupt panels that never fire.
-
-#### Watching what CI recorded
-
-The clips are gitignored, so after a CI run the artifact is the only complete
-set that exists. Pull one down:
-
-```bash
-npm run ci:videos              # newest completed run
-npm run ci:videos -- --list    # what is downloadable
-npm run ci:videos -- 33477092124
-```
-
-They land in `autorecorder/videos/ci-<run-id>/`, beside the local clips rather
-than on top of them. The folder carries its own provenance, so two runs can be
-compared against each other and against a local recording — and a folder found a
-week later still says which run made it.
+What a green run means is worth stating plainly, because it is not the obvious
+thing: **not that the features work**. Eight of the twelve pages are recorded to
+demonstrate a defect. Green means every clip captured what it was supposed to —
+including the empty A2UI surface, the dropped state write, and the interrupt
+panels that never fire.
 
 ---
 
