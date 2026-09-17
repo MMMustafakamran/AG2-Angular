@@ -359,8 +359,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         }
       }
 
-      console.log('\n👉 Local markdown files NOT modified. Accept these changes with `npm run drift:sync`,');
-      console.log('   or the Doc sync workflow (Actions -> Doc sync -> Run workflow), which opens a PR.');
+      console.log('\n👉 Local markdown files NOT modified. Accept these changes with `npm run drift:sync`.');
       process.exit(2);
     }
   } else {
