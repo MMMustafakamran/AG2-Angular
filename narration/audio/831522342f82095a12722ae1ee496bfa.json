@@ -1,0 +1,9 @@
+{
+ "text": "So that entry point doesn't exist in the latest Angular package, zero point six point oh. Type script gives cannot find module, and since ng serve type checks, umm, the app won't build. The cart store file it imports is never shown either.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 16.951,
+ "file": "831522342f82095a12722ae1ee496bfa.mp3",
+ "clip": "AG2-angular-04-NativeGenerativeUi",
+ "at": "notepad"
+}

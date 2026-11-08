@@ -1,0 +1,9 @@
+{
+ "text": "So attachments work, but voice can't be set up. The transcription route is never shown anywhere, so the runtime reports transcription disabled, and the chat hides the mic.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 12.214,
+ "file": "f4a4878b54c2467692a058cef57753df.mp3",
+ "clip": "AG2-angular-06-VoiceMultimodal",
+ "at": "notepad"
+}

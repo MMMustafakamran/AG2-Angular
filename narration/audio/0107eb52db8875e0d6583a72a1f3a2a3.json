@@ -1,0 +1,9 @@
+{
+ "text": "This set state call is the write, and the agent never gets it.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 5.016,
+ "file": "0107eb52db8875e0d6583a72a1f3a2a3.mp3",
+ "clip": "AG2-angular-08-SharedState",
+ "at": "evidence#2"
+}

@@ -1,0 +1,9 @@
+{
+ "text": "Moving on to the demo. So I asked if it's connected, and it replied with a fun fact about kites. But that answer only works through my own AG2 backend and runtime, not anything from the page.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 12.26,
+ "file": "9f9b8bd418654e5711dfda29f625a8f5.mp3",
+ "clip": "AG2-angular-01-Quickstart",
+ "at": "demo"
+}

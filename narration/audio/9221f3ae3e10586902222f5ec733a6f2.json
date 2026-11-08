@@ -1,0 +1,9 @@
+{
+ "text": "Moving on to the demo. So I asked for a product card, and uh, no component rendered, just text. The provider from the page can't even be added, because the app doesn't build with it.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 12.539,
+ "file": "9221f3ae3e10586902222f5ec733a6f2.mp3",
+ "clip": "AG2-angular-04-NativeGenerativeUi",
+ "at": "demo"
+}

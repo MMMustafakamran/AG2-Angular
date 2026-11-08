@@ -1,0 +1,9 @@
+{
+ "text": "Ok so, this is the voice and multimodal input page in the CopilotKit docs, for AG2 with Angular, and I have implemented this page.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 9.242,
+ "file": "430fcbf61719286817d6a5be086a9ba8.mp3",
+ "clip": "AG2-angular-06-VoiceMultimodal",
+ "at": "doc"
+}
