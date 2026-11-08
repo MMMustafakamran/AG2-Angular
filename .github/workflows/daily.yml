@@ -1,0 +1,454 @@
+name: Daily QA run
+
+# Daily doc-QA run for AG2-Angular (generated from the workspace template; README "Daily CI").
+#   plan    -> doc drift: pages whose doc changed are held, not recorded (DRIFT.md);
+#              versions a new reader gets today (lockfiles re-resolved); page list split into shards
+#   record  -> one runner per shard: today's lockfiles, own servers (start-all.sh), records its pages
+#   report  -> narration fit/mix (saved audio only), clip checks, summary, ONE artifact run-<date>
+# No LLM, no Fish key, no voice sample in CI. The only secret is the doc agents' model key,
+# written to the backend .env at runtime and never printed. Harness ports only (never 3000/8000).
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: 'Recorder page ids, comma-separated (empty = every page)'
+        required: false
+        type: string
+        default: ''
+      shards:
+        description: 'Parallel runners to split the pages across (1-20)'
+        required: false
+        type: number
+        default: 5
+      ignore_drift:
+        description: 'Record pages whose doc changed anyway (normally held for review, DRIFT.md)'
+        required: false
+        type: boolean
+        default: false
+      use_lockfile:
+        description: 'Install the committed lockfiles instead of what a new reader gets today'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: daily-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write   # only to delete the temporary per-shard artifacts at the end
+
+env:
+  # Pages recorded alone on their own runner (comma-separated; empty = none).
+  ISOLATE_PAGES: ''
+  # Optional: python 3 + ffmpeg are needed by .qa/narrate and .qa/checks (report job).
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  plan:
+    name: Plan shards
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+      date: ${{ steps.m.outputs.date }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: autorecorder/package-lock.json
+      - name: Install recorder (to read the page list)
+        run: npm ci --prefix autorecorder --no-audit --no-fund --ignore-scripts
+      - uses: actions/setup-python@v5
+        if: ${{ !inputs.use_lockfile }}
+        with:
+          python-version: '3.13'
+      - name: Install uv (PyPI)
+        if: ${{ !inputs.use_lockfile }}
+        run: |
+          for i in 1 2 3; do python3 -m pip install --user --quiet "uv==0.9.*" && break; echo "uv install attempt $i failed; retrying"; sleep 10; done
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Versions a new reader gets today (lockfiles re-resolved within the package.json ranges)
+        if: ${{ !inputs.use_lockfile }}
+        env:
+          UV_PYTHON_DOWNLOADS: never
+        run: node .qa/tools/versions.mjs --npm=frontend --uv=backend --out=plan-out || echo "::warning::versions step crashed; shards install the committed lockfiles"
+      - name: Restore page durations from earlier runs (shard balancing)
+        uses: actions/cache/restore@v4
+        with:
+          path: page-durations.json
+          key: page-durations-${{ github.run_id }}
+          restore-keys: page-durations-
+      - id: m
+        env:
+          PAGES: ${{ inputs.pages }}
+          SHARDS: ${{ inputs.shards || 5 }}
+          IGNORE_DRIFT: ${{ inputs.ignore_drift || false }}
+        run: |
+          set -euo pipefail
+          (cd autorecorder && npx tsx -e "import('./config/pages.config.ts').then(m=>{const s=m.SKIP_RECORDING||{};console.log(JSON.stringify(m.PAGES.filter(p=>!s[p.id]).map(p=>({id:p.id,docPath:p.docPath??null}))))})" | tail -1) > recorder-pages.json
+          if [ -z "${PAGES// /}" ]; then
+            # Scope (QA-RULES section 9): only pages a reader reaches by clicking through the docs.
+            # Recorder pages are joined to assignment.json by docPath: reachable sidebar / in-content
+            # are recorded, none is skipped, a docPath assignment.json doesn't list is kept (warning).
+            PAGES=$(python3 - <<'PY'
+          import json, sys
+          rec = json.load(open("recorder-pages.json"))
+          norm = lambda s: (s or "").strip("/").lower()
+          reach = {norm(p.get("docPath")): ("excluded" if p.get("excluded") else p.get("reachable")) for p in json.load(open("assignment.json", encoding="utf8"))["pages"]}
+          keep = []
+          for r in rec:
+              st = reach.get(norm(r["docPath"]))
+              if st in ("sidebar", "in-content"):
+                  keep.append(r["id"])
+              elif st is None:
+                  print(f"::warning::{r['id']} ({r['docPath']}) is not in assignment.json; recording it anyway", file=sys.stderr)
+                  keep.append(r["id"])
+              else:
+                  print(f"skip {r['id']} ({r['docPath']}): reachable={st}", file=sys.stderr)
+          print(",".join(keep))
+          PY
+          )
+          fi
+          echo "pages: $PAGES"
+          # Doc drift (DRIFT.md): pages whose doc changed since doc-snapshot/ are held, not recorded.
+          mkdir -p plan-out
+          if [ "$IGNORE_DRIFT" = "true" ]; then
+            node .qa/tools/drift.mjs --out=plan-out/drift --recorder=recorder-pages.json > plan-out-drift.log 2>&1 || true
+            echo "ignore_drift: held pages are recorded too"
+          elif node .qa/tools/drift.mjs --out=plan-out/drift --recorder=recorder-pages.json --pages="$PAGES" > plan-out-drift.log 2>&1 && [ -f plan-out/drift/keep.txt ]; then
+            PAGES=$(cat plan-out/drift/keep.txt)
+          else
+            echo "::warning::drift check crashed: drift unknown, recording every page"; tail -n 20 plan-out-drift.log || true
+          fi
+          if [ -f plan-out/drift/held.md ]; then cat plan-out/drift/held.md >> "$GITHUB_STEP_SUMMARY"; fi
+          echo "pages after drift: $PAGES"
+          python3 - "$PAGES" "$SHARDS" "$ISOLATE_PAGES" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys, datetime
+          pages = [p.strip() for p in sys.argv[1].split(",") if p.strip()]
+          n = max(1, min(20, int(float(sys.argv[2] or 1))))
+          iso = {p.strip() for p in sys.argv[3].split(",") if p.strip()}
+          normal = [p for p in pages if p not in iso]
+          n = min(n, max(1, len(normal)))
+          # Balance by measured recording time (page-durations.json from the last run, if cached):
+          # longest page first onto the shard with the least total time. Unknown pages = median.
+          try:
+              dur = {k: float(v) for k, v in json.load(open("page-durations.json")).items()}
+          except Exception:
+              dur = {}
+          known = sorted(dur[p] for p in normal if p in dur)
+          default = known[len(known) // 2] if known else 150.0
+          bins = [[0.0, i, []] for i in range(n)]
+          for p in sorted(normal, key=lambda p: -dur.get(p, default)):
+              b = min(bins, key=lambda b: (b[0], b[1]))
+              b[0] += dur.get(p, default); b[2].append(p)
+          print("estimated shard seconds: " + ", ".join(str(round(b[0])) for b in bins), file=sys.stderr)
+          shards = [{"shard": str(b[1] + 1), "pages": ",".join(b[2]), "isolated": False} for b in bins]
+          shards = [s for s in shards if s["pages"]]
+          shards += [{"shard": p, "pages": p, "isolated": True} for p in pages if p in iso]
+          print("matrix=" + json.dumps({"include": shards}))
+          print("date=" + datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"))
+          PY
+          cat "$GITHUB_OUTPUT"
+
+      - name: Upload plan (drift, today's lockfiles, versions)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan
+          path: plan-out/
+          if-no-files-found: ignore
+          retention-days: 1
+
+  record:
+    name: Record ${{ matrix.shard }}
+    needs: plan
+    if: contains(needs.plan.outputs.matrix, '"pages"')
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Today's lockfiles from the plan job
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: plan
+          path: plan-out
+      - name: Use today's lockfiles (absent = the committed ones)
+        run: |
+          if [ -d plan-out/resolved ]; then cp -rv plan-out/resolved/. . ; else echo "no resolved lockfiles: installing the committed ones"; fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            autorecorder/package-lock.json
+      # uv from PyPI: astral-sh/setup-uv kept failing on runners (504 on the release lookup,
+      # 300 s cache-lock timeouts). pip + PyPI is one plain download, retried.
+      - name: Install uv (PyPI)
+        run: |
+          for i in 1 2 3; do python3 -m pip install --user --quiet "uv==0.9.*" && break; echo "uv install attempt $i failed; retrying"; sleep 10; done
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/uv" --version
+      # Python from the runner's tool cache (actions/setup-python), never downloaded by uv:
+      # uv's own Python download (github.com release assets) kept failing on runners.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Sync backend (uv, runner Python 3.13)
+        env:
+          UV_PYTHON_DOWNLOADS: never
+        run: cd backend && uv sync --python "$(command -v python3.13 || command -v python3)"
+
+      - name: Cache node_modules + Playwright browser
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            autorecorder/node_modules
+            ~/.cache/ms-playwright
+          key: nm-${{ runner.os }}-node22-v1-${{ hashFiles('frontend/package-lock.json', 'autorecorder/package-lock.json') }}
+      - name: Install dependencies
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          for d in frontend autorecorder; do
+            if [ "${{ steps.nm-cache.outputs.cache-hit }}" = "true" ] && [ -d "$d/node_modules" ]; then echo "$d: node_modules from cache"; continue; fi
+            if [ -f "$d/package-lock.json" ]; then npm ci --prefix "$d" --no-audit --no-fund
+            else npm install --prefix "$d" --no-audit --no-fund; fi
+          done
+          # apt mirrors sometimes stall on runners: fail fast and retry instead of hanging.
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "30"; Acquire::https::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/99net-timeouts > /dev/null
+          # --with-deps installs xvfb and the browser libraries.
+          for i in 1 2 3; do
+            (cd autorecorder && timeout 300 npx playwright install --with-deps chromium) && break
+            echo "playwright install attempt $i failed or stalled; retrying"; sleep 10
+          done
+          for i in 1 2 3; do
+            (cd autorecorder && timeout 300 npx playwright install chromium) && break
+            echo "chromium download attempt $i failed; retrying"; sleep 10
+          done
+          (cd autorecorder && node -e "const {chromium}=require('playwright'); require('fs').accessSync(chromium.executablePath()); console.log('chromium ok:', chromium.executablePath())")
+          command -v xvfb-run
+          # The failure terminal is a real shell (node-pty; no Linux prebuild, so npm builds it).
+          (cd autorecorder && node -e "require('node-pty'); console.log('node-pty ok')")
+
+      - name: Write env files (secret from repo settings, never logged)
+        run: |
+          set -eu
+          [ -n "${OPENAI_API_KEY:-}" ] || echo "::warning::secret OPENAI_API_KEY is not set; the AG2 agent will fail"
+          printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY" > backend/.env
+
+      - name: Start servers (start-all.sh)
+        run: |
+          set -euo pipefail
+          mkdir -p logs
+          nohup bash start-all.sh > logs/start-all.log 2>&1 &
+          # "localhost", not 127.0.0.1: the LangGraph JS server binds IPv6 ::1 only.
+          for hp in 8241/health 8240/api/copilotkit/info 4240/; do
+            port=${hp%%/*}; path=/${hp#*/}
+            ok=
+            tries=120; case "$port" in 8???) tries=48 ;; esac   # a dead backend costs 4 min, not 10
+            for i in $(seq 1 $tries); do
+              if [ "$path" = "/" ]; then curl -s -o /dev/null "http://localhost:$port/" && ok=1 && break
+              else curl -sf -o /dev/null "http://localhost:$port$path" && ok=1 && break; fi
+              sleep 5
+            done
+            if [ -z "$ok" ]; then
+              # The frontend is needed by every page; a backend only by its own pages (their clips
+              # then show the real error, e.g. a doc import that no longer installs).
+              case "$port" in 3???|4???|5???) echo "::error::frontend :$port did not come up"; tail -n 40 logs/*.log; exit 1 ;; esac
+              echo "::warning::server on :$port did not come up; pages that use it will show the error"; tail -n 40 logs/*.log
+              continue
+            fi
+            echo "up: :$port$path"
+          done
+
+      - name: Record
+        id: rec
+        env:
+          PAGES: ${{ matrix.pages }}
+        run: |
+          set +e
+          cd autorecorder
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            npm run record -- "--pages=$PAGES" 2>&1 | tee ../logs/record.log
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          # A failed take is usually the doc defect itself: never fail the job here.
+          exit 0
+
+      - uses: actions/setup-python@v5
+        if: always()
+        with:
+          python-version: '3.12'
+      - name: Cache static ffmpeg
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: ~/ffmpeg-static
+          key: ffmpeg-static-linux64-v1
+      - name: Clip checks for this shard (the report job reuses them)
+        if: always()
+        run: |
+          set +e
+          if [ ! -x ~/ffmpeg-static/ffmpeg ]; then
+            mkdir -p ~/ffmpeg-static
+            curl -fsSL --retry 3 https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz               | tar -xJ --strip-components=1 -C ~/ffmpeg-static
+          fi
+          export PATH="$HOME/ffmpeg-static:$PATH"
+          python -m pip install -q numpy
+          python .qa/tools/ci_post.py --checks-only --videos autorecorder/videos --out out/run             || echo "::warning::shard checks failed; the report job checks these clips itself"
+          exit 0
+
+      - name: Upload shard (temporary)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}
+          path: |
+            autorecorder/videos/
+            logs/
+          if-no-files-found: ignore
+          retention-days: 1
+
+  report:
+    name: Report
+    needs: [plan, record]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Cache static ffmpeg
+        id: ffmpeg-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/ffmpeg-static
+          key: ffmpeg-static-linux64-v1
+      - name: Install ffmpeg (static build, cached) + numpy
+        run: |
+          set -euo pipefail
+          if [ ! -x ~/ffmpeg-static/ffmpeg ]; then
+            mkdir -p ~/ffmpeg-static
+            curl -fsSL --retry 3 https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
+              | tar -xJ --strip-components=1 -C ~/ffmpeg-static
+          fi
+          echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
+          python -m pip install -q numpy
+          ~/ffmpeg-static/ffmpeg -version | head -1
+
+      - name: Drift and versions from the plan job
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: plan
+          path: out/run
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          path: shards
+
+      - name: Merge shards
+        run: |
+          set -euo pipefail
+          mkdir -p autorecorder/videos out/run/logs
+          python - <<'PY'
+          import json, shutil
+          from pathlib import Path
+          dst = Path("autorecorder/videos"); merged = {"passed": 0, "failed": 0, "results": [], "shards": []}
+          for sh in sorted(Path("shards").glob("shard-*")):
+              v = sh / "autorecorder" / "videos"
+              if v.is_dir():
+                  for f in v.iterdir():
+                      if f.name == "RECORD_RESULTS.json":
+                          r = json.loads(f.read_text(encoding="utf-8"))
+                          merged["passed"] += r.get("passed", 0); merged["failed"] += r.get("failed", 0)
+                          merged["results"] += r.get("results", []); merged["shards"].append(sh.name)
+                      elif f.is_dir():
+                          shutil.copytree(f, dst / f.name, dirs_exist_ok=True)
+                      else:
+                          shutil.copy2(f, dst / f.name)
+              if (sh / "logs").is_dir():
+                  shutil.copytree(sh / "logs", Path("out/run/logs") / sh.name, dirs_exist_ok=True)
+          if merged["shards"]:
+              (dst / "RECORD_RESULTS.json").write_text(json.dumps(merged, indent=2, ensure_ascii=False), encoding="utf-8")
+          print(f"merged {len(merged['shards'])} shard(s): {merged['passed']} passed, {merged['failed']} failed")
+          PY
+
+      - name: Restore earlier page durations
+        uses: actions/cache/restore@v4
+        with:
+          path: page-durations.json
+          key: page-durations-${{ github.run_id }}
+          restore-keys: page-durations-
+      - name: Update page durations (recording seconds per page, for the next run's shard balancing)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("page-durations.json")
+          d = json.loads(p.read_text()) if p.exists() else {}
+          r = Path("autorecorder/videos/RECORD_RESULTS.json")
+          for x in (json.loads(r.read_text(encoding="utf-8")).get("results", []) if r.exists() else []):
+              if x.get("id") and x.get("durationSec"):
+                  d[x["id"]] = x["durationSec"]
+          p.write_text(json.dumps(d, indent=1, sort_keys=True))
+          print(f"{len(d)} page durations")
+          PY
+      - name: Save page durations
+        uses: actions/cache/save@v4
+        with:
+          path: page-durations.json
+          key: page-durations-${{ github.run_id }}
+
+      - name: Narration fit/mix + clip checks + summary
+        run: |
+          python .qa/tools/ci_post.py --videos autorecorder/videos --out out/run \
+            --drift out/run/drift/drift.md --versions out/run/versions.md --title "${{ github.event.repository.name }} ${{ needs.plan.outputs.date }}"
+          cat out/run/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assemble run folder
+        if: always()
+        run: |
+          mkdir -p out/run/videos
+          [ -d autorecorder/videos ] && cp -r autorecorder/videos/. out/run/videos/ || true
+          du -sh out/run || true
+
+      - name: Upload run-${{ needs.plan.outputs.date }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-${{ needs.plan.outputs.date }}
+          path: out/run/
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0   # webm/mp4/jpg are already compressed
+
+      - name: Delete temporary shard artifacts
+        if: always()
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            shard-*
+            plan
+          failOnError: false

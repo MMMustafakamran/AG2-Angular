@@ -145,3 +145,40 @@ export class HeadlessDemo {}
   </app-demo-frame>`,
 })
 export class InspectorDemo {}
+
+// HARNESS: demo routes for the pages added on 2026-11-09 (assignment.json).
+import { AuthChatComponent } from '../features/auth/auth-chat.component';
+import { GenUiChatComponent } from '../features/generative-ui/genui-chat.component';
+import { SubagentsChatComponent } from '../features/subagents/subagents-chat.component';
+import { OrderSearchComponent } from '../features/webmcp/order-search.component';
+import { CopilotChat } from '@copilotkit/angular';
+
+@Component({
+  selector: 'app-genui-demo',
+  imports: [DemoFrame, GenUiChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Native generative UI"><app-genui-chat /></app-demo-frame>`,
+})
+export class GenUiDemo {}
+
+@Component({
+  selector: 'app-subagents-demo',
+  imports: [DemoFrame, SubagentsChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Sub-agents"><app-subagents-chat /></app-demo-frame>`,
+})
+export class SubagentsDemo {}
+
+@Component({
+  selector: 'app-webmcp-demo',
+  imports: [DemoFrame, OrderSearchComponent, CopilotChat],
+  template: `<app-demo-frame backTo="/" heading="WebMCP"
+    ><app-order-search /><div style="height: 100%"><copilot-chat /></div
+  ></app-demo-frame>`,
+})
+export class WebmcpDemo {}
+
+@Component({
+  selector: 'app-auth-demo',
+  imports: [DemoFrame, AuthChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Authentication"><app-auth-chat /></app-demo-frame>`,
+})
+export class AuthDemo {}

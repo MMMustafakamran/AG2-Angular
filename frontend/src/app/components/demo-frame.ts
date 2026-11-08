@@ -33,7 +33,10 @@ export class DemoFrame {
   /** App route path of the owning doc route, e.g. `/quickstart`. */
   readonly backTo = input.required<string>();
 
+  /** HARNESS: explicit title for demo routes that have no entry in nav-config. */
+  readonly heading = input<string>();
+
   protected readonly title = computed(
-    () => findRoute(this.backTo())?.title ?? 'Demo',
+    () => this.heading() ?? findRoute(this.backTo())?.title ?? 'Demo',
   );
 }

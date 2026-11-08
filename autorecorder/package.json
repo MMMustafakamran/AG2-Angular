@@ -6,20 +6,24 @@
   "scripts": {
     "record": "tsx cli.ts",
     "record:list": "tsx cli.ts --list",
-    "mux": "node mux.mjs",
-    "doctor": "npm --prefix ../frontend run gen:versions && tsx cli.ts --doctor",
-    "doctor:online": "npm --prefix ../frontend run gen:versions && tsx cli.ts --doctor --online",
-    "consistency": "tsx consistency.ts",
-    "ci:videos": "node fetch-ci-videos.mjs",
+    "doctor": "node scripts/write-versions.mjs && tsx cli.ts --doctor",
+    "doctor:online": "node scripts/write-versions.mjs && tsx cli.ts --doctor --online",
     "manifest": "tsx manifest.ts",
     "manifest:check": "tsx manifest.ts --check",
     "typecheck": "tsc --noEmit",
+    "capture": "tsx cli-capture.ts",
+    "capture:list": "tsx cli-capture.ts --list",
+    "render": "tsx cli-render.ts",
+    "render:list": "tsx cli-render.ts --list",
     "test": "node --import tsx --test test/*.test.ts",
     "core:check": "node scripts/core-manifest.mjs --check",
     "core:write": "node scripts/core-manifest.mjs --write",
-    "check": "npm run typecheck && npm test && npm run core:check"
+    "check": "npm run typecheck && npm test && npm run core:check",
+    "cli:videos": "tsx cli-render.ts --all --demos"
   },
   "dependencies": {
+    "@xterm/xterm": "^6.0.0",
+    "node-pty": "^1.1.0",
     "playwright": "^1.51.0",
     "shiki": "^4.4.3"
   },

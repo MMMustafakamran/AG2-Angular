@@ -1,9 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ACTION_MAP } from '../actions';
+import { CLI_FLOWS, CLI_VIDEOS } from '../config/cli.config';
 import { PAGES } from '../config/pages.config';
 import { PROJECT, REPLACE_ME } from '../config/project.config';
 import { SELECTORS } from '../config/selectors.config';
+import { hasFfmpeg } from './cli/audio';
 import { type IdeTabConfig } from './ide/generator';
 
 /**
@@ -184,6 +186,11 @@ function checkPages(rootDir: string, problems: Problem[]): void {
       });
     }
 
+    // A docOnly page has no demo and no IDE segment -- it is the doc read on
+    // camera and nothing else -- so a prompt and a line range are not things it
+    // is missing. Checking them would fail an entry that is correct as written.
+    if (page.docOnly) continue;
+
     if (!page.prompt || page.prompt.includes(REPLACE_ME)) {
       problems.push({ scope, severity: 'error', message: 'prompt is empty or a placeholder' });
     }
@@ -196,38 +203,49 @@ function checkPages(rootDir: string, problems: Problem[]): void {
       });
     }
 
-    checkTab(
-      rootDir,
-      scope,
-      { filePath: page.ideFile, startLine: page.startLine, endLine: page.endLine },
-      'ideFile',
-      problems,
-    );
-    (page.extraTabs ?? []).forEach((tab, i) =>
-      checkTab(rootDir, scope, tab, `extraTabs[${i}]`, problems),
-    );
+    // A generated page's files are produced by the CLI pipeline, so before that
+    // has run they are legitimately absent. Report the state rather than failing
+    // the whole adaptation over work that has not happened yet — but check them
+    // normally the moment they do exist, because then a bad range is a real bug.
+    const tabs = [
+      {
+        tab: { filePath: page.ideFile, startLine: page.startLine, endLine: page.endLine },
+        label: 'ideFile',
+      },
+      ...(page.extraTabs ?? []).map((tab, i) => ({ tab, label: `extraTabs[${i}]` })),
+    ];
+
+    for (const { tab, label } of tabs) {
+      if (page.generated && !existsSync(join(rootDir, tab.filePath))) {
+        problems.push({
+          scope,
+          severity: 'warning',
+          message: `${label} ${tab.filePath} not present yet — run the CLI pipeline (capture --scaffold, --distribute) before recording this page`,
+        });
+        continue;
+      }
+      checkTab(rootDir, scope, tab, label, problems);
+    }
 
     // The demo route has to exist in this repo's frontend. A page listed here
     // with no route behind it is the "pages with no /demo route" gap from
-    // project-context.md, and it only surfaced before as an HTTP 404 at record
+    // REPOS.md (workspace root), and it only surfaced before as an HTTP 404 at record
     // time. Checked statically where the frontend is a Next.js App Router
-    // tree; other frontends (this one is Angular, whose routes live in
-    // app.routes.ts) skip it, and --online still probes the URL.
-    const appDir = join(rootDir, 'frontend', 'src', 'app');
-    const isNextApp = ['next.config.ts', 'next.config.js', 'next.config.mjs'].some((f) =>
-      existsSync(join(rootDir, 'frontend', f)),
-    );
-    if (isNextApp && existsSync(appDir)) {
-      const routeDir = join(appDir, ...page.route.split('/'), ...PROJECT.demoSuffix.split('/').filter(Boolean));
-      const hasPage = ['page.tsx', 'page.ts', 'page.jsx', 'page.js', 'route.ts'].some((f) =>
-        existsSync(join(routeDir, f)),
-      );
-      if (!hasPage) {
-        problems.push({
-          scope,
-          severity: 'error',
-          message: `demo route /${page.route}${PROJECT.demoSuffix} has no page under frontend/src/app -- the recording would 404`,
-        });
+    // tree; other frontends skip it (and --online still probes the URL).
+    if (!page.devServer) {
+      const appDir = join(rootDir, 'frontend', 'src', 'app');
+      if (existsSync(appDir)) {
+        const routeDir = join(appDir, ...page.route.split('/'), ...PROJECT.demoSuffix.split('/').filter(Boolean));
+        const hasPage = ['page.tsx', 'page.ts', 'page.jsx', 'page.js', 'route.ts'].some((f) =>
+          existsSync(join(routeDir, f)),
+        );
+        if (!hasPage) {
+          problems.push({
+            scope,
+            severity: 'error',
+            message: `demo route /${page.route}${PROJECT.demoSuffix} has no page under frontend/src/app — the recording would 404`,
+          });
+        }
       }
     }
   }
@@ -245,6 +263,176 @@ function checkPages(rootDir: string, problems: Problem[]): void {
 }
 
 /** Live probes: the half that catches a config pointing at the wrong app. */
+/**
+ * The CLI flow registry.
+ *
+ * The failure this is really guarding against: a flow that answers prompts by
+ * counting keypresses instead of naming the row it wants. That version works on
+ * the day it is written and silently scaffolds the wrong framework the day the
+ * menu gains an entry — a passing run that produced the wrong project. Nothing
+ * downstream can detect it, so it has to be caught here.
+ */
+function checkCliFlows(problems: Problem[]): void {
+  for (const flow of CLI_FLOWS) {
+    const scope = `cli:${flow.id}`;
+
+    if (!flow.command || flow.command.includes(REPLACE_ME)) {
+      problems.push({ scope, severity: 'error', message: 'command is empty or a placeholder' });
+    }
+
+    // Only flows that answer prompts are expected to produce something. A flow
+    // with no steps is a bare command (a sign-in, say) whose output may be
+    // somewhere this config has no business asserting about.
+    if (flow.steps?.length && !flow.expectFiles?.length) {
+      problems.push({
+        scope,
+        severity: 'warning',
+        message:
+          'no expectFiles — a command that answers every prompt and writes nothing would still pass',
+      });
+    }
+
+    for (const [i, step] of (flow.steps ?? []).entries()) {
+      const stepScope = `${scope} step ${i + 1} (${step.label})`;
+
+      if (!step.waitFor) {
+        problems.push({
+          scope: stepScope,
+          severity: 'warning',
+          message:
+            'no waitFor — the step acts as soon as the previous one finishes, which is a race with the prompt painting',
+        });
+      }
+
+      if (!step.select && !step.keys?.length && step.type == null) {
+        problems.push({
+          scope: stepScope,
+          severity: 'error',
+          message: 'does nothing: no select, no keys, no text to type',
+        });
+      }
+
+      // Down/Up repeated by hand is the counting antipattern in disguise.
+      const arrowRun = (step.keys ?? []).filter((k) => k === 'Down' || k === 'Up').length;
+      if (!step.select && arrowRun > 1) {
+        problems.push({
+          scope: stepScope,
+          severity: 'error',
+          message: `sends ${arrowRun} arrow keys without a select — name the row with select: { label } instead of counting keypresses`,
+        });
+      }
+    }
+
+    if (flow.steps?.length && !flow.steps.some((s) => s.waitFor)) {
+      problems.push({
+        scope,
+        severity: 'error',
+        message: 'no step waits for anything — the whole flow is a race',
+      });
+    }
+  }
+}
+
+/**
+ * The CLI video registry.
+ *
+ * A video that names a flow which does not exist used to be found by
+ * `cli-render.ts` throwing halfway through a render; a missing narration
+ * file was found by ffmpeg. Both are configuration, and belong here.
+ */
+function checkCliVideos(rootDir: string, problems: Problem[]): void {
+  const flowIds = new Set(CLI_FLOWS.map((f) => f.id));
+  const videoIds = new Set<string>();
+  const files = new Set<string>();
+  let anyAudio = false;
+
+  const pageIds = new Set(PAGES.map((p) => p.id));
+
+  for (const video of CLI_VIDEOS) {
+    const scope = `cli-video:${video.id}`;
+
+    for (const id of [video.id, video.onFailure?.id].filter((x): x is string => Boolean(x))) {
+      if (videoIds.has(id)) {
+        problems.push({ scope, severity: 'error', message: `duplicate video id "${id}"` });
+      }
+      videoIds.add(id);
+    }
+
+    for (const file of [video.videoFile, video.failureVideoFile].filter((x): x is string => Boolean(x))) {
+      if (files.has(file)) {
+        problems.push({
+          scope,
+          severity: 'error',
+          message: `duplicate output filename "${file}" -- one render would overwrite the other`,
+        });
+      }
+      files.add(file);
+    }
+
+    if (video.onSuccess && !pageIds.has(video.onSuccess.recordPage)) {
+      problems.push({
+        scope,
+        severity: 'error',
+        message: `onSuccess.recordPage "${video.onSuccess.recordPage}" is not a page in pages.config.ts`,
+      });
+    }
+
+    if (video.onFailure) {
+      for (const [i, tab] of (video.onFailure.ideTabs ?? []).entries()) {
+        // Generated files; absent until the pipeline has run, and possibly
+        // absent after a failed install too. The render skips missing ones.
+        if (existsSync(join(rootDir, tab.filePath))) {
+          checkTab(rootDir, `${scope} onFailure`, tab, `ideTabs[${i}]`, problems);
+        }
+      }
+      if (video.onFailure.audio) {
+        anyAudio = true;
+        if (!existsSync(join(rootDir, 'autorecorder', video.onFailure.audio))) {
+          problems.push({ scope, severity: 'error', message: `onFailure audio file ${video.onFailure.audio} does not exist` });
+        }
+      }
+    }
+
+    for (const id of video.flows) {
+      if (!flowIds.has(id)) {
+        problems.push({ scope, severity: 'error', message: `references flow "${id}", which is not registered` });
+      }
+    }
+    if (video.flows.length === 0) {
+      problems.push({ scope, severity: 'error', message: 'has no flows — nothing to film' });
+    }
+
+    for (const [i, tab] of (video.ideTabs ?? []).entries()) {
+      // Finding clips show generated files, which may not exist before the
+      // pipeline has run; that is a warning, as it is for generated pages.
+      if (!existsSync(join(rootDir, tab.filePath))) {
+        problems.push({
+          scope,
+          severity: 'warning',
+          message: `ideTabs[${i}] ${tab.filePath} not present — run the CLI pipeline before rendering this video`,
+        });
+      } else {
+        checkTab(rootDir, scope, tab, `ideTabs[${i}]`, problems);
+      }
+    }
+
+    if (video.audio) {
+      anyAudio = true;
+      if (!existsSync(join(rootDir, 'autorecorder', video.audio))) {
+        problems.push({ scope, severity: 'error', message: `audio file ${video.audio} does not exist` });
+      }
+    }
+  }
+
+  if (anyAudio && !hasFfmpeg()) {
+    problems.push({
+      scope: 'cli-video',
+      severity: 'warning',
+      message: 'a video declares narration but ffmpeg is not on PATH — the render will succeed without sound',
+    });
+  }
+}
+
 async function checkOnline(problems: Problem[]): Promise<void> {
   const get = async (url: string): Promise<number | string> => {
     try {
@@ -256,6 +444,8 @@ async function checkOnline(problems: Problem[]): Promise<void> {
   };
 
   for (const page of PAGES) {
+    // No demo route exists for a docOnly page; its demoUrl is derived and dead.
+    if (page.docOnly) continue;
     const status = await get(page.demoUrl);
     if (status !== 200) {
       problems.push({
@@ -310,7 +500,7 @@ async function checkOnline(problems: Problem[]): Promise<void> {
         });
       } else if (hits.length > 0) {
         console.log(`  [i] ${key} matches: ${hits.join(', ')}`);
-        if (key === 'assistantMessage') {
+        if (key === 'assistantMessage' && hits.some((h) => !h.startsWith('.copilotKit') && !h.startsWith('[data-'))) {
           problems.push({
             scope: 'selectors.config',
             severity: 'warning',
@@ -349,6 +539,8 @@ export async function runDoctor(
   checkProject(problems);
   checkSelectors(problems);
   checkPages(rootDir, problems);
+  checkCliFlows(problems);
+  checkCliVideos(rootDir, problems);
   if (opts.online) await checkOnline(problems);
 
   const errors = problems.filter((p) => p.severity === 'error');
@@ -358,6 +550,7 @@ export async function runDoctor(
   console.log(`  project : ${PROJECT.frameworkLabel} (${PROJECT.framework})`);
   console.log(`  docs    : ${PROJECT.docBaseUrl}`);
   console.log(`  pages   : ${PAGES.length}`);
+  console.log(`  cli     : ${CLI_FLOWS.length} flow(s)`);
   console.log(`  mode    : ${opts.online ? 'static + online' : 'static (pass --online for live probes)'}\n`);
 
   if (problems.length === 0) {
@@ -372,7 +565,7 @@ export async function runDoctor(
   console.log(`\n  ${errors.length} error(s), ${warnings.length} warning(s)`);
   console.log(
     errors.length > 0
-      ? `  Adaptation is NOT complete. See ADAPT.md.\n`
+      ? `  Adaptation is NOT complete. See .qa/recorder/ADAPT.md.\n`
       : `  No blocking errors; review the warnings above.\n`,
   );
 

@@ -52,3 +52,17 @@ Thumbs.db
 # only: the voiceover assets in autorecorder/audio/ are .m4a and ARE committed.
 *.webm
 *.mp4
+
+# QA pipeline (workspace template)
+logs/
+*.log
+autorecorder/videos/
+autorecorder/test-results/
+*.webm
+*.mp4
+runs/
+narrate-audio/
+narration/**/*.fit.json
+*.env
+*.env.txt
+reference-*.wav

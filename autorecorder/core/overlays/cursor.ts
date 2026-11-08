@@ -1,5 +1,6 @@
 import { type Page } from 'playwright';
 import { beat, between, chance, jitter, pause, rand, sleep } from './human';
+import { logAction } from '../timeline';
 
 export { beat, sleep };
 
@@ -300,4 +301,5 @@ export async function humanScrollDown(
   }
 
   await sleep(jitter(300));
+  logAction('scroll', useWheel ? 'wheel' : 'scrollTop', 'ok', { pixels: travelled });
 }

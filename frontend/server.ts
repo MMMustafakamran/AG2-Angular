@@ -31,6 +31,7 @@ import { createServer } from "node:http";
 import { CopilotRuntime } from "@copilotkit/runtime/v2";
 import { createCopilotNodeListener } from "@copilotkit/runtime/v2/node";
 import { HttpAgent } from "@ag-ui/client";
+import { authApp } from "./auth-runtime"; // HARNESS: Authentication guide hook, served under /auth
 
 const agentUrl =
   process.env["AG2_AGENT_URL"] ?? "http://localhost:8241/agent/"; // HARNESS: backend port 8241 (workspace port plan)
@@ -52,13 +53,20 @@ const runtime = new CopilotRuntime({
 const port = Number(process.env["PORT"] ?? 8240); // HARNESS: runtime port 8240 (doc uses 8200; workspace port plan)
 
 // quickstart : create copilot node listener start
-createServer(
-  createCopilotNodeListener({
-    runtime,
-    basePath: "/api/copilotkit",
-    cors: true,
-  }),
-).listen(port, () => {
+const copilotListener = createCopilotNodeListener({
+  runtime,
+  basePath: "/api/copilotkit",
+  cors: true,
+});
+// HARNESS: /auth/* goes to the Authentication guide's hooked runtime (auth-runtime.ts).
+createServer((req, res) => {
+  if (req.url?.startsWith("/auth/")) {
+    req.url = req.url.slice("/auth".length);
+    authApp(req, res);
+    return;
+  }
+  copilotListener(req, res);
+}).listen(port, () => {
   console.log(
     `Copilot Runtime listening at http://localhost:${port}/api/copilotkit`,
   );

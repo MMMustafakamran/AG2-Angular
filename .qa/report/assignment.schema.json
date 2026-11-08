@@ -1,0 +1,92 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "QA assignment (one per repo)",
+ "type": "object",
+ "required": ["framework", "ui", "repo", "docBase", "report", "sections", "pages"],
+ "additionalProperties": false,
+ "properties": {
+  "framework": {"type": "string", "description": "e.g. LangGraph JS, Google Antigravity"},
+  "ui": {"enum": ["react", "vue", "angular"]},
+  "repo": {"type": "string", "description": "workspace folder, e.g. LangGraph-react"},
+  "docBase": {"type": "string", "format": "uri", "description": "prefix for page docPath, ends with /"},
+  "versions": {"type": "object", "additionalProperties": {"type": "string"}, "description": "package -> version from FINDINGS.md Stack: line; @copilotkit/* go in the hard-failure block"},
+  "testedContext": {
+   "type": "object", "additionalProperties": false,
+   "properties": {"os": {"type": "string"}, "packageManager": {"type": "string"}}
+  },
+  "report": {
+   "type": "object",
+   "required": ["style", "h1", "title", "guidesHeading", "columns"],
+   "additionalProperties": false,
+   "properties": {
+    "style": {"enum": ["team", "status"], "description": "team = LangGraph rows (emoji line, link, notes); status = Antigravity rows (link text '✅ Working', small note)"},
+    "h1": {"type": "string"},
+    "title": {"type": "string"},
+    "quickstartHeading": {"type": "string"},
+    "quickstartHeader": {"type": ["array", "null"], "items": {"type": "string"}},
+    "guidesHeading": {"type": "string"},
+    "columns": {"type": "array", "items": {"type": "string"}, "minItems": 2},
+    "resultColumn": {"type": "integer", "minimum": 1},
+    "linkSuffix": {"type": "string", "description": "default link text suffix when a link has no text (✅ rows): '<label> - <suffix>'"},
+    "clipsToUpload": {"type": "boolean"}
+   }
+  },
+  "sections": {
+   "type": "array",
+   "description": "grouping rows in display order; each is followed by the pages whose group equals its label",
+   "items": {
+    "type": "object", "required": ["label", "cells"], "additionalProperties": false,
+    "properties": {"label": {"type": "string"}, "cells": {"type": "array", "items": {"type": "string"}}}
+   }
+  },
+  "pages": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": ["id", "label", "docPath", "reachable", "status", "links"],
+    "additionalProperties": false,
+    "properties": {
+     "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+     "label": {"type": "string"},
+     "kind": {"enum": ["quickstart", "guide"], "default": "guide"},
+     "group": {"type": ["string", "null"], "description": "section label; null = before the first section"},
+     "child": {"type": "boolean", "description": "render with '- ' prefix"},
+     "docPath": {"type": ["string", "null"], "description": "relative to docBase (may carry ?query) or an absolute URL"},
+     "reachable": {"enum": ["sidebar", "in-content", "none"], "description": "none = omitted from HTML and delivery"},
+     "excluded": {"type": "string", "description": "owner took the page out of scope (reason); omitted from HTML, delivery and CI recording"},
+     "reachableVia": {"type": "string", "description": "evidence for reachable: sidebar section label, or linking page URL + link text"},
+     "status": {"enum": ["✅", "⚠️", "❌", "N/A", "–", "python-only"]},
+     "findings": {"type": "array", "items": {"type": "integer"}, "description": "FINDINGS.md numbers of the repo"},
+     "notes": {"type": "array", "items": {"type": "string"}, "description": "one line each (Issue: / Note: / Minor Issue: / 1) ...); `code` marks are stripped on render"},
+     "block": {
+      "type": ["object", "null"],
+      "description": "hard-failure block (team style)",
+      "required": ["area", "problem"],
+      "properties": {"area": {"type": "string"}, "problem": {"type": "string"}, "loomInBlock": {"type": "boolean"}}
+     },
+     "links": {
+      "type": "array",
+      "items": {
+       "type": "object", "required": ["clip", "loom"], "additionalProperties": false,
+       "properties": {
+        "text": {"type": ["string", "null"], "description": "link text; null = derived from status/label"},
+        "clip": {"type": ["string", "null"], "description": "clip id = file stem = Loom title; null = not recorded yet"},
+        "loom": {"type": ["string", "null"], "pattern": "^https://www\\.loom\\.com/share/[0-9a-f]{32}$"},
+        "narration": {"type": ["string", "null"], "description": "voice script path (workspace-relative) or null"},
+        "pendingVideo": {"type": "string", "description": "migration hint: recorder clip name still expected"}
+       }
+      }
+     },
+     "review": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+       "verdict": {"enum": [null, "approved", "rejected"]},
+       "approvedAt": {"type": ["string", "null"]},
+       "by": {"type": ["string", "null"]}
+      }
+     }
+    }
+   }
+  }
+ }
+}

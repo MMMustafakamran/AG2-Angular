@@ -1,10 +1,11 @@
 import { type Page } from 'playwright';
 import { SELECTORS } from '../config/selectors.config';
-import { fatalConsoleError } from './console-capture';
+import { consoleMark, fatalConsoleError } from './console-capture';
 import { dismissAlertOverlay, installAlertOverlay } from './overlays/alert-dialog';
 import { beat, humanClick, humanGlide, idleNudge, sleep } from './overlays/cursor';
 import { chance, humanType, pause } from './overlays/human';
 import { TIMEOUTS } from './timeouts';
+import { checkpoint, logAction, probeText } from './timeline';
 import {
   type ActionContext,
   type DemoCheck,
@@ -98,6 +99,9 @@ export async function waitForAgentResponseCompletion(
   // Step 1: Wait until a new assistant message starts receiving content
   let hasStarted = false;
   const startTime = Date.now();
+  // Only this turn's errors count: an earlier cancelled fetch or failed turn
+  // would otherwise end the wait before it starts.
+  const consoleSince = consoleMark(page);
   const baseCount = initialMessageCount ?? 0;
   const observed: ReplyObservation = { startedAfterMs: 0, chars: 0, streamTimedOut: false };
 
@@ -134,7 +138,7 @@ export async function waitForAgentResponseCompletion(
     // client logged that the agent run failed, or the request itself did.
     // Sitting out the rest of the start window (30-90s per page, three to
     // seven pages in a row on a bad morning) only delays the same verdict.
-    const fatal = fatalConsoleError(page);
+    const fatal = fatalConsoleError(page, consoleSince);
     if (fatal) {
       throw new AgentSilentError(
         `Agent run failed before any reply text appeared (${Math.round((Date.now() - startTime) / 1000)}s in): ${fatal}`,
@@ -335,6 +339,7 @@ export async function sendPrompt(
     } else {
       await page.keyboard.type(prompt, { delay: 12 });
     }
+    logAction('type', inputSelector, 'ok', { text: prompt, attempt });
     await pause(300);
 
     // React owns the value once hydrated; if it wiped what we typed, put it back.
@@ -417,6 +422,7 @@ export async function sendPrompt(
     }
   }
 
+  logAction('submit', submitSelector, sent ? 'ok' : 'composer still holds the text after three attempts');
   if (!sent) {
     throw new Error(
       'Prompt never submitted -- the composer still holds the text after three ' +
@@ -538,6 +544,7 @@ export const runStandardAction: PageActionHandler = async (
       .waitFor({ state: 'visible', timeout: demo.render.timeoutMs ?? 20000 })
       .then(() => true)
       .catch(() => false);
+    void checkpoint('render', `rendered: ${demo.render.selector}`, () => rendered && probeText(el));
     if (rendered) {
       await glideToElement(page, demo.render.selector, { last: demo.render.last, beatMs: demo.render.beatMs ?? 2000, label: 'Rendered' });
     } else if (demo.render.required) {
@@ -553,6 +560,7 @@ export const runStandardAction: PageActionHandler = async (
       await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2, 20);
       await sleep(600);
       await humanClick(page);
+      logAction('click', demo.click.selector);
       console.log(`   ✓ Clicked ${demo.click.selector}`);
       await beat(demo.click.beatMs ?? 800);
       sinceMsgCount = Math.max(sinceMsgCount, await getAssistantMessageCount(page));
@@ -574,6 +582,7 @@ export const runStandardAction: PageActionHandler = async (
     if (!rendered && demo.render?.required) return { startedAfterMs: 0, chars: 0, streamTimedOut: false };
     throw e;
   });
+  void checkpoint('reply', 'agent reply rendered', () => probeText(page.locator(DEFAULT_ASSISTANT_MESSAGE_SELECTOR).last()));
   if (reply.streamTimedOut) {
     ctx.warn(`Reply still streaming after ${Math.round(ctx.timeouts.replyStreamMs / 1000)}s; the clip may end mid-answer.`);
   }

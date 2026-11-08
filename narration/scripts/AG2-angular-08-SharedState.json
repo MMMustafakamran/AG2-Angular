@@ -1,0 +1,37 @@
+{
+ "clip": "AG2-angular-08-SharedState",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the shared state and agent context page in the CopilotKit docs, for AG2 with Angular, and I have implemented this page."
+  },
+  {
+   "at": "ide",
+   "text": "So this is my project, this is the exact code from the doc, the workspace component and the account context, on CopilotKit Angular zero point six point oh."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I marked the priority as high, and then it reset. The agent said it has no access to a priority setting. And umm, it also said it can't see my timezone, even though the context sends it."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. It says the agent and the app both read and write the value."
+  },
+  {
+   "at": "evidence#2",
+   "text": "This set state call is the write, and the agent never gets it."
+  },
+  {
+   "at": "evidence#3",
+   "text": "And this is the agent context, uh, which the agent never sees either."
+  },
+  {
+   "at": "notepad",
+   "text": "So basically on AG2, the stream drops the state the app writes and ignores the agent context. So neither half of this page works with an AG2 agent, and the page doesn't mention it."
+  },
+  {
+   "at": "+",
+   "text": "That's it for this one, kindly look into this issue."
+  }
+ ]
+}

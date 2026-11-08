@@ -3,8 +3,8 @@
  * matches the code it shows.
  *
  * The clips themselves are deliberately not in git (see `videos/.gitignore`):
- * a clip per page at ~5MB, rewritten on every run, is not something version
- * control should carry. But that leaves no way to tell a clip recorded five minutes ago from one
+ * 16 files x ~5MB rewritten on every run is not something version control should
+ * carry. But that leaves no way to tell a clip recorded five minutes ago from one
  * recorded last month against a UI that has since changed, because every run
  * overwrites the same filenames in place.
  *
@@ -24,7 +24,7 @@
  * `package.json` already shipped `"manifest": "tsx cli.ts --manifest"`, but
  * `cli.ts` never implemented `--manifest` and does not list it in GLOBAL_FLAGS,
  * so that script fell through to the page-name filter, matched nothing and
- * exited 1. `cli.ts` is frozen by ADAPT.md, so the feature lands here and the
+ * exited 1. `cli.ts` is frozen by .qa/recorder/ADAPT.md, so the feature lands here and the
  * script now points at this file. The dangling flag is worth reporting upstream.
  */
 

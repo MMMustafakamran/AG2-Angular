@@ -7,7 +7,7 @@ import { type PageRecordConfig } from './types';
  * used to happen inside the take, so every clip opened on a few seconds of a
  * compiling page -- the recorder logged it as "Waiting for Next.js compilation
  * & React hydration to settle" and the viewer saw a blank pause. Hitting all of
- * the shard's routes at once here moves that cost off camera and pays it once,
+ * the run's routes at once here moves that cost off camera and pays it once,
  * in parallel, instead of once per page in series.
  *
  * Pages that boot their own dev server are skipped: nothing is listening yet.

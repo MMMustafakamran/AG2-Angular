@@ -27,7 +27,8 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type FileChooser, type Page } from 'playwright';
 
-import { beat, humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { beat } from '../core/overlays/human';
 
 import { closeFileDialog, openFileDialog, pickFileInDialog } from './file-dialog';
 

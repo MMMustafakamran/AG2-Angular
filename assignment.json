@@ -58,7 +58,7 @@
      "text": "Not Working",
      "clip": "AG2-angular-01-Quickstart",
      "loom": null,
-     "narration": null
+     "narration": "narration/scripts/AG2-angular-01-Quickstart.json"
     }
    ],
    "review": {
@@ -144,7 +144,7 @@
      "text": "Not Working",
      "clip": "AG2-angular-04-NativeGenerativeUi",
      "loom": null,
-     "narration": null
+     "narration": "narration/scripts/AG2-angular-04-NativeGenerativeUi.json"
     }
    ],
    "review": {
@@ -174,7 +174,7 @@
      "text": "Issue",
      "clip": "AG2-angular-05-A2ui",
      "loom": null,
-     "narration": null
+     "narration": "narration/scripts/AG2-angular-05-A2ui.json"
     }
    ],
    "review": {
@@ -204,7 +204,7 @@
      "text": "Issue",
      "clip": "AG2-angular-06-VoiceMultimodal",
      "loom": null,
-     "narration": null
+     "narration": "narration/scripts/AG2-angular-06-VoiceMultimodal.json"
     }
    ],
    "review": {
@@ -264,7 +264,7 @@
      "text": "Issue",
      "clip": "AG2-angular-08-SharedState",
      "loom": null,
-     "narration": null
+     "narration": "narration/scripts/AG2-angular-08-SharedState.json"
     }
    ],
    "review": {
@@ -376,7 +376,7 @@
     5
    ],
    "notes": [
-    "Issue: the setup step is empty; the Python file imports modules that are never shown (_loop_cap, _state) and never builds a supervisor or app, so nothing runs."
+    "Issue: the agent file imports _loop_cap and _state, which the page never shows (ModuleNotFoundError), and the Code tab's frontend is React, not Angular."
    ],
    "block": null,
    "links": [
@@ -384,7 +384,7 @@
      "text": "Not Working",
      "clip": "AG2-angular-12-SubAgents",
      "loom": null,
-     "narration": null
+     "narration": "narration/scripts/AG2-angular-12-SubAgents.json"
     }
    ],
    "review": {

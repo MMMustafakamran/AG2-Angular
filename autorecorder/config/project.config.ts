@@ -111,12 +111,12 @@ export const PROJECT: ProjectConfig = {
   // route. /openapi.json is always there and always a GET; it is what
   // frontend/src/app/components/backend-health.ts probes too, so both halves
   // of the repo agree on what "backend is up" means.
-  backendHealthPath: '/openapi.json',
+  backendHealthPath: '/health',
 
   // One command starts both frontend processes: `npm run dev` runs the Copilot
   // Runtime (frontend/server.ts, port 8240) and `ng serve` (port 4240) together.
-  frontendStartCmd: 'cd frontend && npm run dev',
-  backendStartCmd: 'cd backend && uv run main.py',
+  frontendStartCmd: './start-all.sh   (ng serve 4240, runtime frontend/server.ts 8240)',
+  backendStartCmd: './start-all.sh   (AG2 backend/main.py on 8241)',
 
   // Demo routes are `<route>/demo`, per frontend/src/app/app.routes.ts.
   demoSuffix: '/demo',

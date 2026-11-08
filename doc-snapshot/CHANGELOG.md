@@ -3,6 +3,23 @@
 What the CopilotKit Angular + AG2 docs changed under this repo.
 Only pages that actually moved are recorded — a sync that finds everything unchanged writes nothing here at all.
 
+## 2026-11-08
+
+- guides/frontend-tools-generative-ui: NEW new (+246 / -0)
+- guides/voice-multimodal: NEW new (+128 / -0)
+- quickstart: NEW new (+191 / -0)
+- guides/a2ui: NEW new (+222 / -0)
+- guides/chat-ui: NEW new (+178 / -0)
+- guides/generative-ui-components: NEW new (+288 / -0)
+- guides/human-in-the-loop: NEW new (+274 / -0)
+- guides/shared-state: NEW new (+151 / -0)
+- guides/threads-memory-attachments-headless: NEW new (+302 / -0)
+- webmcp: NEW new (+169 / -0)
+- auth: NEW new (+147 / -0)
+- multi-agent/subagents: NEW new (+443 / -0)
+- inspector: NEW new (+72 / -0)
+- sidebar: baseline saved (43 pages)
+
 Holds the 3 most recent dated entries. When a change lands on a fourth date, the oldest entry is dropped.
 
 ## 2026-09-04
@@ -112,4 +129,3 @@ Holds the 3 most recent dated entries. When a change lands on a fourth date, the
 + - [registerComponent API](/reference/angular/functions/registerComponent)
   - [registerFrontendTool API](/reference/angular/functions/registerFrontendTool)
 ```
-

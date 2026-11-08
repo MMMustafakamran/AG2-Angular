@@ -1,0 +1,126 @@
+{
+ "root": "angular/ag2",
+ "savedAt": "2026-11-08",
+ "pages": {
+  "/angular/ag2/build-with-agents": [],
+  "/angular/ag2/webmcp": [
+   "/angular/ag2/guides/frontend-tools-generative-ui"
+  ],
+  "/angular/ag2": [
+   "/angular/ag2/backend/copilot-runtime",
+   "/angular/ag2/inspector"
+  ],
+  "/angular/ag2/quickstart": [
+   "/angular/ag2/backend/copilot-runtime",
+   "/angular/ag2/inspector"
+  ],
+  "/angular/ag2/multi-agent/subagents": [
+   "/angular/ag2/guides/shared-state"
+  ],
+  "/angular/ag2/auth": [
+   "/angular/ag2/backend/copilot-runtime",
+   "/angular/ag2/backend/runtime-endpoints",
+   "/angular/ag2/runtime-server-adapter"
+  ],
+  "/angular/ag2/learning": [
+   "/angular/ag2/cli",
+   "/angular/ag2/guides/threads-memory-attachments-headless",
+   "/angular/ag2/inspector",
+   "/angular/ag2/intelligence/learned-skills",
+   "/angular/ag2/intelligence/memories",
+   "/angular/ag2/intelligence/overview",
+   "/angular/ag2/intelligence/quickstart",
+   "/angular/ag2/intelligence/standalone-collector",
+   "/angular/ag2/intelligence/threads-explained"
+  ],
+  "/angular/ag2/copilot-runtime": [
+   "/angular/ag2/agentic-protocols/ag-ui",
+   "/angular/ag2/guides/threads-memory-attachments-headless",
+   "/angular/ag2/guides/troubleshooting",
+   "/angular/ag2/inspector",
+   "/angular/ag2/intelligence/managed-intelligence-platform",
+   "/angular/ag2/intelligence/quickstart",
+   "/angular/ag2/intelligence/self-hosting",
+   "/angular/ag2/quickstart"
+  ],
+  "/angular/ag2/inspector": [
+   "/angular/ag2/guides/troubleshooting",
+   "/angular/ag2/inspector",
+   "/angular/ag2/troubleshooting/event-inspector"
+  ],
+  "/angular/ag2/ag-ui": [
+   "/angular/ag2/backend/custom-ag-ui-agent",
+   "/angular/ag2/quickstart"
+  ],
+  "/angular/ag2/using-these-docs": [
+   "/angular/ag2",
+   "/angular/ag2/backend/copilot-runtime",
+   "/angular/ag2/features",
+   "/angular/ag2/guides/chat-ui",
+   "/angular/ag2/guides/frontend-tools-generative-ui",
+   "/angular/ag2/guides/generative-ui-components",
+   "/angular/ag2/guides/human-in-the-loop",
+   "/angular/ag2/guides/shared-state",
+   "/angular/ag2/guides/threads-memory-attachments-headless",
+   "/angular/ag2/guides/troubleshooting",
+   "/angular/ag2/intelligence/overview"
+  ],
+  "/angular/ag2/features": [],
+  "/angular/ag2/guides/chat-ui": [
+   "/angular/ag2",
+   "/angular/ag2/features"
+  ],
+  "/angular/ag2/guides/frontend-tools-generative-ui": [
+   "/angular/ag2/features",
+   "/angular/ag2/guides/generative-ui-components"
+  ],
+  "/angular/ag2/guides/a2ui": [
+   "/angular/ag2/features",
+   "/angular/ag2/guides/frontend-tools-generative-ui"
+  ],
+  "/angular/ag2/guides/voice-multimodal": [
+   "/angular/ag2/features",
+   "/angular/ag2/guides/chat-ui",
+   "/angular/ag2/guides/voice-multimodal"
+  ],
+  "/angular/ag2/guides/human-in-the-loop": [
+   "/angular/ag2/features"
+  ],
+  "/angular/ag2/guides/shared-state": [
+   "/angular/ag2/features"
+  ],
+  "/angular/ag2/guides/threads-memory-attachments-headless": [
+   "/angular/ag2/features"
+  ],
+  "/angular/ag2/guides/troubleshooting": [
+   "/angular/ag2/auth",
+   "/angular/ag2/backend/runtime-endpoints",
+   "/angular/ag2/guides/frontend-tools-generative-ui",
+   "/angular/ag2/inspector",
+   "/angular/ag2/troubleshooting/common-issues",
+   "/angular/ag2/troubleshooting/debug-mode",
+   "/angular/ag2/troubleshooting/event-inspector"
+  ],
+  "/angular/ag2/contributing/code-contributions/package-linking": [],
+  "/angular/ag2/contributing/docs-contributions": [],
+  "/angular/ag2/telemetry": [],
+  "/angular/ag2/troubleshooting/common-issues": [
+   "/angular/ag2/backend/agent-runner",
+   "/angular/ag2/backend/runtime-endpoints",
+   "/angular/ag2/deploy/agentcore",
+   "/angular/ag2/guides/troubleshooting",
+   "/angular/ag2/intelligence/self-hosting"
+  ],
+  "/angular/ag2/community-frameworks": [],
+  "/angular/ag2/guides/generative-ui-components": [
+   "/angular/ag2/generative-ui/components",
+   "/angular/ag2/generative-ui/components/catalogs",
+   "/angular/ag2/generative-ui/components/markdown-mode",
+   "/angular/ag2/generative-ui/components/state-and-actions",
+   "/angular/ag2/generative-ui/components/surfaces",
+   "/angular/ag2/generative-ui/components/theming",
+   "/angular/ag2/generative-ui/components/transports",
+   "/angular/ag2/guides/a2ui"
+  ]
+ }
+}

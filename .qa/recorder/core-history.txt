@@ -1,0 +1,44 @@
+# Hashes of earlier core versions that sync.sh may overwrite ("<hash16>  <path>", LF-normalised sha256).
+# Append the old hashes here whenever qa-kit/recorder/core changes, so repos holding that version update cleanly.
+# pre-timeline-v2 core (Antigravity-react/-vue, LangGraph-vue before 2026-11-08)
+e0a0a636dd3affb7  actions.ts
+08a138e8b7ebd46e  cli/audio.ts
+b8cb1edc651d0440  cli/cast.ts
+e19afa43814cda49  cli/distribute.ts
+be262c8c0c9bd64a  cli/driver.ts
+2957f9860762761c  cli/finding.ts
+81491d92673f7824  cli/flow.ts
+4a7b644ca1ef19c0  cli/redact.ts
+c8b92704c1e476f7  cli/screen.ts
+49651b4170902c6c  cli/service.ts
+379d708dd90fa26e  cli/session.ts
+532709e429bb55b7  cli/terminal.ts
+fa25a754c9182c10  cli/versions.ts
+bd3554f62497cbc8  console-capture.ts
+53a56b13cabe0934  diagnostics.ts
+a82bef01641c7ce9  doctor.ts
+a8be673b657e71c2  engine.ts
+c7778c541eda201d  failure-evidence.ts
+930a02a744396319  ide/generator.ts
+1558c8ec248df353  overlays/alert-dialog.ts
+a3141911df7043c0  overlays/cursor.ts
+aa9fff385bba0465  overlays/human.ts
+193ad9f5d5fb4c6b  overlays/notepad.ts
+0d8ddfb3f17a16f6  overlays/taskbar.ts
+6398552569c74596  prewarm.ts
+0ef50b448785aeb8  select.ts
+61484618486feeb6  timeline.ts
+ba4e52b004b4fa04  timeouts.ts
+714292cd691a7baf  types.ts
+524cafa17d36a91d  versions.ts
+# before the real failure terminal (2026-11-08)
+379d708dd90fa26e  cli/session.ts
+532709e429bb55b7  cli/terminal.ts
+a82bef01641c7ce9  doctor.ts
+04adc0c13cff7142  engine.ts
+c7778c541eda201d  failure-evidence.ts
+4927b02c1ada9611  failure-evidence.ts
+# 2026-11-08: before docOnlyAction + "rendered nothing" grep (LangGraph-react finding clips)
+8a634766e19d4643  engine.ts
+bb845b1de4e85b04  failure-terminal.ts
+714292cd691a7baf  types.ts

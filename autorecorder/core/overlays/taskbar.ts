@@ -1,5 +1,75 @@
-import { type Page } from 'playwright';
+import { type Locator, type Page } from 'playwright';
+import { logAction } from '../timeline';
 import { getGlobalCursorPos, humanClick, humanGlide, sleep } from './cursor';
+
+/**
+ * Height of the simulated Windows 11 taskbar, in CSS pixels.
+ *
+ * The overlay is `position:fixed; bottom:0`, so in a 1080-tall viewport it owns
+ * y >= 1032 and swallows pointer events there. Anything the recorder needs to
+ * click must sit above that line -- see `ensureClearOfTaskbar`.
+ */
+export const TASKBAR_HEIGHT = 48;
+
+/**
+ * Scroll a control clear of the taskbar overlay before clicking it.
+ *
+ * A page whose input row sits at the bottom of the viewport ends up underneath
+ * the taskbar, and the click lands on the overlay instead of the control. That
+ * is a defect of the recorder's own furniture, not of the page being recorded,
+ * so it is corrected here rather than by moving the element in the app.
+ *
+ * Two steps, because the first is not always enough:
+ *  1. scroll the element up by however much of it is covered
+ *  2. if the document cannot scroll any further, add matching bottom padding so
+ *     that it can, then scroll again
+ *
+ * Padding is applied to `document.body` and left in place for the rest of the
+ * take -- it keeps the page clear of the taskbar rather than shifting mid-shot.
+ *
+ * @param margin extra clearance above the taskbar, in pixels
+ * @returns true if the element ended up fully clear
+ */
+export async function ensureClearOfTaskbar(
+  page: Page,
+  locator: Locator,
+  margin = 16,
+): Promise<boolean> {
+  await locator.scrollIntoViewIfNeeded().catch(() => {});
+
+  const overlapOf = async (): Promise<number> => {
+    const box = await locator.boundingBox();
+    if (!box) return 0;
+    const viewportHeight = page.viewportSize()?.height ?? 1080;
+    const safeBottom = viewportHeight - TASKBAR_HEIGHT - margin;
+    return Math.max(0, box.y + box.height - safeBottom);
+  };
+
+  let overlap = await overlapOf();
+  if (overlap <= 0) return true;
+
+  // 1. Try scrolling the page itself.
+  await page.evaluate((delta) => window.scrollBy(0, delta), overlap);
+  await sleep(250);
+
+  overlap = await overlapOf();
+  if (overlap <= 0) return true;
+
+  // 2. Already at the bottom -- make room, then take up the slack.
+  await page.evaluate(
+    ({ pad }) => {
+      const body = document.body;
+      const current = parseFloat(body.style.paddingBottom || '0') || 0;
+      body.style.paddingBottom = `${current + pad}px`;
+    },
+    { pad: overlap + margin },
+  );
+  await sleep(200);
+  await page.evaluate((delta) => window.scrollBy(0, delta), overlap + margin);
+  await sleep(250);
+
+  return (await overlapOf()) <= 0;
+}
 
 /**
  * Waits until the page's framework has finished hydrating.
@@ -41,13 +111,68 @@ export async function waitForHydration(
     .catch(() => false);
 }
 
+/**
+ * Windows the recorder can switch between, and the DOM ids their tiles use.
+ *
+ * A table rather than branches: the active-app styling is applied in three
+ * separate places (initial paint, re-attach after a React render, and the click
+ * handler), and every one of them used to name chrome and vscode explicitly.
+ * Adding the terminal that way would have meant nine edits and a fourth window
+ * nine more.
+ */
+export const TASKBAR_APPS = {
+  chrome: {
+    tileId: 'win11-taskbar-chrome',
+    indicatorId: 'win11-chrome-indicator',
+    // Offset from centre, used only if the tile cannot be measured — tiles are
+    // 40px on a 6px gap, so each one sits 46px right of the last.
+    fallbackOffsetX: 23,
+  },
+  vscode: {
+    tileId: 'win11-taskbar-vscode',
+    indicatorId: 'win11-vscode-indicator',
+    fallbackOffsetX: 69,
+  },
+  terminal: {
+    tileId: 'win11-taskbar-terminal',
+    indicatorId: 'win11-terminal-indicator',
+    fallbackOffsetX: 161,
+  },
+} as const;
+
+export type TaskbarApp = keyof typeof TASKBAR_APPS;
+
+const ACTIVE_TILE_BG = 'rgba(255,255,255,0.08)';
+const ACTIVE_INDICATOR = '#60a5fa';
+const IDLE_INDICATOR = 'rgba(255,255,255,0.4)';
+
+/** JS that paints every tile for the given active app. Used by both code paths. */
+function applyActiveAppJs(activeApp: TaskbarApp): string {
+  return Object.entries(TASKBAR_APPS)
+    .map(([app, { tileId, indicatorId }]) => {
+      const isActive = app === activeApp;
+      return `
+        (function() {
+          var tile = document.getElementById('${tileId}');
+          var ind = document.getElementById('${indicatorId}');
+          if (tile) tile.style.backgroundColor = '${isActive ? ACTIVE_TILE_BG : 'transparent'}';
+          if (ind) {
+            ind.style.background = '${isActive ? ACTIVE_INDICATOR : IDLE_INDICATOR}';
+            ind.style.width = '${isActive ? '16px' : '6px'}';
+          }
+        })();`;
+    })
+    .join('');
+}
+
 /** Injects or re-attaches the Windows 11 Taskbar & Virtual Mouse overlay onto the current page */
 export async function ensureOverlays(
   page: Page,
-  activeApp: 'chrome' | 'vscode' = 'chrome',
+  activeApp: TaskbarApp = 'chrome',
 ): Promise<void> {
-  const chromeInd = activeApp === 'chrome' ? '#60a5fa' : 'transparent';
-  const vscodeInd = activeApp === 'vscode' ? '#60a5fa' : 'transparent';
+  const chromeInd = activeApp === 'chrome' ? ACTIVE_INDICATOR : 'transparent';
+  const vscodeInd = activeApp === 'vscode' ? ACTIVE_INDICATOR : 'transparent';
+  const terminalInd = activeApp === 'terminal' ? ACTIVE_INDICATOR : 'transparent';
   const { x: curX, y: curY } = getGlobalCursorPos();
 
   const code = `
@@ -138,8 +263,9 @@ export async function ensureOverlays(
           '  </div>',
 
           // Windows Terminal
-          '  <div id="win11-taskbar-terminal" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:5px;transition:background 0.15s ease;">',
+          '  <div id="win11-taskbar-terminal" style="width:40px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;border-radius:5px;transition:background 0.15s ease;${activeApp === 'terminal' ? `background:${ACTIVE_TILE_BG};` : ''}">',
           '    <svg width="22" height="22" viewBox="0 0 24 24"><rect width="22" height="22" x="1" y="1" rx="4" fill="#18181b" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><path d="m6 8 4 4-4 4" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="12" y1="16" x2="17" y2="16" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/></svg>',
+          '    <div id="win11-terminal-indicator" style="position:absolute;bottom:2px;width:${activeApp === 'terminal' ? '16px' : '6px'};height:3px;background:${terminalInd || IDLE_INDICATOR};border-radius:2px;transition:all 0.2s ease;"></div>',
           '  </div>',
 
           // Microsoft Copilot (Fluent Butterfly)
@@ -188,21 +314,8 @@ export async function ensureOverlays(
         tick();
         setInterval(tick, 1000);
       } else {
-        // Update indicators and tile backgrounds if already present
-        var cTile = document.getElementById('win11-taskbar-chrome');
-        var vTile = document.getElementById('win11-taskbar-vscode');
-        var cInd = document.getElementById('win11-chrome-indicator');
-        var vInd = document.getElementById('win11-vscode-indicator');
-        if (cTile) cTile.style.backgroundColor = '${activeApp === 'chrome' ? 'rgba(255,255,255,0.08)' : 'transparent'}';
-        if (vTile) vTile.style.backgroundColor = '${activeApp === 'vscode' ? 'rgba(255,255,255,0.08)' : 'transparent'}';
-        if (cInd) {
-          cInd.style.background = '${chromeInd || 'rgba(255,255,255,0.4)'}';
-          cInd.style.width = '${activeApp === 'chrome' ? '16px' : '6px'}';
-        }
-        if (vInd) {
-          vInd.style.background = '${vscodeInd || 'rgba(255,255,255,0.4)'}';
-          vInd.style.width = '${activeApp === 'vscode' ? '16px' : '6px'}';
-        }
+        // Bar already present from a previous page: repaint which tile is lit.
+        ${applyActiveAppJs(activeApp)}
       }
 
       // 1b. Keep both overlays attached across framework re-renders.
@@ -243,10 +356,9 @@ export async function ensureOverlays(
 /** Glides virtual mouse down to Taskbar icon, clicks it, and illuminates active glow indicator */
 export async function clickTaskbarApp(
   page: Page,
-  targetApp: 'vscode' | 'chrome',
+  targetApp: TaskbarApp,
 ): Promise<void> {
-  const targetId =
-    targetApp === 'vscode' ? 'win11-taskbar-vscode' : 'win11-taskbar-chrome';
+  const targetId = TASKBAR_APPS[targetApp].tileId;
 
   // Get taskbar icon coordinates
   const coords = (await page.evaluate(`
@@ -257,7 +369,7 @@ export async function clickTaskbarApp(
         return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
       }
       return {
-        x: window.innerWidth / 2 + (${targetApp === 'vscode' ? 69 : 23}),
+        x: window.innerWidth / 2 + (${TASKBAR_APPS[targetApp].fallbackOffsetX}),
         y: window.innerHeight - 24,
       };
     })()
@@ -281,35 +393,10 @@ export async function clickTaskbarApp(
   // Illuminate active indicator bar and update tile styles
   await page.evaluate(`
     (function() {
-      var cTile = document.getElementById('win11-taskbar-chrome');
-      var vTile = document.getElementById('win11-taskbar-vscode');
-      var cInd = document.getElementById('win11-chrome-indicator');
-      var vInd = document.getElementById('win11-vscode-indicator');
-      if ('${targetApp}' === 'vscode') {
-        if (vTile) vTile.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-        if (cTile) cTile.style.backgroundColor = 'transparent';
-        if (vInd) {
-          vInd.style.background = '#60a5fa';
-          vInd.style.width = '16px';
-        }
-        if (cInd) {
-          cInd.style.background = 'rgba(255, 255, 255, 0.4)';
-          cInd.style.width = '6px';
-        }
-      } else {
-        if (cTile) cTile.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-        if (vTile) vTile.style.backgroundColor = 'transparent';
-        if (cInd) {
-          cInd.style.background = '#60a5fa';
-          cInd.style.width = '16px';
-        }
-        if (vInd) {
-          vInd.style.background = 'rgba(255, 255, 255, 0.4)';
-          vInd.style.width = '6px';
-        }
-      }
+      ${applyActiveAppJs(targetApp)}
     })()
   `);
 
   await sleep(400);
+  logAction('click', `taskbar:${targetApp}`);
 }

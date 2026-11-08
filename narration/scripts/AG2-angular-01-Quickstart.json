@@ -1,0 +1,33 @@
+{
+ "clip": "AG2-angular-01-Quickstart",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the Angular quickstart page in the CopilotKit docs, for AG2, and I have implemented this page in my project."
+  },
+  {
+   "at": "ide",
+   "text": "So this is my project, with the doc's chat component and app config, on CopilotKit Angular zero point six point oh. Umm, the backend file and the runtime server here, I had to write those myself, because the page never shows them."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I asked if it's connected, and it replied with a fun fact about kites. But that answer only works through my own AG2 backend and runtime, not anything from the page."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. The connect the backend step is just this callout, uh, there's no AG2 code at all."
+  },
+  {
+   "at": "evidence#2",
+   "text": "And this step says start the backend and runtime with the commands from its guide, but no page has those commands."
+  },
+  {
+   "at": "notepad",
+   "text": "So basically, the step for the AG2 backend is empty, the markdown even says setup skipped. There's no AG2 agent, no runtime server, and the at ag-ui slash client package isn't in the install step. Umm, the runtime page it links only has a Next JS route."
+  },
+  {
+   "at": "+",
+   "text": "So following this page, the chat has nothing to talk to. So yeah, this is the issue, kindly fix it."
+  }
+ ]
+}

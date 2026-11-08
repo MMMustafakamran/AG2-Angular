@@ -2,28 +2,62 @@
  * Automated Screen Recording & Demonstration Pipeline
  * Entrypoint & CLI runner
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { PAGES } from './config/pages.config';
+import { PAGES, SKIP_RECORDING } from './config/pages.config';
 import { PROJECT } from './config/project.config';
 import { checkServicesHealth } from './core/diagnostics';
 import { RecordingEngine } from './core/engine';
 import { runDoctor } from './core/doctor';
 import { prewarmDemoRoutes } from './core/prewarm';
-import { parseShard, selectPages } from './core/select';
+import { selectPages } from './core/select';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
 const VIDEOS_DIR = join(__dirname, 'videos');
 
+/** Where the CLI pipeline's clips live, mirroring `cli-render.ts`. */
+const CLI_VIDEO_SUBDIR = 'cli';
+
+/**
+ * Moves a finished `demo-<pm>` clip into `videos/cli/`.
+ *
+ * A demo is the *third* clip of a package manager's CLI set — the CLI run, the
+ * install, then the app it produced — so it belongs beside the other two rather
+ * than among the per-doc-page recordings. `cli-render.ts` writes its own clips
+ * straight into that folder, but it records a demo by spawning this file with
+ * `--pages=demo-<pm>`, and `recordPage` has nowhere to put a subdir: only
+ * `recordCliFlow` takes one, and widening `PageRecordConfig` means editing
+ * manifest-covered `core/types.ts`. Moving the finished file keeps the whole
+ * set together without forking core.
+ *
+ * Returns the filename either way, so a page that is not a demo, or whose
+ * recording produced no file, passes through untouched.
+ */
+function placeDemoWithCliClips(pageId: string, filename: string): string {
+  if (!pageId.startsWith('demo-') || !filename) return filename;
+
+  const from = join(VIDEOS_DIR, filename);
+  if (!existsSync(from)) return filename;
+
+  const targetDir = join(VIDEOS_DIR, CLI_VIDEO_SUBDIR);
+  mkdirSync(targetDir, { recursive: true });
+  const to = join(targetDir, filename);
+  if (existsSync(to)) unlinkSync(to);
+  renameSync(from, to);
+  console.log(`   ↪ ${filename} -> videos/${CLI_VIDEO_SUBDIR}/`);
+
+  return filename;
+}
+
 /**
  * Per-run results, next to the videos.
  *
- * Page recordings had no record of their own, so the CI report listed every
- * `.webm` in the folder and marked them all "Recorded" — a run of one page
- * reported five, four of them days old. This is what the report reads instead.
+ * Casts get a `*.report.json`; page recordings had nothing, so the only record
+ * of a run was every `.webm` in the folder — a run of one page looked like
+ * five, four of them days old. This is what says what the run recorded.
  */
 export const RESULTS_FILE = 'RECORD_RESULTS.json';
 
@@ -89,7 +123,6 @@ Selection (default: every page, in nav order)
   --filter=<text>            pages whose id or name contains the text
   <word> [<word> ...]        same as --filter, for each word
   --limit=<n>                first n of the selection (--first=, --count=)
-  --shard=<k>/<n>            slice k of n, for matrix workers
 
 Options
   --list, -l                 print every registered page and exit
@@ -130,7 +163,6 @@ const OPTIONS = {
   limit: { type: 'string' },
   first: { type: 'string' },
   count: { type: 'string' },
-  shard: { type: 'string' },
 } as const;
 
 async function main(): Promise<void> {
@@ -176,33 +208,42 @@ async function main(): Promise<void> {
 
   const limitRaw = values.limit ?? values.first ?? values.count;
   const limit = limitRaw ? Number.parseInt(String(limitRaw), 10) : undefined;
-  const shard = parseShard(values.shard ? String(values.shard) : undefined);
-  if (values.shard && !shard) {
-    console.error(`❌ --shard expects K/N, got "${values.shard}"`);
-    process.exit(1);
+
+  // Pages whose source files the CLI pipeline has not produced yet are dropped
+  // from an unfiltered run. Recording them would boot a dev server in a
+  // directory that does not exist and report four failures for work that simply
+  // has not happened. Naming one explicitly still records it — and still fails,
+  // which is the right answer to "record this specific thing that is missing".
+  const missingGenerated = PAGES.filter(
+    (p) => p.generated && !existsSync(join(ROOT, p.ideFile)),
+  );
+
+  // Pages listed in SKIP_RECORDING stay registered (doctor, the note) but are
+  // never recorded, by any selection.
+  const notRecorded = PAGES.filter((p) => p.id in SKIP_RECORDING);
+  const recordable = PAGES.filter((p) => !(p.id in SKIP_RECORDING));
+  for (const p of notRecorded) {
+    console.log(`\n⏸️ Not recording ${p.id}: ${SKIP_RECORDING[p.id]}`);
   }
 
   const idList = values.pages ?? values.only;
-  const { pages: targetPages, shard: applied } = selectPages(PAGES, {
+  const { pages: targetPages } = selectPages(recordable, {
     ids: idList ? String(idList).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     page: values.page ? String(values.page) : pageWord,
     filter: values.filter ? String(values.filter) : undefined,
     queries,
     limit: limit && Number.isFinite(limit) ? limit : undefined,
-    shard,
+    excluded: new Set(missingGenerated.map((p) => p.id)),
   });
 
-  if (applied) {
-    console.log(
-      `\n🧩 [Matrix Sharding]: Worker Shard ${applied.index}/${applied.total} -> Recording ${targetPages.length} pages (positions ${applied.positions.join(', ')})`,
-    );
-  }
-
   if (targetPages.length === 0) {
-    // A shard with nothing to do is normal when there are fewer pages than
-    // workers; failing it would fail the matrix for no reason.
-    if (applied) {
-      console.log(`\nℹ️ [Matrix Sharding]: No pages assigned to this worker shard. Exiting cleanly.`);
+    if (notRecorded.length > 0 && selectPages(PAGES, {
+      ids: idList ? String(idList).split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      page: values.page ? String(values.page) : pageWord,
+      filter: values.filter ? String(values.filter) : undefined,
+      queries,
+    }).pages.length > 0) {
+      console.log(`\nℹ️ Everything selected is excluded from recording. Nothing to do.`);
       process.exit(0);
     }
     console.error(`❌ No matching page found for: ${rawArgs.join(' ') || '(nothing)'}`);
@@ -211,7 +252,27 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  await assertServicesUp(Boolean(values.force));
+  if (missingGenerated.length > 0 && !targetPages.some((p) => missingGenerated.includes(p))) {
+    console.log(
+      `\nℹ️ Skipping ${missingGenerated.length} page(s) whose files the CLI pipeline has not produced yet:`,
+    );
+    console.log(`   ${missingGenerated.map((p) => p.id).join(', ')}`);
+    console.log(
+      `   Produce them with: npm run capture -- --scaffold && npm run capture -- --distribute`,
+    );
+  }
+
+  // Pages that boot their own dev server do not touch this repo's frontend or
+  // backend, so gating them on those being up would refuse to record a
+  // perfectly recordable page — and, worse, tell the operator to start services
+  // that have nothing to do with what they asked for.
+  if (targetPages.every((p) => p.devServer)) {
+    console.log(
+      `\nℹ️ Every selected page brings its own dev server; skipping the pre-flight check on ${PROJECT.frontendUrl}.`,
+    );
+  } else {
+    await assertServicesUp(Boolean(values.force));
+  }
 
   console.log(`\n======================================================`);
   console.log(
@@ -233,7 +294,7 @@ async function main(): Promise<void> {
     results.push({
       id: pageConfig.id,
       name: pageConfig.name,
-      filename: res.filename,
+      filename: placeDemoWithCliClips(pageConfig.id, res.filename),
       success: res.success,
       durationSec,
       error: res.error,
@@ -282,9 +343,19 @@ async function main(): Promise<void> {
   console.log(`📁 Video files saved to: ${VIDEOS_DIR}`);
   console.log(`📄 Results: ${join(VIDEOS_DIR, RESULTS_FILE)}\n`);
 
-  if (failedCount > 0) {
-    process.exit(1);
-  }
+  // Both paths exit explicitly, and the success path is the one that matters.
+  //
+  // Returning from `main` leaves the process alive for as long as anything still
+  // holds a handle — a dev server's pipe, a Playwright transport — with the work
+  // finished, the summary printed and the results file written. It looks exactly
+  // like a recorder that froze, and on 2026-09-08 a passing demo sat like that
+  // for 24 minutes before anyone looked at the results file and saw it had
+  // finished in 153s. `cli-capture.ts` documents the same trap and guards it the
+  // same way.
+  //
+  // Failures never showed this, because `exit(1)` below was already explicit —
+  // which is why only *passing* runs appeared to hang.
+  process.exit(failedCount > 0 ? 1 : 0);
 }
 
 main().catch((err) => {

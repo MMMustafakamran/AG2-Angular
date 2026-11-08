@@ -9,10 +9,11 @@
  * and does two things with it:
  *
  *   1. writes `videos/logs/<page-id>.error.log`, a plain-text file an agent can
- *      read without watching anything;
- *   2. renders the same text as a synthetic cast, so the engine can play it in
- *      the simulated terminal window at the end of the clip, scrolled to the
- *      first line that explains the failure.
+ *      read without watching anything (verdict, browser console, log slices);
+ *   2. names the server logs (`LogSource`) that the real shell at the end of
+ *      the clip reads with `tail` / `grep` (failure-terminal.ts). Nothing from
+ *      this file is printed on camera: the terminal shows only what that
+ *      shell printed.
  *
  * The on-camera terminal is shown only when the take failed. A passing clip
  * stays a person using an app; a failing one becomes a person who hit an error
@@ -20,29 +21,9 @@
  * `console-capture.ts` explains why an always-on console pane was rejected;
  * this is the failure-only compromise.
  */
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type ConsoleEntry } from './console-capture';
-
-/**
- * asciinema v2 cast shape, inlined: this repo has no `core/cli` and no
- * terminal window to replay one in, so `evidenceCast` is kept for parity with
- * the React recorders (and for the day a terminal lands here) but the engine
- * only writes the log file.
- */
-export type CastEvent = [number, 'o' | 'i', string];
-export interface Cast {
-  header: {
-    version: 2;
-    width: number;
-    height: number;
-    timestamp: number;
-    duration?: number;
-    title?: string;
-    env?: Record<string, string>;
-  };
-  events: CastEvent[];
-}
 
 /** A server log the pipeline writes, and where it stood when this page began. */
 export interface LogSource {
@@ -72,13 +53,32 @@ const DEFAULT_LOGS = [
   { title: 'frontend.log', file: 'frontend.log' },
 ];
 
+/** Log files in a repo's `logs/` that are not a server's output. */
+const NOT_SERVER_LOGS = new Set(['record.log', 'start-all.log']);
+
 /**
  * Note where each server log stands now, so the tail shown for this page is
  * this page's and not the whole run's.
+ *
+ * `logsDir` is the recorder's own `videos/logs/` (backend.log, frontend.log
+ * when a pipeline writes them there); `serverLogDirs` are folders whose every
+ * `*.log` is a server log, e.g. `<repo>/logs/` that start-all.sh writes.
  */
-export function snapshotLogOffsets(logsDir: string): LogSource[] {
-  return DEFAULT_LOGS.flatMap(({ title, file }) => {
-    const path = join(logsDir, file);
+export function snapshotLogOffsets(logsDir: string, serverLogDirs: string[] = []): LogSource[] {
+  const found: { title: string; path: string }[] = DEFAULT_LOGS.map(({ title, file }) => ({
+    title,
+    path: join(logsDir, file),
+  }));
+  for (const dir of serverLogDirs) {
+    let names: string[] = [];
+    try {
+      names = readdirSync(dir).filter(
+        (n) => n.endsWith('.log') && !n.endsWith('.error.log') && !NOT_SERVER_LOGS.has(n),
+      );
+    } catch {}
+    for (const n of names.sort()) found.push({ title: n, path: join(dir, n) });
+  }
+  return found.flatMap(({ title, path }) => {
     if (!existsSync(path)) return [];
     let fromByte = 0;
     try {
@@ -141,6 +141,13 @@ function readSince(src: LogSource): string[] {
   }
 }
 
+/**
+ * The recorder's own summary of the failure. It is the text the page's action passed to
+ * ctx.fail, which can be written in advance, so it goes to the .error.log file only and is
+ * never shown on camera: the terminal shows only captured output (owner, 2026-11-08).
+ */
+export const VERDICT_TITLE = 'Recorder verdict';
+
 export function buildFailureEvidence(opts: {
   pageId: string;
   error: string;
@@ -151,7 +158,7 @@ export function buildFailureEvidence(opts: {
   const maxLines = opts.maxLines ?? 40;
   const sections: EvidenceSection[] = [];
 
-  // Order is for the camera: the terminal holds on its last lines, so the
+  // Order of the .error.log file: server logs for context first, then the
   // verdict and the browser console -- the parts that name the cause -- come
   // last, after the server logs that give them context.
   for (const src of opts.logs ?? []) {
@@ -170,7 +177,7 @@ export function buildFailureEvidence(opts: {
   }
 
   const errorLines = opts.error.split('\n').map((l) => l.replace(/^\s+/, '   '));
-  sections.push({ title: 'Recorder verdict', lines: errorLines, anchor: 0, omittedBefore: 0 });
+  sections.push({ title: VERDICT_TITLE, lines: errorLines, anchor: 0, omittedBefore: 0 });
 
   const text = [
     `Page: ${opts.pageId}`,
@@ -193,64 +200,4 @@ export function writeFailureLog(logsDir: string, evidence: FailureEvidence): str
   const path = join(logsDir, `${evidence.pageId}.error.log`);
   writeFileSync(path, evidence.text, 'utf8');
   return path;
-}
-
-const ESC = '\x1b[';
-const RESET = `${ESC}0m`;
-const DIM = `${ESC}2m`;
-const BOLD = `${ESC}1m`;
-const RED = `${ESC}31m`;
-const YELLOW = `${ESC}33m`;
-const CYAN = `${ESC}36m`;
-const HIGHLIGHT = `${ESC}41;97;1m`; // red background, bright white, bold
-
-/**
- * The evidence as a cast the terminal window can replay.
- *
- * Lines are emitted quickly (not typed), a beat is left on each section
- * heading, and the anchor line is painted with a red background so the eye
- * lands on it. Each section is windowed around its anchor, so what scrolls
- * into view *is* the relevant part -- the terminal never has to be scrolled
- * back by hand. The cast ends on a summary line and the terminal's own end
- * hold keeps it on screen.
- */
-export function evidenceCast(evidence: FailureEvidence, opts: { cols?: number; rows?: number } = {}): Cast {
-  const cols = opts.cols ?? 120;
-  const rows = opts.rows ?? 32;
-  const events: Cast['events'] = [];
-  let t = 0;
-  const out = (s: string, dt = 0.03) => {
-    t += dt;
-    events.push([t, 'o', s]);
-  };
-  const clip = (s: string) => (s.length > cols - 4 ? s.slice(0, cols - 7) + '...' : s);
-
-  out(`${BOLD}${RED}✖ ${evidence.pageId}${RESET} ${DIM}— the take failed; this is what the recorder saw${RESET}\r\n`, 0.4);
-  out(`${DIM}${'─'.repeat(Math.min(cols - 1, 100))}${RESET}\r\n`, 0.2);
-
-  for (const s of evidence.sections) {
-    out(`\r\n${BOLD}${CYAN}» ${s.title}${RESET}\r\n`, 0.5);
-    if (s.omittedBefore) out(`${DIM}   … ${s.omittedBefore} earlier line(s) omitted …${RESET}\r\n`, 0.05);
-    s.lines.forEach((line, i) => {
-      const body = clip(line);
-      if (i === s.anchor) out(`${HIGHLIGHT} ▶ ${body} ${RESET}\r\n`, 0.35);
-      else if (/error|exception|failed|traceback/i.test(line)) out(`${YELLOW}   ${body}${RESET}\r\n`, 0.03);
-      else out(`${DIM}   ${body}${RESET}\r\n`, 0.02);
-    });
-  }
-
-  out(`\r\n${DIM}${'─'.repeat(Math.min(cols - 1, 100))}${RESET}\r\n`, 0.3);
-  out(`${BOLD}Saved:${RESET} videos/logs/${evidence.pageId}.error.log\r\n`, 0.3);
-
-  return {
-    header: {
-      version: 2,
-      width: cols,
-      height: rows,
-      timestamp: Math.floor(Date.now() / 1000),
-      title: `Error console — ${evidence.pageId}`,
-      env: { TERM: 'xterm-256color' },
-    },
-    events,
-  };
 }

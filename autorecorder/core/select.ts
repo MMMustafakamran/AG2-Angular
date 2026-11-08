@@ -12,7 +12,7 @@ import { type PageRecordConfig } from './types';
  *   bare words                 ids or names containing any of them
  *   nothing                    every page not in `excluded`
  *
- * Then `--limit` truncates and `--shard=K/N` keeps every Nth page starting at K.
+ * Then `--limit` truncates.
  *
  * Naming a page explicitly always selects it, even when it is in `excluded`:
  * "record this specific thing" should record it and report what happens.
@@ -27,15 +27,12 @@ export interface SelectionRequest {
   /** Bare words that matched no id. */
   queries?: string[];
   limit?: number;
-  shard?: { index: number; total: number };
   /** Ids dropped from an *unfiltered* run only. */
   excluded?: Set<string>;
 }
 
 export interface Selection {
   pages: PageRecordConfig[];
-  /** Set when `--shard` was applied, for the log line. */
-  shard?: { index: number; total: number; positions: number[] };
 }
 
 const lower = (s: string): string => s.toLowerCase();
@@ -62,29 +59,5 @@ export function selectPages(all: PageRecordConfig[], req: SelectionRequest): Sel
 
   if (req.limit && req.limit > 0) pages = pages.slice(0, req.limit);
 
-  let shard: Selection['shard'];
-  if (req.shard && req.shard.total > 0 && req.shard.index > 0 && req.shard.index <= req.shard.total) {
-    // Dealt round-robin rather than cut into contiguous slices. The config
-    // lists pages in doc order, and the long ones (threads, intelligence,
-    // A2UI) sit at the end -- a contiguous cut handed all of them to the last
-    // worker, which then ran twice as long as the other two. Interleaving
-    // spreads them, with no knowledge of durations needed.
-    const positions: number[] = [];
-    pages = pages.filter((_, i) => {
-      const mine = i % req.shard!.total === req.shard!.index - 1;
-      if (mine) positions.push(i + 1);
-      return mine;
-    });
-    shard = { ...req.shard, positions };
-  }
-
-  return { pages, shard };
-}
-
-/** `K/N` -> { index: K, total: N }, or undefined when malformed. */
-export function parseShard(value: string | undefined): { index: number; total: number } | undefined {
-  if (!value) return undefined;
-  const m = value.match(/^(\d+)\s*\/\s*(\d+)$/);
-  if (!m) return undefined;
-  return { index: Number(m[1]), total: Number(m[2]) };
+  return { pages };
 }

@@ -1,0 +1,5 @@
+{
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "model": "s2.1-pro-free",
+ "note": "sha256 of the private reference voice wav; cache key input only, not a secret. The wav itself is never committed (VOICE.md section 2)."
+}

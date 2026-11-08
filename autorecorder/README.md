@@ -1,16 +1,16 @@
 # Autorecorder
 
 Automated screen-recording suite for CopilotKit framework integrations. It
-produces one narrated-looking demo video per documentation page: read the doc,
-switch to VS Code and show the code that implements it, switch to the browser and
-drive the live feature.
+produces one demo video per documentation page: read the doc, switch to VS Code
+and show the code that implements it, switch to the browser and drive the live
+feature. The clips are silent — the pacing carries them, and there is no audio
+stage in the pipeline.
 
-Currently configured for **AG2 (Python) + Angular** — the
-11 routes of this repo that have a chrome-free `/demo` page. The one remaining
-doc route, the Introduction landing page, has nothing to drive; see *Scope*
-below.
+Currently configured for **Agno (Python) + React** — the 16 routes of this repo
+that have a chrome-free `demo-chat` page. The other 5 doc routes are reference
+pages with nothing to drive; see *Scope* below.
 
-> **Porting this to another framework?** Read **[ADAPT.md](ADAPT.md)** first. It
+> **Porting this to another framework?** Read **[ADAPT.md](../.qa/recorder/ADAPT.md)** first. It
 > is written for the person or agent doing the port, and it is the contract the
 > `doctor` command enforces.
 
@@ -22,21 +22,9 @@ Both services must be up first — the recorder refuses to start otherwise, beca
 a video of a dead page is worse than no video.
 
 ```bash
-cd backend  && uv run main.py    # AG2 / FastAPI :8400
-cd frontend && npm run dev       # Copilot Runtime :8401 + ng serve :4204
+cd backend  && uv run main.py                        # :8010
+cd frontend && npm run dev                           # :3010
 ```
-
-`npm run dev` starts **two** processes. Angular has no server route to host the
-Copilot Runtime, so it runs as its own Node process (`frontend/server.ts`). The
-AG2 backend already owns 8400, so the runtime binds **8401** and the
-browser posts across origins to it — which is why `runtimeWarmPath` in
-`project.config.ts` is an absolute URL rather than a path.
-
-The AG-UI stream is POST-only (`AGUIStream(agent).build_asgi()` mounted at
-`/agent`, and the mount needs its trailing slash — a slashless POST answers 307).
-The pre-flight check probes `/openapi.json` instead — the same endpoint
-`frontend/src/app/components/backend-health.ts` uses, so both halves of the repo
-agree on what "up" means.
 
 Then:
 
@@ -56,65 +44,49 @@ npm run record            # all pages, in order
 | `--list`, `--help` | Print every registered route and exit |
 | `--doctor` | Validate the configuration; exits 1 on error |
 | `--doctor --online` | Also probe every doc/demo URL and the selectors |
-| `--<page-id>` | Record one page — `--quickstart`, `--threads` |
+| `--<page-id>` | Record one page — `--quickstart`, `--slots` |
 | `--page=<id>` | Same thing, explicit form |
 | `--filter=<query>` | Record every page whose id or name contains the query |
 | `--force` | Record even if the pre-flight health check fails |
 
-Videos land in `videos/` as `AG2-angular-<NN>-<name>.webm`, 1920×1080, ~25fps
+Videos land in `videos/` as `AGNO-react-<NN>-<name>.webm`, 1920×1080, ~25fps
 (Playwright's capture rate; it is not configurable).
 
-**The clips are gitignored on purpose.** Recordings are build output — reproducible
-from this folder plus `npm run record` — and committing them is expensive: the clips
-at ~5MB each, rewritten on every re-record, took one repo's `.git` to 348MB before its
+**`videos/` is gitignored on purpose.** Recordings are build output — reproducible
+from this folder plus `npm run record` — and committing them is expensive: 17 clips
+at ~5MB, rewritten on every re-record, took one repo's `.git` to 348MB before its
 history had to be rewritten. Publish them as release assets or to a bucket. Keep
 this policy when you copy the folder into another repo.
-
-The ignore rule is `*.webm`, not the directory: `videos/manifest.json` and
-`videos/MANIFEST.md` live there too and are *meant* to be committed (see
-*Tracking recordings*). The repo root's `.gitignore` ignored the whole directory
-and hid them; it now ignores `autorecorder/videos/*.webm`.
 
 ---
 
 ## Scope in this repo
 
 A page is recordable only if it has something to drive, and the recorder reaches
-every demo at `<route>/demo`. One of this app's 12 doc routes is reference
-material with no such page and is deliberately **not** registered:
+every demo at `<route>/demo-chat`. Five of this app's doc routes are reference
+material with no such page and are deliberately **not** registered:
 
 | Route | Why it has no video |
 |---|---|
-| `/` | Orientation and a live connection check; `demoPath()` returns undefined for it. |
+| `/` | Orientation and a server-side connection check. |
+| `/threads` | Reference: what threads persist and why. |
+| `/threads/import` | Reference; Agno is not a documented import source. |
+| `/threads/architecture` | Reference: replay, reconnection, locks. |
+| `/generative-ui/your-components/interactive` | The upstream doc page is an empty stub. |
 
-`/status` is also absent — it is app furniture (the implementation-status table),
-not a doc page, and the nav does not list it.
-
-Registering it anyway would fail `doctor --online`, because `demoUrl` is always
+Registering them anyway would fail `doctor --online`, because `demoUrl` is always
 `route + demoSuffix` and there is no per-page way to say "this one has no demo".
 That is a gap in `core/`, not something to work around here — see ADAPT.md.
 
-Four routes (`/threads`, `/memory`, `/attachments`, `/headless`) share one
-`docPath`, because the Angular docs cover all four topics on one page.
-
-Three pages record a **documented limitation** rather than a working feature, and
-say so on screen in a Notepad window rather than leaving the viewer to guess:
-
-| Page | What the video shows |
-|---|---|
-| `a2ui` | Middleware enabled, renderer inert — the guide's catalog snippets are not self-contained, so no `a2ui.catalog` can be supplied. |
-| `voice-multimodal` | The microphone records; this runtime configures no transcription service, so transcription fails by design. The turn is then completed by keyboard. |
-| `threads` | Thread endpoints are licensed; unlicensed the list stays empty and the drawer renders locked. The chat beside it answers normally. |
-
-That Notepad overlay lives in `actions/notepad.ts`. Like `actions/page-ready.ts`
-it is framework-agnostic and belongs in `core/`; it sits in `actions/` only
-because `core/` is frozen.
+The three Rich Threads demos record **unlicensed**: the drawer shows its locked
+view and `useThreads` returns an empty list. That is the correct result, not a
+failure, and the chat beside each of them still drives a real agent turn.
 
 ---
 
 ## Tracking recordings
 
-Clips are **not** in git, and every run overwrites the same 11 filenames in place
+Clips are **not** in git, and every run overwrites the same 16 filenames in place
 — so nothing about the files themselves says which are fresh. `npm run manifest`
 is what closes that gap:
 
@@ -146,7 +118,7 @@ any `extraTabs` — plus its own page definition, so changing a prompt or a
 highlighted line range marks it stale exactly as an edit to the code does.
 
 `npm run manifest:check` prints without writing and exits 1 if anything is stale
-or missing, which is the form to put in CI.
+or missing, which is the form to use from a script.
 
 **What it does not tell you: whether the run passed.** Playwright saves the video
 even when a page fails, so a clip from a failed run still looks current. Freshness
@@ -154,13 +126,57 @@ and correctness are different questions — the run summary answers the second o
 
 ---
 
+## Pages that are supposed to fail
+
+Not every demo works, and some do not work for reasons outside this repo. When a
+page's failure *is* the story, the handler captures what the browser reported
+during the run and surfaces it on screen — `actions/error-console.ts`. The video
+shows the feature working, and then the error that ended it. Recording such a
+page as a success would imply a working feature; failing it outright would
+produce nothing to look at.
+
+**Currently: none.** `display-only` and `frontend-tools` were the two. Both ran
+their tool, streamed an answer, and then stopped, because Agno needs a
+configured database to resume after an externally-executed tool and the agent
+had none. `backend/agent.py` now configures one (repo README, known issue #12)
+and both re-record clean as of 2026-08-31.
+
+Both handlers keep the overlay wired up, because the failure returns the moment
+the `db` goes away — but it is no longer scripted. The overlay renders only when
+the browser actually reports something, and renders what it reported. The old
+behaviour passed a hardcoded `message:`, which meant the two pages kept showing
+a database error for a bug they no longer had. **If you script an error message,
+you are asserting a defect the run did not have to produce — don't.**
+
+### Next.js Dev Error Overlay (`openNextJsErrorOverlay`)
+
+Autorecorder includes built-in support for rendering the official Next.js 16 Dev
+Error Overlay:
+1. Displays the bottom-left red **"N 1 Issue ✕"** toast badge (docked above the taskbar).
+2. Smoothly glides the virtual cursor to the toast badge and clicks it.
+3. Opens the sleek dark Next.js Dev Error window showing the `< 1/1 >` header,
+   `Next.js Turbopack` status badge, `Console Error` pill, the exact red error
+   message, and `Call Stack` frame count.
+4. Glides the virtual cursor up to the error message for comfortable reading.
+
+Alternatively, `openDevToolsConsole` remains available to dock a simulated Chrome
+DevTools console along the bottom.
+
+Two rules keep that from becoming a way to hide real breakage:
+
+- The error overlay only appears when an error is captured or specified — with
+  nothing to show it now skips rather than falling back to a canned message. A
+  silent page still fails the run.
+- The reply is still awaited normally. A page that neither answers nor errors is
+  an unexplained failure and is treated as one.
+
 ## Reading the summary
 
 ```
-   ✅ [PASS]  (24.1s) Quickstart -> AG2-angular-01-Quickstart.webm
-   ⚠️  [PASS*] (31.7s) Memory -> AG2-angular-09-Memory.webm
-        · Doc page (…/threads-memory-attachments-headless): Timeout 25000ms exceeded
-   ❌ [FAIL]  (19.4s) Headless UI -> AG2-angular-11-HeadlessUi.webm
+   ✅ [PASS]  (24.1s) Quickstart -> MSPY-react-01-Quickstart.webm
+   ⚠️  [PASS*] (31.7s) Inspector -> MSPY-react-06-Inspector.webm
+        · Doc page (…/inspector): Timeout 25000ms exceeded
+   ❌ [FAIL]  (19.4s) AG-UI -> MSPY-react-17-AgUi.webm
         · Demo step failed: Agent never produced a response within 30s
 ```
 
@@ -172,34 +188,30 @@ and correctness are different questions — the run summary answers the second o
 - **FAIL** — the demo route 404'd, never rendered a chat surface, the agent never
   answered, the IDE view could not be built, or the handler reported that the
   feature under test did not work (`ctx.fail`). The clip is still saved as
-  evidence. The process exits 1, so this is safe to gate CI on.
+  evidence. The process exits 1, so a script can act on it.
 
 Every run also writes `videos/RECORD_RESULTS.json` — one entry per page with
-the verdict, duration, warnings and distinct console errors. `ci/lib/report.mjs`
-reads it, so the CI report lists what *this run* recorded rather than every
-`.webm` that happens to be in the folder.
+the verdict, duration, warnings and distinct console errors — so what *this
+run* recorded can be read back, rather than guessed from every `.webm` that
+happens to be in the folder.
 
 ---
 
 ## When a take fails
 
-A failed take leaves evidence behind. Before the browser closes, the
-recorder gathers what it saw -- the diagnosed verdict, the browser console
-errors, and this page's slice of `videos/logs/backend.log` and
-`frontend.log` (from where they stood when the take began) -- and writes it
-to `videos/logs/<page-id>.error.log`. Each section is windowed around the
-line most worth reading (a traceback, an `Error`, a 4xx/5xx) and that line
-is marked `>>`, so an agent can diagnose from the log without re-running
-anything locally. CI uploads the file with the run (the shard upload glob
-covers `videos/logs/*.log`).
+A failed take no longer ends on the broken page. Before the browser closes,
+the recorder opens the simulated terminal and prints what it saw: the
+diagnosed verdict, the browser console errors, and this page's slice of
+`videos/logs/backend.log` and `frontend.log` (from where they stood when the
+take began). Each section is windowed around the line most worth reading --
+a traceback, an `Error`, a 4xx/5xx -- and that line is painted red, so the
+clip itself shows the cause. The same text is written to
+`videos/logs/<page-id>.error.log`, so an agent can diagnose from the log
+without re-running anything.
 
-The React recorders also replay the same text in their simulated terminal
-window at the end of the clip. This recorder has no terminal window
-(`core/cli/` is not part of the Angular port), so the evidence is log-only
-and the console says so. Passing takes are untouched.
-`core/failure-evidence.ts` holds the logic; the engine calls it from the
-`finally` of `recordPage`.
-
+Passing takes are untouched: the terminal appears only on failure, which is
+what a person who hit an error would do. `core/failure-evidence.ts` holds
+the logic; the engine calls it from the `finally` of `recordPage`.
 
 ## Layout
 
@@ -207,7 +219,7 @@ The split between what you edit and what you don't is the point of this folder.
 
 ```
 autorecorder/
-├── ADAPT.md                    ← how to port this; read before editing
+├── (ADAPT.md, PORT-CLI.md live in ../.qa/recorder/, synced from qa-kit)
 ├── cli.ts                      ← entrypoint, arg parsing, summary
 │
 ├── config/                     ← ★ THE ADAPTATION SURFACE
@@ -217,11 +229,11 @@ autorecorder/
 │
 ├── actions/                    ← ★ what to DO on each page
 │   ├── index.ts                  page id → handler registry
-│   ├── page-ready.ts             pre-flight gate (belongs in core/)
-│   ├── notepad.ts                on-screen findings window (belongs in core/)
+│   ├── page-ready.ts             wait until the app can actually be driven
+│   ├── error-console.ts          put browser errors on screen when that is the story
 │   └── *.action.ts               per-page interaction scripts
 │
-├── core/                       ← ✖ DO NOT EDIT — no framework knowledge here
+├── core/                       ← ✖ DO NOT EDIT — generated from the workspace 2-shared/qa-kit/recorder/core by sync.sh
 │   ├── CORE_MANIFEST.json        hash per core file; `npm run core:check` enforces it
 │   ├── engine.ts                 browser lifecycle, the 3-step sequence, pass/fail
 │   ├── actions.ts                sendPrompt, response detection, standard action
@@ -231,9 +243,12 @@ autorecorder/
 │   ├── select.ts                 which pages a `record` invocation means
 │   ├── timeouts.ts               every fixed wait, with project/page overrides
 │   ├── types.ts                  PageDefinition → PageRecordConfig, ActionContext
+│   ├── cli/                      PTY driver, casts, terminal replay, finding notes
 │   ├── ide/generator.ts          VS Code simulator, Shiki-highlighted from disk
-│   └── overlays/                 Windows 11 taskbar, virtual cursor, human pacing
+│   └── overlays/                 Windows 11 taskbar, virtual cursor, Notepad, human pacing
 │
+├── cli-capture.ts              ← run the real CLI and the installs, write casts
+├── cli-render.ts               ← film the casts; `npm run cli:videos` for the set
 ├── scripts/core-manifest.mjs   ← core/ drift check (--check / --write / --diff)
 ├── test/                       ← unit tests for the pure modules (`npm test`)
 │
@@ -261,27 +276,27 @@ to change for a port, that is a bug in this folder — see ADAPT.md.
 ### What makes it read as a person
 
 Every pace in a take comes from `core/overlays/human.ts`, seeded from the
-page id. So the Quickstart clip and the Chat UI clip do not type, pause and
-scroll in the same rhythm — but tonight's Quickstart clip is identical to
-last night's, which keeps two recordings of the same page comparable.
+page id. So two clips do not type, pause and scroll in the same rhythm — but
+today's Quickstart clip is identical to yesterday's, which keeps two
+recordings of the same page comparable.
 
-- **Typing** has a person's rhythm: jittered keystrokes, a beat after
-  punctuation, the odd mid-sentence pause. A retry after a swallowed submit is
-  typed quickly instead — that is the recorder recovering, not a performance.
+- **Typing** has a person's rhythm everywhere it happens: the chat prompt, the
+  Notepad note, and the command typed at the terminal prompt before its output
+  starts. Jittered keystrokes, a beat after punctuation, the odd pause.
 - **Scrolling** is in bursts: a few wheel notches, a reading pause, a few more,
   sometimes a nudge back up.
 - **Pauses** vary by about a quarter around their nominal length. They are
-  the only thing `AUTORECORD_PACE` scales (CI sets `0.85`): a reading or
+  the only thing `AUTORECORD_PACE` scales (`0.85` for a brisker take): a reading or
   thinking pause gets shorter, the typing, the mouse and the scrolling do not.
 - **The cursor** overshoots slightly on long travel and settles, hovers a
   variable moment before a click, drifts while a reply streams instead of
   freezing, and starts each take somewhere plausible rather than dead centre.
-- **The IDE window** fades in over 180ms instead of cutting.
+- **Windows** fade in over 180ms (IDE, terminal, Notepad) instead of cutting.
 
 Two details worth knowing, because both were bugs once:
 
-- Overlays are injected as children of `<html>`. The doc site is itself a React
-  app and reclaims that element on hydration. `ensureOverlays` installs a MutationObserver that re-attaches them
+- Overlays are injected as children of `<html>`, which React owns on any App
+  Router page. `ensureOverlays` installs a MutationObserver that re-attaches them
   if a render pass deletes them, and step 1 waits for hydration before scrolling
   so a remount cannot snap the page back to the top.
 - Playwright starts recording when the page is created, so the first navigation
@@ -297,6 +312,42 @@ Two details worth knowing, because both were bugs once:
 
 ---
 
+## Recording the CLI
+
+The quickstart's own first step is `npx copilotkit@latest create`, and this
+folder records it for real: the CLI driven through a PTY, then the scaffold
+installed with each of npm, pnpm, yarn and bun, then each copy's dev server
+booted and its app driven. It is local-only: sign-in needs a browser.
+
+```bash
+npm run capture -- --login        # once; opens a browser
+npm run capture -- --scaffold     # drives `copilotkit create`, writes casts/
+npm run capture -- --distribute   # copies the scaffold into the four folders
+npm run capture -- --install-npm  # and pnpm, yarn, bun
+npm run cli:videos                # films everything the reports say to film
+```
+
+### The videos
+
+| Clip | What it shows | When |
+|---|---|---|
+| `CLI-Create` | the CLI scaffolding the app | always, once |
+| `<pm>-2-Install` | that manager installing the copy | always, per manager |
+| `<pm>-3-Demo` | the app running and answering a prompt | when the install passed |
+| `<pm>-3-Finding` | the failure explained: versions, manifest, the error, a note | when it failed |
+
+Which third clip a manager gets is read from its install report in
+`casts/*.report.json`, not decided by hand. A failure nobody has analysed yet
+still gets a clip: the note is generated from the report, and the hand-written
+`INSTALL_ANALYSIS` entry in `config/cli.config.ts` is appended once there is one.
+
+The prompts the CLI is answered with are in `config/cli.config.ts` and were
+carried over from the reference run, not observed here yet — see
+`1-cli-testing/CLI-FLOW.md` for what is predicted versus verified, and
+[PORT-CLI.md](../.qa/recorder/PORT-CLI.md) for how the pipeline fits together.
+
+---
+
 ## Troubleshooting
 
 **`Aborting before launching a browser`** — a service is down. The message names
@@ -308,10 +359,6 @@ match this app's messages. Run `npm run doctor --online` to tell the two apart.
 
 **The IDE highlights the wrong lines** — the line range drifted. `npm run doctor`
 names the file and where its markers actually are now.
-
-**A page fails once, then passes unchanged** — the agent's first model call after
-an idle period can exceed the 30s response window. This is the most common false
-failure here; re-run the page before investigating anything else.
 
 **A page fails only on the first run after starting the dev server** — it was
 still compiling. The readiness gate absorbs this (it will log

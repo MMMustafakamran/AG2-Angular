@@ -1,0 +1,33 @@
+{
+ "clip": "AG2-angular-05-A2ui",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the A2UI schemas, styling and recovery page in the CopilotKit docs, for AG2 with Angular, and I have implemented this page."
+  },
+  {
+   "at": "ide",
+   "text": "So this is my project, this is the exact code from the doc, the app config and the catalog definitions, on CopilotKit Angular zero point six point oh."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I asked for a flight card, and nothing rendered. The console says no A2UI catalog is configured, so A2UI stays off."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. The app config passes catalog product catalog, uh, and product catalog is never defined."
+  },
+  {
+   "at": "evidence#2",
+   "text": "Same with dynamic string in these definitions."
+  },
+  {
+   "at": "notepad",
+   "text": "So the page says a catalog is required, but the catalog it uses isn't defined anywhere. Product catalog, dynamic string, and the catalog helpers are all missing, so type script says cannot find name, and ng serve fails. Umm, and without a catalog nothing renders."
+  },
+  {
+   "at": "+",
+   "text": "That's the problem here, please have a look."
+  }
+ ]
+}

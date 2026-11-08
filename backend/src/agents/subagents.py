@@ -1,4 +1,22 @@
-# src/agents/subagents.py
+"""AG2 agent for the Sub-Agents demo.
+
+Demonstrates multi-agent delegation with a visible delegation log.
+
+A top-level "supervisor" Agent orchestrates three specialized
+sub-agents — each itself an Agent — exposed as supervisor tools:
+
+  - `research_agent`  — gathers facts
+  - `writing_agent`   — drafts prose
+  - `critique_agent`  — reviews drafts
+
+Every delegation appends an entry to the `delegations` slot in shared
+agent state (the run's AG2 variables, published as state snapshots), so the UI can
+render a live "delegation log" as the supervisor fans work out and
+collects results. This is the canonical AG2 sub-agents-as-tools pattern,
+adapted to surface delegation events to the frontend via AG-UI's
+shared-state channel.
+"""
+
 import logging
 import uuid
 from textwrap import dedent
@@ -235,3 +253,38 @@ async def critique_agent(
     return await _run_delegation(ctx, "critique_agent", _critique_agent, task)
 
 
+
+
+# ---------------------------------------------------------------------------
+# Supervisor (the agent we export)
+# ---------------------------------------------------------------------------
+
+supervisor = Agent(
+    "supervisor",
+    prompt=dedent(
+        """
+        You are a supervisor agent that coordinates three specialized
+        sub-agents to produce high-quality deliverables.
+
+        Available sub-agents (call them as tools):
+          - research_agent: gathers facts on a topic.
+          - writing_agent: turns facts + a brief into a polished draft.
+          - critique_agent: reviews a draft and suggests improvements.
+
+        For most non-trivial user requests, delegate in sequence:
+        research -> write -> critique. Pass the relevant facts/draft
+        through the `task` argument of each tool. Keep your own messages
+        short — explain the plan once, delegate, then return a concise
+        summary once done. The UI shows the user a live log of every
+        sub-agent delegation, so don't repeat sub-agent output verbatim
+        in your final reply — just summarize.
+        """
+    ).strip(),
+    config=OpenAIResponsesConfig(model="gpt-6-luna", streaming=True),
+    tools=[research_agent, writing_agent, critique_agent],
+    middleware=[loop_cap(8)],
+)
+
+stream = AGUIStream(supervisor)
+subagents_app = FastAPI()
+subagents_app.mount("", stream.build_asgi())

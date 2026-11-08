@@ -22,7 +22,7 @@
  * is settled instead, so they cost nothing when there was nothing to wait for.
  *
  * ── Portability ────────────────────────────────────────────────────────────
- * Nothing here knows about AG2, CopilotKit, React or Next. It reads
+ * Nothing here knows about Agno, CopilotKit, React or Next. It reads
  * `SELECTORS.chatInput` from the adaptation config and otherwise relies on
  * `document.readyState` and a DOM-stability window, which mean the same thing in
  * an Angular or Vue app as they do here. It lives in `actions/` only because
