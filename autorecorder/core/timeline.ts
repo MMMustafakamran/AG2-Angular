@@ -222,7 +222,7 @@ export function mark(label: string, detail?: string): void {
  * browser listener in listen() for real input, and by overlays that write text without real key
  * events (Notepad). Safe to call when no timeline is running.
  */
-export function logInput(input: 'click' | 'key' | 'backspace' | 'enter'): void {
+export function logInput(input: 'click' | 'key' | 'backspace' | 'enter' | 'paste'): void {
   if (!t0) return;
   push('input', { input }, Math.round(Date.now() - t0) / 1000);
 }

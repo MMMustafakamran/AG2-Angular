@@ -21,7 +21,8 @@ Applies to every clip that reports a broken doc page: level 1 (blocker, full scr
 ## 3. Video
 
 - **No cuts.** The video stays exactly as recorded; the narration fits the real timing.
-- **Silences are fine** (owner, 2026-11-08): no need to fill agent waits or Notepad typing with talk. During a silence the room tone keeps playing, so it never sounds dead.
+- **Silences are fine** (owner, 2026-11-08): no need to fill agent waits with talk. During a silence the room tone keeps playing, so it never sounds dead.
+- **No click or typing sounds** (owner, 2026-11-09): voice + room tone only (`narrate.py mix` adds clicks only with `--foley`).
 - **Background:** constant room tone (low fan hum + faint hiss), **steady at one fixed level for the whole clip** (no fades or ducking), slightly audible: ~20–24 dB below the voice. Gaps never sound digital.
 
 ## 4. Lines and slots
@@ -41,7 +42,7 @@ Applies to every clip that reports a broken doc page: level 1 (blocker, full scr
    - ✓ "after clicking the button, the card said deployment finished"
 3. **VS Code part:** "this is my project, this is the exact code from the doc, this is the npm / CopilotKit version".
 4. **Demo:** "moving on to the demo", then what happened and the problem, stated as results.
-5. **Highlight + Notepad:** while the doc code is highlighted and the note is typed, the voice explains the issue and the reason. Same content as the note, not word-for-word.
+5. **Highlight + Notepad:** while the doc code is highlighted the voice points at it; once the note is pasted, the voice reads out / explains the issue while Notepad stays open (the recorder holds Notepad until these lines end). Same content as the note, not word-for-word.
 6. **Ending:** always a short, polite ask to fix it, but **vary the wording between clips**. Never reuse the same ending in two clips of one batch. Pool:
    - "So yeah, this is the issue, kindly fix it."
    - "So kindly look into it."

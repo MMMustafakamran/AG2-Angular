@@ -18,7 +18,7 @@ Never use a full humanized take to find out what a page does.
 - Scroll with the real mouse wheel. Move the cursor with the human glide helpers.
 - Highlight faulty text the way a person would: drag-select it with the mouse, then pause on it.
 - **Never inject anything onto the page:** no red boxes, outlines, captions, labels or arrows. All explanation goes in Notepad (and narration).
-- **The terminal window at the end of failure clips is intentional, keep it.** A failed take ends with the `Error console — <page-id>` window: a **real shell** (bash via node-pty in the repo root) where `ls logs/`, `tail` and `grep` on the server logs are typed live, so the viewer sees the real terminal error. It shows **only what that shell printed** (no header, no summary; the browser console stays in the `.error.log`): the recorder's own "Recorder verdict" summary goes to `videos/logs/<page-id>.error.log`, never on camera, because a page action can write that text in advance. It is not an injected overlay and reviewers never flag it. Produced by `core/engine.ts` `showFailureEvidence()` + `core/failure-terminal.ts` + `core/failure-evidence.ts` (see `qa-kit/recorder/README.md`).
+- **The terminal window at the end of failure clips is intentional, keep it.** A failed take ends with the `Error console — <page-id>` window: a **real shell** (bash via node-pty in the repo root) where `ls logs/`, `tail` and `grep` on the server logs are pasted in and run live (pasted, not typed: owner, 2026-11-09), so the viewer sees the real terminal error. It shows **only what that shell printed** (no header, no summary; the browser console stays in the `.error.log`): the recorder's own "Recorder verdict" summary goes to `videos/logs/<page-id>.error.log`, never on camera, because a page action can write that text in advance. It is not an injected overlay and reviewers never flag it. Produced by `core/engine.ts` `showFailureEvidence()` + `core/failure-terminal.ts` + `core/failure-evidence.ts` (see `qa-kit/recorder/README.md`).
 - The old Antigravity clips (`Antigravity-react/autorecorder/actions/antigravity.actions.ts`, `FINDING_NOTES` / `writeFinding`) still use red outlines and captions. **They must be re-recorded** with the LangGraph-style evidence step before delivery.
 
 ## 2. Finding clips (❌ / ⚠️ pages)
@@ -27,17 +27,26 @@ Order: **demo → back to the doc → highlight each faulty snippet → Notepad 
 
 1. Demo: show the defect happening in the app (crash, error banner, nothing rendered).
 2. Go back to the doc page. For each faulty snippet or sentence (empty or cut-off snippet, undefined identifier, wrong-framework code, "Not supported" banner): wheel-scroll to it, drag-select it, pause. Click a language tab first if the snippet sits behind one.
-3. Notepad: open it from the simulated taskbar and type the finding.
+3. Notepad: open it from the simulated taskbar and paste the note in (one Ctrl+V, not typed; owner, 2026-11-09). It stays open until the Notepad voice-over has finished.
 
 **Check every evidence text against the rendered page, not the `.md` export.** The two can differ.
 
 ### Notepad note
 
-- About **8 lines**: the `FINDINGS.md` number(s), what the doc says, what actually happened, the harness fix if any. A viewer who skips the doc and code segments must still know what broke.
-- **Typed like the owner types in a hurry** (owner, 2026-11-08): no capital letters at all in prose, no headings or list markers, almost no full stops, sloppy spacing (missing space after a comma, the odd double space, two short words run together), chat shorthand (u, ur, dont, isnt, thats, pls), several typos left in plus a few fixed with backspace.
-- Code, file paths, numbers and the finding number stay exact (they are the evidence); `FINDINGS.md` may be typed as `findings.md`.
+- About **5-8 lines**: what the doc says, what actually happened, the harness fix if any. A viewer who skips the doc and code segments must still know what broke.
+- **Written like the owner jots it down in a hurry** (owner, 2026-11-09): no title line and **no finding numbers**; no capital letters at all, error names included (`ModuleNotFoundError` -> `modulenotfound`); hard tokens shortened or loose (`google-genai 2.x` -> `google genai 2`); no brackets, quotes or colons; sloppy commas (`genai 2,new`), uneven lines, shorthand (u, thru, dont); a slip or two left in. Example:
+  ```
+  install step only says pip install ag-ui-antigravity google-antigravity
+  but subagents.py imports httpx right at the top
+  httpx used to come in thru google genai 2,new genai 3 doesnt have it anymore
+  so with todays versions the server just crashes on start,modulenotfound no module named httpx
+  page never says to install httpx so u cant run it as written
+  ```
+- Package and file names keep their letters (lowercased) so the note still points at the right thing.
 - **No long URLs.** Drop the scheme (`https://`, `http://`, `wss://`, `ws://`): `https://example.com/x` → `example.com/x`.
-- Always pass the note through `humanizeNote()` (shared: `core/overlays/note-style.ts`) and type it with `typeInNotepad`, which treats `'\b'` as a backspace. Deterministic per note, so a re-record types the same thing. Write the note text plainly; the style is applied by `humanizeNote`.
+- Always pass the note through `humanizeNote()` (shared: `core/overlays/note-style.ts`) and put it in with `typeInNotepad`, which pastes it (`{ typed: true }` types it key by key, the old way). Deterministic per note. Write the note text plainly; `humanizeNote` drops titles and finding numbers, lowercases, shortens versions and strips brackets.
+- `closeNotepad` keeps the window up until the clip's Notepad voice-over has finished (the `notepad` line plus its `+` lines, timed from the saved audio in `narration/audio/`); the engine names the clip per take (`setNotepadClip`).
+- Chat prompts in the demo are still typed, at a slower human pace. The failure terminal's commands are pasted.
 - Call `openNotepad` / `typeInNotepad` / `closeNotepad` from the page's action, not from `core/`.
 
 ## 3. Working clips (✅ pages)

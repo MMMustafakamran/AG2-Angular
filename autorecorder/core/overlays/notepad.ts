@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from './cursor';
 import { keystrokeDelay, type TypeRhythm } from './human';
@@ -22,6 +24,7 @@ export async function openNotepad(
   page: Page,
   fileName = 'Untitled',
 ): Promise<void> {
+  openedAt = Date.now(); // the `notepad` mark is set just before this; the voice-over starts there
   const coords = await page.evaluate(() => {
     const el = document.getElementById('win11-taskbar-notepad');
     if (!el) return null;
@@ -123,12 +126,60 @@ export async function openNotepad(
   await sleep(650);
 }
 
-export type TypeOptions = TypeRhythm;
+export type TypeOptions = TypeRhythm & {
+  /** Type it key by key (old behaviour). Default: paste the whole note at once (owner, 2026-11-09). */
+  typed?: boolean;
+};
+
+// ---------------------------------------------------------------------------------------------
+// How long Notepad stays up: until the clip's Notepad voice-over has finished (owner, 2026-11-09).
+// The engine names the clip at the start of each take; the hold is read from that clip's narration
+// script (`narration/scripts/<clip>.json`: the `notepad` line plus the `+` lines after it) and the
+// saved audio's real durations (`narration/audio/*.json`), else ~2.5 words/s.
+// ---------------------------------------------------------------------------------------------
+let clipCtx: { root: string; clip: string } | null = null;
+let openedAt = 0;
+
+/** Called by the engine when a take starts. */
+export function setNotepadClip(root: string, clip: string): void {
+  clipCtx = { root, clip };
+}
+
+/** Milliseconds the Notepad voice-over runs, measured from the `notepad` mark; 0 when unknown. */
+export function notepadVoiceMs(): number {
+  if (!clipCtx) return 0;
+  try {
+    const script = JSON.parse(
+      readFileSync(join(clipCtx.root, 'narration', 'scripts', `${clipCtx.clip}.json`), 'utf8'),
+    ) as { segments?: { at: string; text: string }[] };
+    const segs = script.segments ?? [];
+    const i = segs.findIndex((s) => s.at === 'notepad');
+    if (i < 0) return 0;
+    const lines = [segs[i]];
+    for (let k = i + 1; k < segs.length && segs[k].at === '+'; k++) lines.push(segs[k]);
+    const dur = new Map<string, number>();
+    const audioDir = join(clipCtx.root, 'narration', 'audio');
+    if (existsSync(audioDir)) {
+      for (const f of readdirSync(audioDir)) {
+        if (!f.endsWith('.json')) continue;
+        try {
+          const a = JSON.parse(readFileSync(join(audioDir, f), 'utf8')) as { text?: string; duration?: number };
+          if (a.text && a.duration) dur.set(a.text, a.duration);
+        } catch {}
+      }
+    }
+    let s = 0.6; // the mix places a line 0.6 s after its mark
+    for (const l of lines) s += (dur.get(l.text) ?? l.text.split(/\s+/).length / 2.5) + 0.3;
+    return Math.round((s + 1.2) * 1000); // a beat after the last word before the window closes
+  } catch {
+    return 0;
+  }
+}
 
 /**
- * Types into the Notepad window one character at a time, with the uneven rhythm
- * a person has — the same rhythm the chat composer and the terminal use, from
- * `overlays/human.ts`.
+ * Puts the note into the Notepad window: pasted in one go by default (owner, 2026-11-09), or typed
+ * one character at a time with the human rhythm from `overlays/human.ts` when `opts.typed`.
+ * `'\b'` (backspace) is resolved before pasting.
  */
 export async function typeInNotepad(
   page: Page,
@@ -142,6 +193,36 @@ export async function typeInNotepad(
     },
     { textId: TEXT_ID, caretId: CARET_ID },
   );
+
+  if (!opts.typed) {
+    const shown: string[] = [];
+    for (const ch of text) {
+      if (ch === '\b') shown.pop();
+      else shown.push(ch);
+    }
+    const note = shown.join('');
+    const rows = note.split('\n');
+    await sleep(500 + Math.random() * 400);
+    logInput('paste'); // Ctrl+V: the page is drawn, so no real key event fires
+    await page.evaluate(
+      (a: { textId: string; caretId: string; posId: string; t: string; l: number; col: number }) => {
+        const el = document.getElementById(a.textId);
+        if (el) {
+          el.innerHTML = '';
+          el.appendChild(document.createTextNode(a.t));
+          const caret = document.createElement('span');
+          caret.id = a.caretId;
+          el.appendChild(caret);
+        }
+        const pos = document.getElementById(a.posId);
+        if (pos) pos.textContent = 'Ln ' + a.l + ', Col ' + a.col;
+      },
+      { textId: TEXT_ID, caretId: CARET_ID, posId: POS_ID, t: note, l: rows.length, col: rows[rows.length - 1].length + 1 },
+    );
+    logAction('paste', 'notepad', 'ok', { text: note.slice(0, 400) });
+    keyframe('notepad-typed');
+    return;
+  }
 
   let line = 1;
   let col = 1;
@@ -199,9 +280,14 @@ export async function typeInNotepad(
   keyframe('notepad-typed');
 }
 
-/** Leaves the window up long enough to read, then closes it. */
+/**
+ * Leaves the window up long enough to read, and at least until the clip's Notepad voice-over has
+ * finished (counted from when the window opened), then closes it.
+ */
 export async function closeNotepad(page: Page, dwellMs = 2600): Promise<void> {
-  await sleep(dwellMs);
+  const voiceLeft = openedAt ? notepadVoiceMs() - (Date.now() - openedAt) : 0;
+  await sleep(Math.max(dwellMs, voiceLeft));
+  openedAt = 0;
   await page.evaluate(
     (ids: { windowId: string }) => {
       const win = document.getElementById(ids.windowId);

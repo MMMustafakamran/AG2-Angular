@@ -1,6 +1,6 @@
 # Findings — AG2-Angular (AG2 Python agent + CopilotKit Angular)
 Open doc defects only. A finding is proposed first and added only after the owner approves it (QA-RULES section 6; this set approved by the owner 2026-11-09). Numbers are stable IDs (code cites `FINDINGS.md #N`), so gaps are removed findings.
-Stack: `@copilotkit/angular` 0.6.0 (npm latest; declared ^0.6.0), `@copilotkit/runtime` 1.85.0 (declared ^1.85.0), `@ag-ui/client` 0.0.59 (declared ^0.0.59, not in the doc's install step), `@angular/core` 22.1.4, `@angular/cdk` 22.2.6, `zod` 4.5.4, `express` 5.2.1, `tsx` 4.23.13; agent: `ag2[ag-ui,openai]` 1.0.3 + FastAPI 0.141.1 on Python 3.13.15 (uv); Node 26.7.0, npm 11, Windows 11 Pro. Docs: https://docs.copilotkit.ai/angular/ag2 (snapshot 2026-11-09)
+Stack: `@copilotkit/angular` 0.6.0 (npm latest; declared ^0.6.0), `@copilotkit/runtime` 1.85.0 (declared ^1.85.0), `@ag-ui/client` 1.0.4 (npm latest; declared ^1.0.4, not in the doc's install step), `@angular/core` 22.1.4, `@angular/cdk` 22.2.6, `zod` 4.5.4, `express` 5.2.1, `tsx` 4.23.13; agent: `ag2[ag-ui,openai]` 1.3.0 (ag-ui-protocol 1.0.0) + FastAPI 0.162.2 on Python 3.13.15 (uv); Node 26.7.0, npm 11, Windows 11 Pro. Docs: https://docs.copilotkit.ai/angular/ag2 (snapshot 2026-11-09)
 
 ## Dev blockers (seen with `ng serve` and normal use of the page)
 

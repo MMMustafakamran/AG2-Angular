@@ -468,10 +468,10 @@ def cmd_mix(a):
             "acompressor=threshold=-22dB:ratio=3:attack=8:release=150,"
             "aecho=0.85:0.55:19|31:0.14|0.08,") if natural else ""
     filters.append(f"[voice]{room}loudnorm=I=-16:TP=-1.5[vn]")
-    # Click and typing sounds at the recorder's logged input events (clips recorded before
-    # 2026-11-08 have none, so they simply get no sounds). --no-foley turns them off.
+    # Click sounds are off (owner, 2026-11-09: no mouse-click sound); voice + room tone only.
+    # --foley turns them back on for a one-off.
     os.makedirs(os.path.dirname(os.path.abspath(a.out)) or ".", exist_ok=True)
-    ev = [] if getattr(a, "no_foley", False) else input_events(a.timeline)
+    ev = input_events(a.timeline) if getattr(a, "foley", False) else []
     extra, foley_wav = [], None
     if ev:
         foley_wav = os.path.abspath(a.out) + ".foley.wav"
@@ -701,8 +701,9 @@ def main(argv=None):
     p.add_argument("timeline"); p.add_argument("out")
     p.add_argument("--natural", action="store_true",
                    help="mic EQ, light compression, small-room echo, +-3%% pace per line (less robotic)")
-    p.add_argument("--no-foley", action="store_true",
-                   help="no click / typing sounds (they come from the clip's events.jsonl input events)")
+    p.add_argument("--foley", action="store_true",
+                   help="add mouse-click sounds at the clip's input events (off by default since 2026-11-09)")
+    p.add_argument("--no-foley", action="store_true", help="no-op (clicks are off by default); kept for old callers")
     p.set_defaults(fn=cmd_mix)
 
     p = sub.add_parser("rewrite"); p.add_argument("script"); p.add_argument("timeline")

@@ -22,7 +22,7 @@ import {
 } from './failure-evidence';
 import { pickShell, runFailureTerminal } from './failure-terminal';
 import { generateIdeHtml, type IdeTabConfig } from './ide/generator';
-import { closeNotepad, openNotepad, typeInNotepad } from './overlays/notepad';
+import { closeNotepad, openNotepad, setNotepadClip, typeInNotepad } from './overlays/notepad';
 import { humanClick, humanGlide, humanScrollDown, restCursorSomewhere, sleep } from './overlays/cursor';
 import { between, jitter, pause, seedTake } from './overlays/human';
 import { clickTaskbarApp, ensureOverlays, waitForHydration } from './overlays/taskbar';
@@ -851,6 +851,7 @@ export class RecordingEngine {
 
     const { browser, context, page } = await this.openStage(req.docUrl);
     setTimelinePage(req.id, req.docUrl);
+    setNotepadClip(this.rootDir, req.filename ?? req.id); // Notepad stays up for its voice-over
 
     try {
       // ----------------------------------------------------
@@ -1006,6 +1007,7 @@ export class RecordingEngine {
 
     const { browser, context, page } = await this.openStage(config.docUrl);
     setTimelinePage(config.id, config.docUrl);
+    setNotepadClip(this.rootDir, config.filename ?? config.id); // Notepad stays up for its voice-over
 
     // Console errors, page errors and failed backend requests, kept rather than
     // printed and forgotten. They go on the result so the summary and the

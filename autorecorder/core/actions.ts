@@ -335,7 +335,7 @@ export async function sendPrompt(
     // recovering from a swallowed submit, and is typed quickly rather than
     // performed a second time.
     if (attempt === 1) {
-      await humanType(page, prompt, { charDelayMs: 58 });
+      await humanType(page, prompt, { charDelayMs: 95 }); // slower, like a person (owner, 2026-11-09)
     } else {
       await page.keyboard.type(prompt, { delay: 12 });
     }

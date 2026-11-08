@@ -114,7 +114,7 @@ export const PAGES = definePages([
     startLine: 1,
     endLine: 31,
     extraTabs: [{ filePath: 'frontend/src/app/features/hitl/approval-card.component.ts', startLine: 1, endLine: 42 }, PKG],
-    prompt: 'Please delete my account. Check with me before you actually do it.',
+    prompt: 'Please delete my account, but ask for my approval first.',
     waitAfterPromptMs: 3000,
   },
   {
@@ -170,7 +170,7 @@ export const PAGES = definePages([
     startLine: 1,
     endLine: 48,
     extraTabs: [{ filePath: 'frontend/src/app/features/auth/auth-chat.component.ts', startLine: 1, endLine: 35 }, PKG],
-    prompt: 'Am I signed in? Answer in one short sentence.',
+    prompt: 'Hi! Give me one quick tip for writing clearer emails.',
     waitAfterPromptMs: 3000,
   },
   {

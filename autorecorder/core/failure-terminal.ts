@@ -28,7 +28,7 @@ import { dirname, join, relative, sep } from 'node:path';
 import { type Cast } from './cli/cast';
 import { PtySession, sleep } from './cli/session';
 import { type LogSource, findAnchor } from './failure-evidence';
-import { between, keystrokeDelay } from './overlays/human';
+import { between } from './overlays/human';
 
 export type ShellKind = 'bash' | 'powershell';
 
@@ -237,11 +237,9 @@ export async function runFailureTerminal(opts: FailureTerminalOptions): Promise<
 
     for (const cmd of commands) {
       if (opts.signal?.aborted) break;
-      for (const ch of cmd) {
-        session.send(ch);
-        await sleep(keystrokeDelay(ch, { charDelayMs: 55 }));
-      }
-      await sleep(between(250, 450));
+      // Pasted in one go, not typed (owner, 2026-11-09), then a short look before Enter.
+      session.send(cmd);
+      await sleep(between(600, 1000));
       session.send('\r');
       const done = await session.waitFor(shell.prompt, 15_000);
       if (!done.matched) break;
