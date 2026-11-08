@@ -11,8 +11,8 @@
  * the backend is started separately.
  *
  * The port numbers are this repo's, not the other Angular repos': the AG2
- * backend already owns 8400, so the runtime moved to 8401 and `ng serve` to
- * 4204. That is what lets this stack run beside the Agno, Mastra and MsPy ones
+ * backend already owns 8241, so the runtime moved to 8240 and `ng serve` to
+ * 4240. That is what lets this stack run beside the Agno, Mastra and MsPy ones
  * without either having to move.
  */
 import path from 'node:path';
@@ -41,13 +41,13 @@ export const isWindows = process.platform === 'win32';
 export const PROJECT_SLUG = 'AG2-angular';
 
 /**
- * `backend/main.py` passes `port=8400` to uvicorn as a literal — there is no
+ * `backend/main.py` passes `port=8241` to uvicorn as a literal — there is no
  * env var to read — so this is a constant here too rather than a default that
  * pretends to be overridable.
  */
-export const BACKEND_PORT = 8400;
-export const RUNTIME_PORT = Number(process.env.PORT || 8401);
-export const FRONTEND_PORT = Number(process.env.FRONTEND_PORT || 4204);
+export const BACKEND_PORT = 8241;
+export const RUNTIME_PORT = Number(process.env.PORT || 8240);
+export const FRONTEND_PORT = Number(process.env.FRONTEND_PORT || 4240);
 
 /**
  * Unlike the Python-backed siblings, this backend declares a real liveness

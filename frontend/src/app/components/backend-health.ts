@@ -74,7 +74,7 @@ export class BackendHealth {
   protected readonly probes = signal<Probe[]>([
     {
       label: 'Copilot Runtime',
-      url: 'http://localhost:8401/api/copilotkit/info',
+      url: 'http://localhost:8240/api/copilotkit/info',
       hint: 'Start it with: npm run runtime',
       ok: null,
       detail: '',
@@ -84,7 +84,7 @@ export class BackendHealth {
       // route to GET. FastAPI's generated schema is the reachability signal
       // that the agent process is up.
       label: 'AG2 agent',
-      url: 'http://localhost:8400/openapi.json',
+      url: 'http://localhost:8241/openapi.json',
       hint: 'Start it with: uv run main.py (from backend/)',
       ok: null,
       detail: '',

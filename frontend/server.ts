@@ -22,8 +22,8 @@
  * — it is a runtime-side middleware and is independent of which agent binding
  * is used.
  *
- * Ports: the quickstart puts the runtime on 8400, but backend/main.py binds
- * that, so the runtime moved to 8401. Override either side with PORT /
+ * Ports: the quickstart puts the runtime on 8241, but backend/main.py binds
+ * that, so the runtime moved to 8240. Override either side with PORT /
  * AG2_AGENT_URL.
  */
 // quickstart : copilot runtime
@@ -33,7 +33,7 @@ import { createCopilotNodeListener } from "@copilotkit/runtime/v2/node";
 import { HttpAgent } from "@ag-ui/client";
 
 const agentUrl =
-  process.env["AG2_AGENT_URL"] ?? "http://localhost:8400/agent/";
+  process.env["AG2_AGENT_URL"] ?? "http://localhost:8241/agent/"; // HARNESS: backend port 8241 (workspace port plan)
 
 // quickstart : copilot runtime start
 const runtime = new CopilotRuntime({
@@ -49,7 +49,7 @@ const runtime = new CopilotRuntime({
 });
 // quickstart : copilot runtime end
 
-const port = Number(process.env["PORT"] ?? 8401);
+const port = Number(process.env["PORT"] ?? 8240); // HARNESS: runtime port 8240 (doc uses 8200; workspace port plan)
 
 // quickstart : create copilot node listener start
 createServer(

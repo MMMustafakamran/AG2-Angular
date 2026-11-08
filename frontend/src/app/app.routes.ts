@@ -10,6 +10,11 @@ import { AppChrome } from './components/app-chrome';
 export const routes: Routes = [
   // Chrome-free IDE Simulator.
   {
+    // HARNESS: WebMCP page demo route (doc component + a chat to talk to)
+    path: 'webmcp/demo',
+    loadComponent: () => import('./features/webmcp/webmcp-demo').then((m) => m.WebmcpDemo),
+  },
+  {
     path: 'ide',
     loadComponent: () =>
       import('./pages/ide-view.component').then((m) => m.IdeViewComponent),

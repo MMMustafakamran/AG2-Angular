@@ -36,13 +36,13 @@ import { DOC_SYNC_DATE, NAV } from '../lib/nav-config';
           class="overflow-x-auto rounded-lg bg-slate-900 p-4 text-xs leading-relaxed text-slate-100"
         ><code>Browser (Angular 22, zoneless)
   &#124;  &#64;copilotkit/angular — provideCopilotKit, copilot-chat, signal APIs
-  &#124;  POST http://localhost:8401/api/copilotkit
+  &#124;  POST http://localhost:8240/api/copilotkit
   v
-Copilot Runtime  ·  localhost:8401        &#8592; Node, frontend/server.ts
+Copilot Runtime  ·  localhost:8240        &#8592; Node, frontend/server.ts
   &#124;  agents: &#123; default, support &#125; &#8594; new HttpAgent(&#123; url &#125;)
-  &#124;  POST http://localhost:8400/agent/  &#8592; AG-UI over SSE
+  &#124;  POST http://localhost:8241/agent/  &#8592; AG-UI over SSE
   v
-AG2  ·  localhost:8400   &#8592; Python / FastAPI
+AG2  ·  localhost:8241   &#8592; Python / FastAPI
   &#124;  app.mount("/agent", AGUIStream(agent).build_asgi())
   v
 OpenAI  (gpt-5.4-mini)</code></pre>

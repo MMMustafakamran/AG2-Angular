@@ -15,7 +15,7 @@ repo's Open-Meteo set:
   `state_schema`; shared state is the agent's context variables, and a tool
   mutates them through `Context`.
 
-Port 8400, so the Copilot Runtime (8401) and the other harnesses in this
+Port 8241, so the Copilot Runtime (8240) and the other harnesses in this
 workspace can run beside it.
 """
 from __future__ import annotations
@@ -178,4 +178,4 @@ app.mount("/agent", stream.build_asgi())
 # quickstart : mount the ag-ui stream end
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8400, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8241, reload=True)  # HARNESS: port 8241 (workspace port plan)

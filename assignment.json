@@ -1,0 +1,425 @@
+{
+ "framework": "AG2",
+ "ui": "angular",
+ "repo": "AG2-Angular",
+ "docBase": "https://docs.copilotkit.ai/angular/ag2/",
+ "versions": {
+  "@copilotkit/angular": "0.6.0",
+  "@copilotkit/runtime": "1.85.0",
+  "@ag-ui/client": "0.0.59",
+  "@angular/core": "22.1.4",
+  "@angular/cdk": "22.2.6",
+  "zod": "4.5.4",
+  "express": "5.2.1",
+  "tsx": "4.23.13",
+  "ag2": "1.0.3",
+  "fastapi": "0.141.1",
+  "python": "3.13.15"
+ },
+ "testedContext": {
+  "os": "Microsoft Windows 11 Pro",
+  "packageManager": "npm 11 (Node 26.7.0)"
+ },
+ "report": {
+  "style": "team",
+  "h1": "AG2",
+  "title": "AG2 Angular testing",
+  "quickstartHeading": "Quickstart",
+  "quickstartHeader": null,
+  "clipsToUpload": true,
+  "guidesHeading": "Angular Guides",
+  "columns": [
+   "Page/Section",
+   "Results"
+  ],
+  "resultColumn": 1
+ },
+ "sections": [],
+ "pages": [
+  {
+   "id": "quickstart",
+   "label": "Angular",
+   "kind": "quickstart",
+   "group": null,
+   "child": false,
+   "docPath": "quickstart",
+   "reachable": "sidebar",
+   "status": "❌",
+   "findings": [
+    1,
+    11
+   ],
+   "notes": [
+    "Issue: the backend step is empty (\"setup skipped\"): no AG2 agent, no runtime server and no @ag-ui/client install, so the chat has nothing to talk to without guessing."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-01-Quickstart",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "chat-ui",
+   "label": "Chat UI and Customization",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "guides/chat-ui",
+   "reachable": "sidebar",
+   "status": "✅",
+   "findings": [],
+   "notes": [],
+   "block": null,
+   "links": [
+    {
+     "text": "Chat UI and Customization - Angular",
+     "clip": "AG2-angular-02-ChatUi",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "frontend-tools-generative-ui",
+   "label": "Frontend tools and generative UI",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "guides/frontend-tools-generative-ui",
+   "reachable": "sidebar",
+   "status": "✅",
+   "findings": [
+    7
+   ],
+   "notes": [
+    "Note: no page shows the AG2 getWeather tool the weather card renders, so the card's city heading stays empty."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Frontend tools and generative UI - Angular",
+     "clip": "AG2-angular-03-FrontendToolsGenerativeUi",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "generative-ui-components",
+   "label": "Native generative UI",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "guides/generative-ui-components",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    6
+   ],
+   "notes": [
+    "Issue: @copilotkit/angular/generative-ui doesn't exist in the latest package (0.6.0), so the app won't build (TS2307). Linked from Frontend tools and generative UI."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-04-NativeGenerativeUi",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "a2ui",
+   "label": "A2UI schemas, styling, and recovery",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "guides/a2ui",
+   "reachable": "sidebar",
+   "status": "❌",
+   "findings": [
+    2
+   ],
+   "notes": [
+    "Issue: productCatalog, dynamicString and the other catalog pieces are never defined, so the app won't build and A2UI stays off."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Issue",
+     "clip": "AG2-angular-05-A2ui",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "voice-multimodal",
+   "label": "Voice and multimodal input",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "guides/voice-multimodal",
+   "reachable": "sidebar",
+   "status": "⚠️",
+   "findings": [
+    3
+   ],
+   "notes": [
+    "Note: attachments work, but the voice backend setup link points to a missing #backend anchor on the same page, so there's no transcription and no mic."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Issue",
+     "clip": "AG2-angular-06-VoiceMultimodal",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "human-in-the-loop",
+   "label": "Human-in-the-loop and interrupts",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "guides/human-in-the-loop",
+   "reachable": "sidebar",
+   "status": "✅",
+   "findings": [
+    8
+   ],
+   "notes": [
+    "Note: the approval tool works; the interrupt part can't fire on AG2 and the page doesn't say so."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Human-in-the-loop and interrupts - Angular",
+     "clip": "AG2-angular-07-HumanInTheLoop",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "shared-state",
+   "label": "Shared state and agent context",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "guides/shared-state",
+   "reachable": "sidebar",
+   "status": "❌",
+   "findings": [
+    4
+   ],
+   "notes": [
+    "Issue: AG2 drops the state the app sets (priority resets) and ignores agent context, so the agent never sees either."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Issue",
+     "clip": "AG2-angular-08-SharedState",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "threads-memory-attachments-headless",
+   "label": "Threads, memory, attachments, and headless UI",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "guides/threads-memory-attachments-headless",
+   "reachable": "sidebar",
+   "status": "✅",
+   "findings": [
+    12
+   ],
+   "notes": [
+    "Note: thread list and memories need Intelligence; chat, headless UI and attachments work."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Threads, memory, attachments, and headless UI - Angular",
+     "clip": "AG2-angular-09-ThreadsMemoryHeadless",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "webmcp",
+   "label": "WebMCP",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "webmcp",
+   "reachable": "sidebar",
+   "status": "✅",
+   "findings": [
+    9
+   ],
+   "notes": [
+    "Note: searchOrders is never defined (TS2304); with a small helper the tool registers on document.modelContext."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "WebMCP - Angular",
+     "clip": "AG2-angular-10-WebMcp",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "auth",
+   "label": "Authentication",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "auth",
+   "reachable": "sidebar",
+   "status": "✅",
+   "findings": [
+    10
+   ],
+   "notes": [
+    "Note: readSessionToken and verifySession are never defined and the snippets have no imports; with those added the runtime rejects requests without a token (401)."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Authentication - Angular",
+     "clip": "AG2-angular-11-Authentication",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "multi-agent-subagents",
+   "label": "Sub Agents",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "multi-agent/subagents",
+   "reachable": "sidebar",
+   "status": "❌",
+   "findings": [
+    5
+   ],
+   "notes": [
+    "Issue: the setup step is empty; the Python file imports modules that are never shown (_loop_cap, _state) and never builds a supervisor or app, so nothing runs."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-12-SubAgents",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "inspector",
+   "label": "Inspector",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "inspector",
+   "reachable": "sidebar",
+   "status": "✅",
+   "findings": [
+    13
+   ],
+   "notes": [],
+   "block": null,
+   "links": [
+    {
+     "text": "Inspector - Angular",
+     "clip": "AG2-angular-13-Inspector",
+     "loom": null,
+     "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  }
+ ]
+}

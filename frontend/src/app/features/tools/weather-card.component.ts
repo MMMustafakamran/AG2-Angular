@@ -21,7 +21,6 @@ type WeatherArgs = { city: string };
     } @else {
       <p>Loading weather for {{ call.args.city ?? "…" }}</p>
     }
-    <p>Tool Call done </p>
   `,
 })
 export class WeatherCardComponent implements ToolRenderer<WeatherArgs> {

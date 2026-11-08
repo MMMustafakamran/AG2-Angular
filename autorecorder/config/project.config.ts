@@ -104,8 +104,8 @@ export const PROJECT: ProjectConfig = {
   //   PORT=8300 uv run main.py                                      (backend)
   //   AG2_AGENT_URL=http://localhost:8300/agent/ npm run dev
   //   BACKEND_URL=http://localhost:8300 npm run record              (here)
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:4204',
-  backendUrl: process.env.BACKEND_URL || 'http://localhost:8400',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:4240',
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:8241',
   // FastAPI + Uvicorn, with the AG-UI stream mounted at `POST /agent/` by
   // AGUIStream(agent).build_asgi() -- POST-only, so it is no use as a health
   // route. /openapi.json is always there and always a GET; it is what
@@ -114,7 +114,7 @@ export const PROJECT: ProjectConfig = {
   backendHealthPath: '/openapi.json',
 
   // One command starts both frontend processes: `npm run dev` runs the Copilot
-  // Runtime (frontend/server.ts, port 8401) and `ng serve` (port 4204) together.
+  // Runtime (frontend/server.ts, port 8240) and `ng serve` (port 4240) together.
   frontendStartCmd: 'cd frontend && npm run dev',
   backendStartCmd: 'cd backend && uv run main.py',
 
@@ -123,7 +123,7 @@ export const PROJECT: ProjectConfig = {
 
   // Angular has no server route to host the runtime, so it runs as its own Node
   // process and the browser posts across origins to it. The AG2
-  // backend already owns 8400, so the runtime binds 8401 (see the port note at
+  // backend already owns 8241, so the runtime binds 8240 (see the port note at
   // the top of frontend/server.ts). That makes the warm target an absolute URL
   // rather than a path under frontendUrl -- `new URL(absolute, base)` returns
   // the absolute, so this needs no engine change.
@@ -133,7 +133,7 @@ export const PROJECT: ProjectConfig = {
   // connection to the AG2 process, and /info is a real GET endpoint
   // that exercises exactly that path.
   runtimeWarmPath:
-    process.env.RUNTIME_URL || 'http://localhost:8401/api/copilotkit/info',
+    process.env.RUNTIME_URL || 'http://localhost:8240/api/copilotkit/info',
 };
 
 /** Absolute doc URL for a page's `docPath`. */
