@@ -288,13 +288,27 @@ export function checkpoint(
     } catch {
       raw = null;
     }
-    const observed = typeof raw === 'boolean' ? String(raw) : raw == null || raw === '' ? null : clip(String(raw).trim()).slice(0, 500);
+    let observed = typeof raw === 'boolean' ? String(raw) : raw == null || raw === '' ? null : clip(String(raw).trim()).slice(0, 500);
+    // A surface that exists but shows nothing is not a rendered surface (review 2026-11-09: the
+    // count-based 'surface' probes passed on empty A2UI / generative-UI containers).
+    let emptySurface = false;
+    if (SURFACE_LABEL.test(label) && observed !== null && raw !== false && page && !page.isClosed()) {
+      const content = await Promise.race([
+        surfaceContent(page).catch(() => null),
+        new Promise<null>((r) => setTimeout(() => r(null), PROBE_TIMEOUT_MS)),
+      ]);
+      if (content && content.surfaces > 0 && content.withContent === 0) {
+        emptySurface = true;
+        observed = `${observed}; but none shows visible content (${content.surfaces} empty surface(s))`.slice(0, 500);
+      }
+    }
     let ok: boolean;
     try {
       ok = opts.ok ? opts.ok(observed) : typeof raw === 'boolean' ? raw : observed !== null;
     } catch {
       ok = false;
     }
+    if (emptySurface) ok = false;
     const cp: Checkpoint = { t, label, expect, observed, ok };
     order.set(cp, n);
     checkpoints.push(cp);
@@ -303,6 +317,53 @@ export function checkpoint(
   pending.push(job);
   frame(label);
   return job;
+}
+
+/** Generative-UI surfaces as CopilotKit renders them (data attribute on React, class on A2UI). */
+export const SURFACE_SELECTOR = '[data-generative-ui-surface], .a2ui-surface';
+/** Checkpoint labels whose observation is checked for visible content (surface, surface#2, a2ui-surface ...). */
+const SURFACE_LABEL = /(^|[-_])surface(s)?($|[-_#])/i;
+
+/**
+ * How many surfaces are on screen and how many of them show something: a visible box of real size
+ * holding text, or a visible media / form / frame element (img, svg, canvas, iframe, video, input,
+ * button, select, textarea) of real size. An empty container, or one whose content is all hidden or
+ * zero-sized, does not count.
+ */
+export async function surfaceContent(
+  target: Page,
+  selector: string = SURFACE_SELECTOR,
+): Promise<{ surfaces: number; withContent: number; text: string }> {
+  // No named helpers inside the callback: tsx (esbuild keepNames) wraps them in __name(), which
+  // does not exist in the page, and the evaluate throws.
+  return target.evaluate((sel) => {
+    const all = Array.from(document.querySelectorAll(sel));
+    // Nested matches (a surface inside a surface) count once, as the outermost.
+    const roots = all.filter((el) => !all.some((o) => o !== el && o.contains(el)));
+    let withContent = 0;
+    const texts: string[] = [];
+    for (const el of roots) {
+      // [element, smallest area that counts]: the surface itself, then its media / form elements.
+      const shown = [[el, 400] as [Element, number]]
+        .concat(
+          Array.from(el.querySelectorAll('img, svg, canvas, iframe, video, input, button, select, textarea')).map(
+            (m) => [m, 100] as [Element, number],
+          ),
+        )
+        .map(([e, minArea]) => {
+          const r = e.getBoundingClientRect();
+          const cs = getComputedStyle(e);
+          return r.width * r.height >= minArea && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05;
+        });
+      if (!shown[0]) continue;
+      const text = ((el as HTMLElement).innerText || '').trim();
+      if (text.length > 0 || shown.slice(1).some((v) => v)) {
+        withContent++;
+        if (text) texts.push(text.slice(0, 120));
+      }
+    }
+    return { surfaces: roots.length, withContent, text: texts.join(' | ') };
+  }, selector);
 }
 
 /** Probe helper: the visible text of the first match, or null when nothing visible matches. */

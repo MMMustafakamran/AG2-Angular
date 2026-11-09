@@ -25,6 +25,6 @@ python 2-shared/qa-kit/report/deliver.py --date $D --from $O/runs/*   --only-app
 
 Notes
 - Put narrated dirs first in `--from`: `.mp4` beats `.webm` anyway, and among mp4s the first dir wins. Dirs aren't searched recursively, so `_not-for-upload` folders are never picked.
-- `deliver.py` copies only clips with no Loom URL (`--all` for every clip); the manifest lists all, with `needs_upload`, `sha256`, and `alternatives` (other copies found).
+- **Daily: always `deliver.py --all`** from that day's scheduled full run, upload every clip and `apply_loom.py --overwrite`, so the report links only today's videos (owner, 2026-11-09). Without `--all`, `deliver.py` copies only clips with no Loom URL; the manifest lists all, with `needs_upload`, `sha256`, and `alternatives` (other copies found).
 - Two row styles exist on purpose: LangGraph uses the REPORT.md `team` style; the team doc's Google Antigravity section uses the older `status` style, which `style: "status"` reproduces (inline styles, no `<th>`/classes). Switch the Antigravity files to `team` if the owner wants REPORT.md's style there too (link texts then need setting).
 - No secrets are read or printed; nothing here commits or touches the repos.

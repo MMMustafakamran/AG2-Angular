@@ -147,20 +147,47 @@ function newLines(src: LogSource): string[] {
 // Next forwards it to the frontend log as `[browser] ...`, and it is the cause on generative-UI pages.
 export const GREP_PATTERN = 'error|exception|failed|404|rendered nothing';
 
+/** The port a per-server log is named after (`backend-8043.log` -> "8043"), or null. */
+export function logPort(src: LogSource): string | null {
+  const m = /(?:^|[-_.])(\d{4,5})(?:[-_.]|\.log$)/.exec(src.title);
+  return m ? m[1] : null;
+}
+
 /**
  * Which logs to look at, in the order to look at them: logs this page wrote to
  * first, the one holding an error-like line last (its output is what stays on
  * screen). Falls back to every log when none grew. At most `max`.
+ *
+ * `takeText` is what this take produced besides the logs (recorder verdict, browser console):
+ * a server log that stayed silent but ends in a startup crash only counts when this take points
+ * at it. Without that rule a dead server from another page (ANTIGRAVITY-react-11-McpApps, 2026-11-09:
+ * `backend-8043.log`, the sub-agents server's httpx crash) was tailed as if it were this page's error.
  */
-export function pickLogs(logs: LogSource[], max = 3): { logs: LogSource[]; grepLog: LogSource | null } {
+export function pickLogs(
+  logs: LogSource[],
+  max = 3,
+  takeText = '',
+): { logs: LogSource[]; grepLog: LogSource | null } {
   const scored = logs.map((src) => {
     const lines = newLines(src);
-    return { src, grew: lines.length > 0, hasError: findAnchor(lines) >= 0, dead: false };
+    return { src, lines, grew: lines.length > 0, hasError: findAnchor(lines) >= 0, dead: false };
   });
+  // What this take touched: its own text plus every line the logs gained during it (the frontend
+  // log names the backend it could not reach, e.g. `ECONNREFUSED ::1:8043`).
+  const touched = [takeText, ...scored.filter((s) => s.grew).flatMap((s) => s.lines)].join('\n');
+  const pointsAt = (src: LogSource): boolean => {
+    const port = logPort(src);
+    // A log not named after a port (backend.log) is the only server of its kind: keep it when
+    // no other log grew, which is the old behaviour for single-backend repos.
+    if (!port) return !scored.some((s) => s.grew && s.src !== src);
+    return new RegExp(`(^|\\D)${port}(\\D|$)`).test(touched);
+  };
   // A server that crashed at startup never writes during the take, yet its log holds the cause
-  // (e.g. ModuleNotFoundError behind "fetch failed"). A log that ends in a crash and stayed silent
-  // counts as grown, with an error.
-  for (const s of scored) if (!s.grew && endsInCrash(s.src)) Object.assign(s, { grew: true, hasError: true, dead: true });
+  // (e.g. ModuleNotFoundError behind "fetch failed"). A log that ends in a crash, stayed silent and
+  // is pointed at by this take counts as grown, with an error.
+  for (const s of scored) {
+    if (!s.grew && endsInCrash(s.src) && pointsAt(s.src)) Object.assign(s, { grew: true, hasError: true, dead: true });
+  }
   const grown = scored.filter((s) => s.grew);
   const pool = grown.length ? grown : scored;
   const ordered = [...pool.filter((s) => !s.hasError), ...pool.filter((s) => s.hasError)].slice(-max);
@@ -174,8 +201,8 @@ function rel(rootDir: string, path: string): string {
 }
 
 /** The commands typed into the shell, as a person would type them. */
-export function failureCommands(kind: ShellKind, rootDir: string, logs: LogSource[]): string[] {
-  const { logs: chosen, grepLog } = pickLogs(logs);
+export function failureCommands(kind: ShellKind, rootDir: string, logs: LogSource[], takeText = ''): string[] {
+  const { logs: chosen, grepLog } = pickLogs(logs, 3, takeText);
   const dirs = [...new Set(chosen.map((l) => rel(rootDir, dirname(l.path))))];
   const cmds: string[] = [];
   if (kind === 'bash') {
@@ -207,6 +234,8 @@ export interface FailureTerminalOptions {
   onData: (data: string) => void;
   /** Stop early (e.g. the overall time bound ran out). */
   signal?: { aborted: boolean };
+  /** This take's verdict + browser console text: decides which silent, crashed logs belong to it (pickLogs). */
+  takeText?: string;
 }
 
 /**
@@ -217,7 +246,7 @@ export interface FailureTerminalOptions {
 export async function runFailureTerminal(opts: FailureTerminalOptions): Promise<{ cast: Cast; commands: string[]; shell: string }> {
   const shell = pickShell();
   if (!shell) throw new Error('no shell found for the failure terminal (bash / powershell)');
-  const commands = failureCommands(shell.kind, opts.rootDir, opts.logs);
+  const commands = failureCommands(shell.kind, opts.rootDir, opts.logs, opts.takeText ?? '');
 
   const session = new PtySession({
     command: shell.file,

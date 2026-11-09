@@ -40,7 +40,7 @@ Applies to every clip that reports a broken doc page: level 1 (blocker, full scr
 2. **No timing-specific lines.** The voice can't be synced to an exact click or moment, so never say "let me click it", "now I'm typing", "there it is". Say it generically, as a result:
    - ✗ "let me click it… and yeah, there's the card"
    - ✓ "after clicking the button, the card said deployment finished"
-3. **VS Code part:** "this is my project, this is the exact code from the doc, this is the npm / CopilotKit version".
+3. **VS Code part:** "this is my project, this is the exact code from the doc". **Never say a version number** anywhere in the narration (owner, 2026-11-09): versions change often and every mention would need new audio. The versions file on screen shows them.
 4. **Demo:** "moving on to the demo", then what happened and the problem, stated as results.
 5. **Highlight + Notepad:** while the doc code is highlighted the voice points at it; once the note is pasted, the voice reads out / explains the issue while Notepad stays open (the recorder holds Notepad until these lines end). Same content as the note, not word-for-word.
 6. **Ending:** always a short, polite ask to fix it, but **vary the wording between clips**. Never reuse the same ending in two clips of one batch. Pool:
@@ -54,7 +54,7 @@ Applies to every clip that reports a broken doc page: level 1 (blocker, full scr
    - "So umm, this one needs fixing, please look into it."
    - "Alright, that's the issue, kindly sort it out."
    - "So yeah, kindly check this and fix it."
-7. Style: casual, short sentences, natural fillers ("ok so", "basically", "yeah"), plus **a few "umm" / "uh" / "ahh"** (one or two per segment, at natural hesitation points, not every sentence). Don't over-explain. Spell out what TTS would misread ("one point eighty-four point one", "example dot com").
+7. Style: casual, short sentences, natural fillers ("ok so", "basically", "yeah"), plus **a few "umm" / "uh" / "ahh"** (one or two per segment, at natural hesitation points, not every sentence). Don't over-explain. Spell out what TTS would misread ("example dot com").
 
 ## 5a. Short script (level 2: already reported)
 
@@ -70,7 +70,7 @@ No reasons or root-cause explaining: the team already reported it.
 
 - Audio is saved per finding (by finding number + exact script text).
 - Same error the next day, same script → reuse the saved audio. New or changed error → generate only that finding's lines.
-- Lines that change every run (versions, wait filler) are separate short pieces, regenerated cheaply.
+- Lines that would change every run (e.g. wait filler) are separate short pieces, regenerated cheaply. Versions are never spoken (§5 rule 3).
 
 ## 7. Review and checks before handing a clip over
 

@@ -20,6 +20,7 @@ and `out/checks/<clip>.checks/red-<t>s.jpg` (one frame per red run). Never touch
 |---|---|
 | duration (< 15 s, > 600 s), timeline `durationS` vs video (> 3 s apart) | `issues` |
 | blackdetect (≥ 1 s; a short fade at start/end is fine) | `black`, `issues` |
+| partly black: a band of dark rows (≤ #101010) over ≥ 35% of the screen, not fully black, for ≥ 4 s outside the terminal segments (a page that painted only a strip) | `part_black`, `issues` |
 | freezedetect (≥ 8 s) judged per segment: demo 90 s, ide 40, doc/evidence/notepad 25, outro/terminal 30, failure 40 | `freezes`, `issues` |
 | marks in order, inside the video, first mark ≤ 3 s, no unmarked tail > 45 s | `marks`, `issues` |
 | required segments: doc + demo; ❌/⚠️ also evidence + notepad; ✅ has no notepad unless `--note` mentions temperature | `segments_required`, `issues` |

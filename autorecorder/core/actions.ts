@@ -5,7 +5,7 @@ import { dismissAlertOverlay, installAlertOverlay } from './overlays/alert-dialo
 import { beat, humanClick, humanGlide, idleNudge, sleep } from './overlays/cursor';
 import { chance, humanType, pause } from './overlays/human';
 import { TIMEOUTS } from './timeouts';
-import { checkpoint, logAction, probeText } from './timeline';
+import { SURFACE_SELECTOR, checkpoint, logAction, probeText } from './timeline';
 import {
   type ActionContext,
   type DemoCheck,
@@ -30,6 +30,12 @@ export class AgentSilentError extends Error {
     this.name = 'AgentSilentError';
   }
 }
+
+/**
+ * How long a reply may sit unchanged while the chat still says it is running before it counts as
+ * finished anyway (a run flag that never clears). Always inside the stream cap (replyStreamMs).
+ */
+const BUSY_GRACE_MS = 20_000;
 
 /** What `waitForAgentResponseCompletion` observed, for handlers that check. */
 export interface ReplyObservation {
@@ -151,7 +157,9 @@ export async function waitForAgentResponseCompletion(
   if (hasStarted) {
     console.log(`   🌊 AI agent is streaming response tokens...`);
     let previousText = '';
+    let previousSignature = '';
     let stableCount = 0;
+    let stableSince = Date.now();
     let settled = false;
     let polls = 0;
     const streamStart = Date.now();
@@ -162,33 +170,56 @@ export async function waitForAgentResponseCompletion(
       if (++polls % 3 === 0 && chance(0.7)) {
         await idleNudge(page, 4);
       }
-      const currentText = await page
-        .evaluate((sel) => {
+      // The compared value is the reply text plus what else the turn renders: the number of
+      // assistant messages, generative-UI surfaces and frames, and how much they show. A reply
+      // whose text sat still while a tool built its UI ("Building quicksort visualiser...",
+      // LANGGRAPH-react-36-OpenGenerativeUI, 2026-11-09) used to count as finished and the clip
+      // ended on the spinner. `busy` is the chat saying the run is still going.
+      const snap = await page
+        .evaluate(({ sel, surfaceSel }) => {
           const msgs = document.querySelectorAll(sel);
-          if (msgs.length === 0) return '';
+          let text = '';
           for (let i = msgs.length - 1; i >= 0; i--) {
             const t = (msgs[i].textContent || '').trim();
-            if (t) return `${msgs.length}:${t}`;
+            if (t) { text = `${msgs.length}:${t}`; break; }
           }
-          return '';
-        }, messageSelector)
-        .catch(() => '');
+          const surfaces = Array.from(document.querySelectorAll(surfaceSel));
+          const surfaceText = surfaces.reduce((n, el) => n + ((el as HTMLElement).innerText || '').length, 0);
+          const frames = document.querySelectorAll('iframe').length;
+          // Inline callbacks only: a named helper here becomes __name(...) under tsx and throws in the page.
+          const busy =
+            !!document.querySelector('[data-copilot-running="true"]') ||
+            Array.from(
+              document.querySelectorAll('[data-testid="copilot-loading-cursor"], [aria-busy="true"], [role="progressbar"]'),
+            ).some((el) => {
+              const r = el.getBoundingClientRect();
+              return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
+            });
+          return { text, ui: `${surfaces.length}/${surfaceText}/${frames}`, busy };
+        }, { sel: messageSelector, surfaceSel: SURFACE_SELECTOR })
+        .catch(() => ({ text: '', ui: '', busy: false }));
+      const currentText = snap.text;
+      const signature = `${snap.ui}|${currentText}`;
 
       // The count is part of the compared value, so a new message arriving
       // restarts the stability window instead of looking like "no change".
-      if (currentText.length > 0 && currentText === previousText) {
+      if (currentText.length > 0 && signature === previousSignature) {
         stableCount++;
-        // If text is stable for 4 consecutive checks (1.6s), streaming has finished
-        if (stableCount >= 4) {
+        // Stable for 4 consecutive checks (1.6s) and the chat no longer running: finished. A run
+        // flag that never clears (seen on broken agents) is not waited out forever: after
+        // BUSY_GRACE_MS of nothing changing the reply counts as finished anyway.
+        if (stableCount >= 4 && (!snap.busy || Date.now() - stableSince >= BUSY_GRACE_MS)) {
           observed.chars = currentText.length;
           settled = true;
           console.log(
-            `   ✅ AI agent response completed (${currentText.length} characters).`,
+            `   ✅ AI agent response completed (${currentText.length} characters${snap.busy ? ', run flag still set' : ''}).`,
           );
           break;
         }
       } else {
         stableCount = 0;
+        stableSince = Date.now();
+        previousSignature = signature;
         previousText = currentText;
       }
       await sleep(400);

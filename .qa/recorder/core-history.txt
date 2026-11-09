@@ -44,3 +44,11 @@ bb845b1de4e85b04  failure-terminal.ts
 714292cd691a7baf  types.ts
 # before dismissNextIssues waited for the pill to settle (2026-11-09)
 bf1d3752495e08f8  engine.ts
+# before 2026-11-09 repaint/surface/per-take-logs fix
+0b1eac95a55dfc61  actions.ts
+a20cb777a65102ec  engine.ts
+f7781a5e372e9d32  failure-terminal.ts
+a90e6c15a2bb65d0  timeline.ts
+# 2026-11-09 intermediate (named helpers in evaluate)
+375c28297f0e5fad  actions.ts
+5f3e3efbb3117daf  timeline.ts

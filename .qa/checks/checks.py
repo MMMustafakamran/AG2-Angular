@@ -7,6 +7,8 @@
 Checks (rubric: instructions/REVIEW.md):
   - duration (ffprobe), and timeline durationS vs the video
   - ffmpeg blackdetect + freezedetect; freezes judged against per-segment limits
+  - partly black: a band of dark rows covering >= 35% of the screen (not fully black, which
+    blackdetect catches) for >= 4 s outside the terminal segments: a page that painted only a strip
   - timeline marks: in order, inside the video, first mark early, no long unmarked tail
   - required segments for the expected status (❌/⚠️: doc, demo, evidence, notepad; ✅: no notepad
     unless the note is temperature-only)
@@ -32,6 +34,11 @@ from pathlib import Path
 VERSION = 1
 SCAN_W, SCAN_H = 480, 270    # red-pixel scan resolution
 RED_MIN_PX = 40              # red pixels (at scan res) for a second to count as "has red"
+TASKBAR_ROWS = 12            # Windows taskbar strip at the bottom (48 px of 1080 at scan res)
+DARK_MAX = 16                # a pixel is "dark" when every channel is <= this (#101010; VS Code #1e1e1e is not)
+DARK_ROW_FRAC = 0.995        # a row is dark when this share of its pixels is dark
+PART_BLACK_FRAC = 0.35       # a second is "partly black" when its largest dark band covers this share
+PART_BLACK_MIN_S = 4         # ... for at least this many consecutive seconds
 FRAME_W = 1280               # saved red-run frames
 
 # Mark label -> segment kind. Unknown labels are "other" (SCHEMA.md: treat unknown labels as opaque).
@@ -193,25 +200,45 @@ def black_freeze(clip: Path) -> tuple[list[dict], list[dict]]:
     return blacks, freezes
 
 
-def red_scan(clip: Path) -> list[dict]:
-    """1 fps scan for saturated red (R > 170, G < 90, B < 90) at 480x270, taskbar strip ignored.
+def dark_band(a) -> float:
+    """Share of the screen (taskbar excluded) covered by the largest band of contiguous dark rows.
 
-    A run = consecutive seconds with red, split where the red pixel count jumps (new content).
-    Each run: start/end second (end inclusive, so it lasts end+1-start s), peak px, bounding box
-    (at 480x270) and a representative time `t` (the middle)."""
+    Catches a page that paints only a strip and leaves the rest black (blackdetect needs the whole
+    frame black, so it never sees this). Fully black frames score 1.0 and are left to blackdetect."""
+    import numpy as np
+    body = a[: SCAN_H - TASKBAR_ROWS]
+    dark_rows = ((body.max(axis=2) <= DARK_MAX).mean(axis=1)) >= DARK_ROW_FRAC
+    best = cur = 0
+    for d in dark_rows:
+        cur = cur + 1 if d else 0
+        best = max(best, cur)
+    return best / len(dark_rows)
+
+
+def frame_scan(clip: Path) -> tuple[list[dict], list[dict]]:
+    """One 1 fps decode at 480x270 (taskbar strip ignored) for two scans:
+
+    red: saturated red (R > 170, G < 90, B < 90). A run = consecutive seconds with red, split where
+    the red pixel count jumps (new content). Each run: start/end second (end inclusive, so it lasts
+    end+1-start s), peak px, bounding box (at 480x270) and a representative time `t` (the middle).
+
+    part_black: seconds where a contiguous band of dark rows covers >= PART_BLACK_FRAC of the
+    screen but the frame is not fully black, for >= PART_BLACK_MIN_S seconds in a row. Each run:
+    start/end second (end inclusive), dur, peak band share, `t` (the middle)."""
     import numpy as np
     proc = subprocess.Popen(["ffmpeg", "-v", "error", "-i", str(clip), "-vf",
                              f"fps=1,scale={SCAN_W}:{SCAN_H}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
                             stdout=subprocess.PIPE)
     n = SCAN_W * SCAN_H * 3
-    counts, boxes = [], []
+    counts, boxes, bands = [], [], []
     while True:
         b = proc.stdout.read(n)
         if len(b) < n:
             break
         a = np.frombuffer(b, np.uint8).reshape(SCAN_H, SCAN_W, 3).astype(np.int16)
+        bands.append(dark_band(a))
         m = (a[..., 0] > 170) & (a[..., 1] < 90) & (a[..., 2] < 90)
-        m[SCAN_H - 12:, :] = False          # Windows taskbar strip (red tray icons)
+        m[SCAN_H - TASKBAR_ROWS:, :] = False          # Windows taskbar strip (red tray icons)
         c = int(m.sum())
         counts.append(c)
         if c:
@@ -237,7 +264,27 @@ def red_scan(clip: Path) -> list[dict]:
         r["t"] = round((r["start"] + r["end"]) / 2 + 0.5, 1)
         r["dur"] = r["end"] + 1 - r["start"]
         r.pop("last")
-    return runs
+    parts, cur = [], None
+    for t, f in enumerate(bands):
+        if PART_BLACK_FRAC <= f < 0.98:
+            if cur and t == cur["end"] + 1:
+                cur["end"], cur["peak"] = t, max(cur["peak"], f)
+                continue
+            cur = {"start": t, "end": t, "peak": f}
+            parts.append(cur)
+        else:
+            cur = None
+    parts = [p for p in parts if p["end"] + 1 - p["start"] >= PART_BLACK_MIN_S]
+    for p in parts:
+        p["dur"] = p["end"] + 1 - p["start"]
+        p["t"] = round((p["start"] + p["end"]) / 2 + 0.5, 1)
+        p["peak"] = round(p["peak"], 2)
+    return runs, parts
+
+
+def red_scan(clip: Path) -> list[dict]:
+    """Red runs only (see frame_scan)."""
+    return frame_scan(clip)[0]
 
 
 def extract_frame(clip: Path, t: float, dest: Path) -> bool:
@@ -385,9 +432,22 @@ def run_checks(clip: Path, out: Path, timeline: Path | None = None, events: Path
     if freezes and freezes[-1]["end"] is None and duration - freezes[-1]["start"] > 30:
         issues.append(f"video frozen from {fmt_t(freezes[-1]['start'])} to the end")
 
-    # ---- red scan
-    runs = red_scan(clip)
+    # ---- red scan + partly black
+    runs, part_black = frame_scan(clip)
     fdir = out / f"{name}.checks"
+    for p in part_black:
+        lbl, knd = tag(p["t"])
+        p["segment"], p["kind"] = lbl, knd
+        # A terminal window with a few lines of output is a dark screen by design.
+        p["ok"] = knd in ("failure", "terminal")
+        if frames:
+            fdir.mkdir(exist_ok=True)
+            dest = fdir / f"partblack-{p['t']:06.1f}s.jpg"
+            p["frame"] = f"{fdir.name}/{dest.name}" if extract_frame(clip, p["t"], dest) else None
+    bad_part = [p for p in part_black if not p["ok"]]
+    if bad_part:
+        issues.append("partly black screen (only a strip painted): " + ", ".join(
+            f"{p['start']}-{p['end'] + 1}s in '{p['segment']}' ({int(p['peak'] * 100)}% dark)" for p in bad_part))
     for r in runs:
         lbl, knd = tag(r["t"])
         r["segment"], r["kind"] = lbl, knd
@@ -419,7 +479,7 @@ def run_checks(clip: Path, out: Path, timeline: Path | None = None, events: Path
         "marks": mk, "segments_required": seg_req,
         "segments": [{k: s[k] for k in ("label", "kind", "start", "end")} for s in segs],
         "events_summary": evs,
-        "black": blacks, "freezes": fz_out, "red_runs": runs,
+        "black": blacks, "part_black": part_black, "freezes": fz_out, "red_runs": runs,
         "runtime_s": round(time.time() - t0, 1),
     }
     (out / f"{name}.checks.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")

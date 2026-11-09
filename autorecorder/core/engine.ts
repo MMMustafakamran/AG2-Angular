@@ -349,6 +349,59 @@ async function dismissNextIssues(page: Page): Promise<void> {
   await sleep(between(250, 500));
 }
 
+/**
+ * Colour scheme the app under test is filmed in. The stage is dark (`colorScheme: 'dark'`,
+ * `--force-dark-mode`) for the docs site and the simulated windows, but a demo app that follows
+ * `prefers-color-scheme` then turns its page background near-black: create-next-app's globals.css
+ * sets `--background: #0a0a0a` in dark mode while CopilotChat stays light and only as tall as its
+ * content. The clip showed a white strip at the top and ~80% black below for the whole demo
+ * (LANGGRAPH-react-13-Components, ANTIGRAVITY-react-08/09, LANGGRAPH-react-29, 2026-11-09). It
+ * looked like a partial paint but was the app's own dark-mode page under a light chat.
+ * A reader opening the app with default OS settings sees it light, and `probe` (no colorScheme)
+ * already sees it light, so the demo origin is filmed light. `QA_DEMO_COLOR_SCHEME=dark|light|keep`
+ * overrides (keep = leave the stage scheme alone).
+ */
+const DEMO_COLOR_SCHEME = ((): 'light' | 'dark' | 'keep' => {
+  const v = (process.env.QA_DEMO_COLOR_SCHEME ?? 'light').toLowerCase();
+  return v === 'dark' || v === 'keep' ? v : 'light';
+})();
+
+/**
+ * Switches the emulated colour scheme as the main frame navigates: the demo origin gets
+ * DEMO_COLOR_SCHEME, everything else (docs site, the simulated IDE / terminal routes served on the
+ * demo origin) gets the stage's dark. Set on the navigation *request*, before the new document
+ * paints, so no frame is drawn in the wrong scheme.
+ */
+function followDemoColorScheme(page: Page, demoUrl: string): void {
+  if (DEMO_COLOR_SCHEME === 'keep') return;
+  let origin = '';
+  try {
+    origin = new URL(demoUrl).origin;
+  } catch {
+    return;
+  }
+  let current: 'light' | 'dark' = 'dark';
+  const schemeFor = (url: string): 'light' | 'dark' | null => {
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'about:' || u.protocol === 'data:') return null;
+      return u.origin === origin && !u.pathname.startsWith('/__autorecord') ? (DEMO_COLOR_SCHEME as 'light' | 'dark') : 'dark';
+    } catch {
+      return null;
+    }
+  };
+  const apply = async (url: string): Promise<void> => {
+    const want = schemeFor(url);
+    if (!want || want === current || page.isClosed()) return;
+    current = want;
+    await page.emulateMedia({ colorScheme: want }).catch(() => {});
+  };
+  page.on('request', (req) => {
+    if (!req.isNavigationRequest() || req.frame() !== page.mainFrame()) return;
+    void apply(req.url());
+  });
+}
+
 export class RecordingEngine {
   private readonly videosDir: string;
   private readonly rootDir: string;
@@ -834,6 +887,8 @@ export class RecordingEngine {
             rows,
             onData: write,
             signal: abort,
+            // Which silent, crashed server logs belong to this take (never another page's dead server).
+            takeText: [error, ...consoleEntries.map((e) => `${e.text} ${e.source ?? ''}`)].join('\n'),
           });
           await writes;
           console.log(`   🖥️  Failure terminal (${run.shell}): ${run.commands.join('  ;  ')}`);
@@ -1156,6 +1211,10 @@ export class RecordingEngine {
             document.body.style.transition = 'none';
           })()
         `).catch(() => {});
+
+        // The demo origin is filmed in DEMO_COLOR_SCHEME (light by default); see there for why.
+        // Applied on the navigation request, not now: the outgoing window keeps its own look.
+        followDemoColorScheme(page, config.demoUrl);
 
         const response = await page.goto(config.demoUrl, {
           waitUntil: 'domcontentloaded',

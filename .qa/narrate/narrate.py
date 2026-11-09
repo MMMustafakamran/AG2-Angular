@@ -130,10 +130,20 @@ def load_json(p):
     with open(p, encoding="utf8") as f:
         return json.load(f)
 
+def _finite(obj):
+    """JSON has no Infinity/NaN (MAX_GAP is inf): write them as null so every reader can parse the file."""
+    if isinstance(obj, float) and not math.isfinite(obj):
+        return None
+    if isinstance(obj, dict):
+        return {k: _finite(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_finite(v) for v in obj]
+    return obj
+
 def save_json(p, obj):
     os.makedirs(os.path.dirname(os.path.abspath(p)), exist_ok=True)
     with open(p, "w", encoding="utf8", newline="\n") as f:
-        json.dump(obj, f, indent=1, ensure_ascii=False)
+        json.dump(_finite(obj), f, indent=1, ensure_ascii=False, allow_nan=False)
         f.write("\n")
 
 def probe_dur(p):
