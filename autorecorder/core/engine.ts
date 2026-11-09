@@ -324,9 +324,27 @@ async function dismissNextIssues(page: Page): Promise<void> {
     await sleep(800); // the pill animates in just after hydration
     if (!(await btn.isVisible().catch(() => false))) return;
   }
-  const box = await btn.boundingBox().catch(() => null);
+  // The pill slides up into place: a box read mid-animation sits ~45 px low, and the click then
+  // lands on the taskbar below it. Wait until two reads agree, and re-aim if it moved during the glide.
+  const settled = async () => {
+    let prev = await btn.boundingBox().catch(() => null);
+    for (let i = 0; i < 12 && prev; i++) {
+      await sleep(250);
+      const cur = await btn.boundingBox().catch(() => null);
+      if (cur && Math.abs(cur.x - prev.x) < 1 && Math.abs(cur.y - prev.y) < 1) return cur;
+      prev = cur;
+    }
+    return prev;
+  };
+  let box = await settled();
   if (!box) return;
   await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2);
+  const again = await settled();
+  if (!again) return;
+  if (Math.abs(again.y - box.y) > 2 || Math.abs(again.x - box.x) > 2) {
+    box = again;
+    await humanGlide(page, box.x + box.width / 2, box.y + box.height / 2);
+  }
   await humanClick(page);
   await sleep(between(250, 500));
 }

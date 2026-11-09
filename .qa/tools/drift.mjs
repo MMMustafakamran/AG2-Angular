@@ -145,11 +145,18 @@ function classify(oldT, newT) {
   const severity = kinds.includes("code") ? "HIGH" : kinds.some((k) => k === "structure" || k === "banner") ? "MEDIUM" : "LOW";
   return { kinds, severity };
 }
-function links(t) {
+// In-section links on a page: absolute (/root/x, https://docs.copilotkit.ai/root/x) and relative
+// (./x, ../x), the latter resolved against the page's own URL as a browser would.
+function links(t, pageUrl) {
   const out = new Set();
-  const re = /\]\((?:https?:\/\/docs\.copilotkit\.ai)?(\/[^)\s#?]*)|href=["'](?:https?:\/\/docs\.copilotkit\.ai)?(\/[^"'#?]*)/g;
+  const re = /\]\((?:https?:\/\/docs\.copilotkit\.ai)?((?:\/|\.\.?\/)[^)\s#?]*)|href=["'](?:https?:\/\/docs\.copilotkit\.ai)?((?:\/|\.\.?\/)[^"'#?]*)/g;
   for (const m of t.matchAll(re)) {
-    const u = cleanUrl(m[1] || m[2]);
+    let u = m[1] || m[2];
+    if (u.startsWith('.')) {
+      if (!pageUrl) continue;
+      u = new URL(u, `${ORIGIN}${pageUrl}`).pathname;
+    }
+    u = cleanUrl(u);
     if (docOf(u) !== null) out.add(u);
   }
   return [...out].sort();
@@ -210,7 +217,7 @@ async function sync() {
     const lk = readJson(path.join(SNAP, "links.json"), { pages: {} });
     const from = only ? only.map(urlOf) : [...new Set([...(sb.pages || []).map((p) => p.url), ...[...tracked.keys()].filter(active).map(urlOf)])].filter((u) => inScope(docOf(u)));
     const res = await pool(from, 6, (u) => get(`${ORIGIN}${u}.md`));
-    for (const [u, r] of res) if (r.status === 200) lk.pages[u] = links(r.text);
+    for (const [u, r] of res) if (r.status === 200) lk.pages[u] = links(r.text, u);
     fs.writeFileSync(path.join(SNAP, "links.json"), JSON.stringify({ root: ROOT, savedAt: today, pages: lk.pages }, null, 1) + "\n");
   }
   const cl = path.join(SNAP, "CHANGELOG.md");
@@ -273,7 +280,7 @@ async function check() {
     const from = sb.pages.map((p) => p.url).filter((u) => inScope(docOf(u)));
     const got = await pool(from, 6, (u) => (live.has(docOf(u)) ? live.get(docOf(u)) : get(`${ORIGIN}${u}.md`)));
     linkSet = new Set();
-    for (const [u, r] of got) if (r.status === 200) { linksNow[u] = links(r.text); linksNow[u].forEach((x) => linkSet.add(x)); }
+    for (const [u, r] of got) if (r.status === 200) { linksNow[u] = links(r.text, u); linksNow[u].forEach((x) => linkSet.add(x)); }
     fs.writeFileSync(path.join(OUT, "live", "sidebar.json"), JSON.stringify({ root: ROOT, pages: sb.pages }, null, 1));
     fs.writeFileSync(path.join(OUT, "live", "links.json"), JSON.stringify({ root: ROOT, pages: linksNow }, null, 1));
   }

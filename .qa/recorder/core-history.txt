@@ -42,3 +42,5 @@ c7778c541eda201d  failure-evidence.ts
 8a634766e19d4643  engine.ts
 bb845b1de4e85b04  failure-terminal.ts
 714292cd691a7baf  types.ts
+# before dismissNextIssues waited for the pill to settle (2026-11-09)
+bf1d3752495e08f8  engine.ts
