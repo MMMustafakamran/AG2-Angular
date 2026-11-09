@@ -1,0 +1,33 @@
+{
+ "clip": "AG2-angular-15-Surfaces",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the surfaces page in the CopilotKit docs, for AG2, on the Angular tab, and I have implemented this page."
+  },
+  {
+   "at": "ide",
+   "text": "So this is my project, this is the exact code from the doc, the surface and the error setup, on CopilotKit Angular zero point six."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I asked for some cheap running shoes, and the agent just wrote them out as text. Uh, no surface, no product cards, nothing rendered on the page."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. The surface component is imported from here."
+  },
+  {
+   "at": "evidence#2",
+   "text": "And this product type is never defined anywhere."
+  },
+  {
+   "at": "notepad",
+   "text": "So that generative UI entry point isn't in the latest Angular package, typescript says cannot find module, and ng serve fails. Product and product row are never shown either, so umm, this page can't work as written."
+  },
+  {
+   "at": "+",
+   "text": "So umm, this one needs fixing, please look into it."
+  }
+ ]
+}

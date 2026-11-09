@@ -1,0 +1,9 @@
+{
+ "text": "Moving on to the demo. So I asked for a card with a buy now button, and the agent just gave me JSX text. Umm, no standard component rendered, so there's nothing to theme.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 12.121,
+ "file": "28d3d5f7dc09f8b256bffde491c4249f.mp3",
+ "clip": "AG2-angular-19-Theming",
+ "at": "demo"
+}

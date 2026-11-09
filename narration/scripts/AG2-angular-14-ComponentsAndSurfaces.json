@@ -1,0 +1,37 @@
+{
+ "clip": "AG2-angular-14-ComponentsAndSurfaces",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the components and surfaces page in the CopilotKit docs, for AG2, with the Angular tab, and I have implemented this page in my project."
+  },
+  {
+   "at": "ide",
+   "text": "So this is my project, this is the exact code from the doc, the app config, the runtime server, the app component, and this is CopilotKit Angular zero point six point oh, the latest one."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I sent the plans table prompt from the page, and umm, nothing came back at all, the chat just stays empty. The agent run fails every time, and no generated UI can render either."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. This import is where the provider comes from."
+  },
+  {
+   "at": "evidence#2",
+   "text": "Then the page says start the runtime with npx tsx server dot ts."
+  },
+  {
+   "at": "evidence#3",
+   "text": "And this chat call is the whole agent."
+  },
+  {
+   "at": "notepad",
+   "text": "So basically, the generative UI entry point doesn't exist in the latest Angular package, so the app won't build. The server file crashes under tsx in an Angular app, because the TanStack packages are ESM only. And uh, even after renaming it, every run fails with chat needs a thread ID."
+  },
+  {
+   "at": "+",
+   "text": "That's what's breaking here, kindly have it fixed."
+  }
+ ]
+}

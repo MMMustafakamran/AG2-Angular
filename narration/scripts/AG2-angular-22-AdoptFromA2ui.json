@@ -1,0 +1,33 @@
+{
+ "clip": "AG2-angular-22-AdoptFromA2ui",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the adopt from A2UI page in the CopilotKit docs, for AG2, with the Angular tab, and I have implemented this page."
+  },
+  {
+   "at": "ide",
+   "text": "So this is my project, this is the exact code from the doc, the after catalog and the after config, and this is CopilotKit Angular zero point six point oh, the latest one."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I asked for the JFK to LHR route with airport components, and uh, the agent just wrote React code as text. Nothing rendered."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. The after catalog imports from this entry point."
+  },
+  {
+   "at": "evidence#2",
+   "text": "And the airport component is never shown."
+  },
+  {
+   "at": "notepad",
+   "text": "So create generative UI and standard UI come from an entry point that isn't in the latest Angular package. Cannot find module. Airport and arrow are never shown, and zod isn't imported, so umm, you can't migrate at all."
+  },
+  {
+   "at": "+",
+   "text": "Alright, so please look into this one and fix it."
+  }
+ ]
+}

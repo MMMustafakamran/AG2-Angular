@@ -1,0 +1,9 @@
+{
+ "text": "So basically, the generative UI entry point doesn't exist in the latest Angular package, so the app won't build. The server file crashes under tsx in an Angular app, because the TanStack packages are ESM only. And uh, even after renaming it, every run fails with chat needs a thread ID.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 20.666,
+ "file": "1059b5a89a77ef1deaa2e3b67d24c7da.mp3",
+ "clip": "AG2-angular-14-ComponentsAndSurfaces",
+ "at": "notepad"
+}

@@ -1,0 +1,33 @@
+{
+ "clip": "AG2-angular-21-MarkdownMode",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the markdown mode page in the CopilotKit docs, for AG2, on the Angular tab, and I have implemented this page in my project."
+  },
+  {
+   "at": "ide",
+   "text": "So this is my project, the exact markdown mode config from the doc, on CopilotKit Angular zero point six."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I asked for a seat estimator card with a slider, and umm, the agent just wrote HTML code as text. No a2ui block got rendered."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. The provider is imported from here."
+  },
+  {
+   "at": "evidence#2",
+   "text": "And markdown mode is just this one option."
+  },
+  {
+   "at": "notepad",
+   "text": "So that generative UI entry point doesn't exist in the latest Angular package. Typescript says cannot find module, so ng serve fails, and uh, there's no way to turn markdown mode on."
+  },
+  {
+   "at": "+",
+   "text": "So yeah, this needs a look, kindly fix it."
+  }
+ ]
+}

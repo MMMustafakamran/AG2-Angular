@@ -1,0 +1,9 @@
+{
+ "text": "Moving on to the demo. So I sent the plans table prompt from the page, and umm, nothing came back at all, the chat just stays empty. The agent run fails every time, and no generated UI can render either.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 14.536,
+ "file": "36a93074ead9c162339f49e7a2c8d605.mp3",
+ "clip": "AG2-angular-14-ComponentsAndSurfaces",
+ "at": "demo"
+}

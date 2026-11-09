@@ -1,0 +1,9 @@
+{
+ "text": "So that generative UI entry point isn't in the latest Angular package, typescript says cannot find module, and ng serve fails. Product and product row are never shown either, so umm, this page can't work as written.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 14.536,
+ "file": "40a8fc6fb624d935869bef0e5301c7ef.mp3",
+ "clip": "AG2-angular-15-Surfaces",
+ "at": "notepad"
+}

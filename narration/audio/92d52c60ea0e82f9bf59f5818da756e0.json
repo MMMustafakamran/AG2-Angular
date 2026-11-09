@@ -1,0 +1,9 @@
+{
+ "text": "Moving on to the demo. So I asked for a product card with an add to cart button, and uh, the agent just wrote HTML as text. No card, no add to cart button.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 11.471,
+ "file": "92d52c60ea0e82f9bf59f5818da756e0.mp3",
+ "clip": "AG2-angular-18-StateAndActions",
+ "at": "demo"
+}

@@ -1,0 +1,33 @@
+{
+ "clip": "AG2-angular-19-Theming",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the theming page in the CopilotKit docs, for AG2, on the Angular tab, and I have implemented this page."
+  },
+  {
+   "at": "ide",
+   "text": "So this is my project, this is the exact code from the doc, the theme config and the theme type, and this is CopilotKit Angular zero point six point oh, the latest one."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I asked for a card with a buy now button, and the agent just gave me JSX text. Umm, no standard component rendered, so there's nothing to theme."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. The whole theme goes on this provider."
+  },
+  {
+   "at": "evidence#2",
+   "text": "And the theme type comes from the same entry point."
+  },
+  {
+   "at": "notepad",
+   "text": "So both of these come from copilotkit angular slash generative UI, which isn't in the latest package. Cannot find module, so uh, the app won't build and the theme never applies."
+  },
+  {
+   "at": "+",
+   "text": "Umm, so that's this page, please fix it when you can."
+  }
+ ]
+}

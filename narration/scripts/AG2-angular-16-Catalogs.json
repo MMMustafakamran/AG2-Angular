@@ -1,0 +1,33 @@
+{
+ "clip": "AG2-angular-16-Catalogs",
+ "segments": [
+  {
+   "at": "doc",
+   "text": "Ok so, this is the catalogs page in the CopilotKit docs, for AG2, with the Angular tab, and I have implemented this code."
+  },
+  {
+   "at": "ide",
+   "text": "This is my project, this is the exact code from the doc, the shop catalog and the app config, and this is CopilotKit Angular zero point six point oh, the latest one."
+  },
+  {
+   "at": "demo",
+   "text": "Moving on to the demo. So I asked for three running shoes as product cards, and umm, it just gave me HTML code as text, no product cards rendered."
+  },
+  {
+   "at": "evidence",
+   "text": "Back on the doc. The catalog imports come from this entry point."
+  },
+  {
+   "at": "evidence#2",
+   "text": "And cart UI here is never defined."
+  },
+  {
+   "at": "notepad",
+   "text": "So create generative UI comes from copilotkit angular slash generative UI, which isn't in the latest package. Cannot find module, so the app doesn't build. And uh, cart UI and hero in the combine example are never shown."
+  },
+  {
+   "at": "+",
+   "text": "So yeah, kindly check this and fix it."
+  }
+ ]
+}

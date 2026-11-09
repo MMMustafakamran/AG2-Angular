@@ -1,0 +1,9 @@
+{
+ "text": "So both provide generative UI and standard UI come from an entry point that isn't in the latest Angular package. Typescript says cannot find module, so ng serve won't build, and none of the sixty nine components can render.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 15.836,
+ "file": "6c85c2601ac1c0d8c3de9474f97e9407.mp3",
+ "clip": "AG2-angular-17-StandardCatalog",
+ "at": "notepad"
+}
