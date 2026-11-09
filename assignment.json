@@ -14,7 +14,9 @@
   "tsx": "4.23.13",
   "ag2": "1.3.0",
   "fastapi": "0.162.2",
-  "python": "3.13.15"
+  "python": "3.13.15",
+  "@tanstack/ai": "1.2.0",
+  "@tanstack/ai-openai": "1.1.1"
  },
  "testedContext": {
   "os": "Microsoft Windows 11 Pro",
@@ -57,7 +59,7 @@
     {
      "text": "Not Working",
      "clip": "AG2-angular-01-Quickstart",
-     "loom": null,
+     "loom": "https://www.loom.com/share/5360e11e91b34b07af674b45ab813be0",
      "narration": "narration/scripts/AG2-angular-01-Quickstart.json"
     }
    ],
@@ -83,7 +85,7 @@
     {
      "text": "Chat UI and Customization - Angular",
      "clip": "AG2-angular-02-ChatUi",
-     "loom": null,
+     "loom": "https://www.loom.com/share/3d9729f3b5b3442ba2fd9f3913df98a8",
      "narration": null
     }
    ],
@@ -113,7 +115,7 @@
     {
      "text": "Frontend tools and generative UI - Angular",
      "clip": "AG2-angular-03-FrontendToolsGenerativeUi",
-     "loom": null,
+     "loom": "https://www.loom.com/share/fbd18938588642a18bb14b9cbdc68aea",
      "narration": null
     }
    ],
@@ -143,7 +145,7 @@
     {
      "text": "Not Working",
      "clip": "AG2-angular-04-NativeGenerativeUi",
-     "loom": null,
+     "loom": "https://www.loom.com/share/4a79b3db0fc7489ab0f35380cfc043b7",
      "narration": "narration/scripts/AG2-angular-04-NativeGenerativeUi.json"
     }
    ],
@@ -173,7 +175,7 @@
     {
      "text": "Issue",
      "clip": "AG2-angular-05-A2ui",
-     "loom": null,
+     "loom": "https://www.loom.com/share/f9a3f0b83f5c4e23972b80d61c3e8f12",
      "narration": "narration/scripts/AG2-angular-05-A2ui.json"
     }
    ],
@@ -203,7 +205,7 @@
     {
      "text": "Issue",
      "clip": "AG2-angular-06-VoiceMultimodal",
-     "loom": null,
+     "loom": "https://www.loom.com/share/7bd699ec98c4401885e20af47a2cf56e",
      "narration": "narration/scripts/AG2-angular-06-VoiceMultimodal.json"
     }
    ],
@@ -233,7 +235,7 @@
     {
      "text": "Human-in-the-loop and interrupts - Angular",
      "clip": "AG2-angular-07-HumanInTheLoop",
-     "loom": null,
+     "loom": "https://www.loom.com/share/5364597695db4c1eb8f6ee529e160f74",
      "narration": null
     }
    ],
@@ -263,7 +265,7 @@
     {
      "text": "Issue",
      "clip": "AG2-angular-08-SharedState",
-     "loom": null,
+     "loom": "https://www.loom.com/share/fdde997e420f4829b036d17c5bb96e5d",
      "narration": "narration/scripts/AG2-angular-08-SharedState.json"
     }
    ],
@@ -293,7 +295,7 @@
     {
      "text": "Threads, memory, attachments, and headless UI - Angular",
      "clip": "AG2-angular-09-ThreadsMemoryHeadless",
-     "loom": null,
+     "loom": "https://www.loom.com/share/9cf3d686338a46d6be29cd24546da253",
      "narration": null
     }
    ],
@@ -323,7 +325,7 @@
     {
      "text": "WebMCP - Angular",
      "clip": "AG2-angular-10-WebMcp",
-     "loom": null,
+     "loom": "https://www.loom.com/share/c5a8d250aa5d4d22b59a27e222297626",
      "narration": null
     }
    ],
@@ -353,7 +355,7 @@
     {
      "text": "Issue",
      "clip": "AG2-angular-11-Authentication",
-     "loom": null,
+     "loom": "https://www.loom.com/share/be790e63c801409ab92555118c5c7026",
      "narration": "narration/scripts/AG2-angular-11-Authentication.json"
     }
    ],
@@ -383,7 +385,7 @@
     {
      "text": "Not Working",
      "clip": "AG2-angular-12-SubAgents",
-     "loom": null,
+     "loom": "https://www.loom.com/share/0c8847ff8fd84ec59b1c7d73d7952145",
      "narration": "narration/scripts/AG2-angular-12-SubAgents.json"
     }
    ],
@@ -411,8 +413,293 @@
     {
      "text": "Inspector - Angular",
      "clip": "AG2-angular-13-Inspector",
-     "loom": null,
+     "loom": "https://www.loom.com/share/9ec0410449ed4beab592418e32660261",
      "narration": null
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-components",
+   "label": "Components and surfaces",
+   "kind": "guide",
+   "group": null,
+   "child": false,
+   "docPath": "https://docs.copilotkit.ai/ag2/generative-ui/components",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14,
+    15
+   ],
+   "notes": [
+    "Issue: the page's Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build; and the Try it runtime never replies (server.ts won't start under tsx in an Angular app, then every run fails with \"chat() needs a threadId\").",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-14-ComponentsAndSurfaces",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-14-ComponentsAndSurfaces.json"
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-surfaces",
+   "label": "Surfaces",
+   "kind": "guide",
+   "group": null,
+   "child": true,
+   "docPath": "https://docs.copilotkit.ai/ag2/generative-ui/components/surfaces",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14,
+    16
+   ],
+   "notes": [
+    "Issue: the Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build and no generated UI renders.",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-15-Surfaces",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-15-Surfaces.json"
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-catalogs",
+   "label": "Catalogs",
+   "kind": "guide",
+   "group": null,
+   "child": true,
+   "docPath": "https://docs.copilotkit.ai/ag2/generative-ui/components/catalogs",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14,
+    16
+   ],
+   "notes": [
+    "Issue: the Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build and no generated UI renders.",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-16-Catalogs",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-16-Catalogs.json"
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-standard-catalog",
+   "label": "Standard catalog",
+   "kind": "guide",
+   "group": null,
+   "child": true,
+   "docPath": "https://docs.copilotkit.ai/generative-ui/components/standard-catalog",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14,
+    16
+   ],
+   "notes": [
+    "Issue: the Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build and no generated UI renders.",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-17-StandardCatalog",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-17-StandardCatalog.json"
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-state-and-actions",
+   "label": "State and actions",
+   "kind": "guide",
+   "group": null,
+   "child": true,
+   "docPath": "https://docs.copilotkit.ai/ag2/generative-ui/components/state-and-actions",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14,
+    16
+   ],
+   "notes": [
+    "Issue: the Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build and no generated UI renders.",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-18-StateAndActions",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-18-StateAndActions.json"
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-theming",
+   "label": "Theming",
+   "kind": "guide",
+   "group": null,
+   "child": true,
+   "docPath": "https://docs.copilotkit.ai/ag2/generative-ui/components/theming",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14
+   ],
+   "notes": [
+    "Issue: the Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build and no generated UI renders.",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-19-Theming",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-19-Theming.json"
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-transports",
+   "label": "Transports",
+   "kind": "guide",
+   "group": null,
+   "child": true,
+   "docPath": "https://docs.copilotkit.ai/ag2/generative-ui/components/transports",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14
+   ],
+   "notes": [
+    "Issue: the Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build and no generated UI renders.",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-20-Transports",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-20-Transports.json"
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-markdown-mode",
+   "label": "Markdown mode",
+   "kind": "guide",
+   "group": null,
+   "child": true,
+   "docPath": "https://docs.copilotkit.ai/ag2/generative-ui/components/markdown-mode",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14
+   ],
+   "notes": [
+    "Issue: the Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build and no generated UI renders.",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-21-MarkdownMode",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-21-MarkdownMode.json"
+    }
+   ],
+   "review": {
+    "verdict": null,
+    "approvedAt": null,
+    "by": null
+   }
+  },
+  {
+   "id": "cmp-from-a2ui",
+   "label": "Adopt from A2UI",
+   "kind": "guide",
+   "group": null,
+   "child": true,
+   "docPath": "https://docs.copilotkit.ai/ag2/generative-ui/components/from-a2ui",
+   "reachable": "in-content",
+   "status": "❌",
+   "findings": [
+    14,
+    16
+   ],
+   "notes": [
+    "Issue: the Angular code imports @copilotkit/angular/generative-ui, which the latest package (0.6.0) doesn't have, so the app won't build and no generated UI renders.",
+    "Note: Angular tab on the /ag2 Declarative pages, announced by the team."
+   ],
+   "block": null,
+   "links": [
+    {
+     "text": "Not Working",
+     "clip": "AG2-angular-22-AdoptFromA2ui",
+     "loom": null,
+     "narration": "narration/scripts/AG2-angular-22-AdoptFromA2ui.json"
     }
    ],
    "review": {

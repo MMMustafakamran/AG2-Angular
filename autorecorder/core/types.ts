@@ -120,6 +120,13 @@ export interface PageDefinition {
    */
   docOnlyAction?: boolean;
 
+  /**
+   * localStorage entries set on every page of the take before the doc loads, e.g. the docs site's
+   * persisted tab choice (`{ "shell-docs.tab.frontend_framework": "angular" }`) so a page whose
+   * code sits behind a framework tab opens on that tab, as it would for a reader who picked it.
+   */
+  docStorage?: Record<string, string>;
+
   /** Per-page overrides of the recorder's fixed waits. See `RecorderTimeouts`. */
   timeouts?: Partial<RecorderTimeouts>;
 

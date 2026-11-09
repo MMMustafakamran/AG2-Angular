@@ -138,6 +138,8 @@ export const PROJECT: ProjectConfig = {
 
 /** Absolute doc URL for a page's `docPath`. */
 export function docUrlFor(docPath: string): string {
+  // HARNESS: pages outside docBaseUrl (the /ag2 Components and surfaces pages) give a full URL.
+  if (/^https?:\/\//.test(docPath)) return docPath;
   return `${PROJECT.docBaseUrl.replace(/\/$/, '')}/${docPath.replace(/^\//, '')}`;
 }
 

@@ -9,6 +9,7 @@ import { type Page } from 'playwright';
 import { waitForPageReady } from './page-ready';
 import {
   runA2uiAction,
+  runComponentsAction,
   runAuthAction,
   runFrontendToolsAction,
   runGenUiAction,
@@ -32,6 +33,15 @@ export const ACTION_MAP: Record<string, PageActionHandler> = {
   'multi-agent-subagents': runSubagentsAction,
   inspector: runInspectorAction,
   auth: runAuthAction,
+  'cmp-components': runComponentsAction,
+  'cmp-surfaces': runComponentsAction,
+  'cmp-catalogs': runComponentsAction,
+  'cmp-standard-catalog': runComponentsAction,
+  'cmp-state-and-actions': runComponentsAction,
+  'cmp-theming': runComponentsAction,
+  'cmp-transports': runComponentsAction,
+  'cmp-markdown-mode': runComponentsAction,
+  'cmp-from-a2ui': runComponentsAction,
 };
 
 export async function executePageAction(

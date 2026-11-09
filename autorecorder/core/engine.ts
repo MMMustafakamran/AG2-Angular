@@ -380,7 +380,7 @@ export class RecordingEngine {
    * identical launch flags, viewport and colour scheme — a terminal clip that
    * differed in any of those would cut against the rest of the suite.
    */
-  private async openStage(warmUrl?: string): Promise<{
+  private async openStage(warmUrl?: string, docStorage?: Record<string, string>): Promise<{
     browser: Browser;
     context: BrowserContext;
     page: Page;
@@ -405,6 +405,16 @@ export class RecordingEngine {
         size: { width: 1920, height: 1080 },
       },
     });
+
+    // A page's `docStorage` (e.g. the docs site's persisted framework tab) is in place before the
+    // first script of every page runs, warm-up included.
+    if (docStorage && Object.keys(docStorage).length) {
+      await context.addInitScript((entries: Record<string, string>) => {
+        try {
+          for (const [k, v] of Object.entries(entries)) localStorage.setItem(k, v);
+        } catch {}
+      }, docStorage);
+    }
 
     // Playwright starts recording the moment a page is created, so however long
     // the first navigation takes is dead footage at the head of every video.
@@ -1023,7 +1033,7 @@ export class RecordingEngine {
       }
     }
 
-    const { browser, context, page } = await this.openStage(config.docUrl);
+    const { browser, context, page } = await this.openStage(config.docUrl, config.docStorage);
     setTimelinePage(config.id, config.docUrl);
     setNotepadClip(this.rootDir, config.filename ?? config.id); // Notepad stays up for its voice-over
 

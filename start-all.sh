@@ -4,6 +4,8 @@
 #   8240 Copilot Runtime (frontend/server.ts; doc: 8200), with the Authentication guide's
 #        hooked runtime under /auth (frontend/auth-runtime.ts)
 #   4240 ng serve (doc: 4200)
+#   8242 the Components and surfaces page's TanStack runtime (frontend/components-runtime.mts; doc: server.ts on 8200).
+#        The doc has you `export OPENAI_API_KEY` in its terminal: loaded from backend/.env here.
 # Key: backend/.env (OPENAI_API_KEY; see backend/.env.example).
 cd "$(dirname "$0")"
 mkdir -p logs
@@ -20,5 +22,6 @@ done
 
 cd frontend
 (npx tsx server.ts > ../logs/runtime-8240.log 2>&1) &
+(set -a; . ../backend/.env; set +a; npx tsx components-runtime.mts > ../logs/components-runtime-8242.log 2>&1) &
 (npm start > ../logs/angular-4240.log 2>&1) &
 wait

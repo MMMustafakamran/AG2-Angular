@@ -2,7 +2,7 @@
 
 You are one of several independent reviewers. You get **5 recorded clips** from one CI run and
 judge each one on its own. You never see the other agents' work and you never edit anything: you
-only read and report. The owner approves after you; nothing you say is written to `FINDINGS.md`
+only read and report. Claude Code decides from your verdicts; nothing you say is written to `FINDINGS.md`
 or the report automatically ([QA-RULES.md](QA-RULES.md) §6).
 
 Related: [QA-RULES.md](QA-RULES.md) (status criteria, verbatim code, HARNESS edits),
@@ -14,7 +14,7 @@ Background heuristics: `qa-kit/checks/haiku-review-notes.md`.
 CI (no LLM): hold pages whose doc changed and resolve today's package versions ([DRIFT.md](DRIFT.md)) → record the other pages → re-attach saved narration to expected-failure clips at the new
 marks (fit check flags lines that no longer fit) → `qa-kit/checks` → upload the run artifact.
 Locally: Claude Code downloads the artifact and splits the clips 5 per Haiku agent (this brief)
-→ the owner approves → clips go to `3-output/<date>/deliver/` → Loom links → HTML report.
+→ Claude Code applies the verdicts (owner reviews afterwards) → clips go to `3-output/<date>/deliver/` → Loom links → HTML report.
 
 ## 2. Inputs per clip
 

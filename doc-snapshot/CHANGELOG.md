@@ -3,6 +3,14 @@
 What the CopilotKit Angular + AG2 docs changed under this repo.
 Only pages that actually moved are recorded — a sync that finds everything unchanged writes nothing here at all.
 
+## 2026-11-09
+
+- Components and surfaces (Declarative), Angular tab, announced by the team: 9 pages saved by hand
+  (drift.mjs only tracks paths under /angular/ag2): ag2_generative-ui_components.md and _surfaces,
+  _catalogs, _state-and-actions, _theming, _transports, _markdown-mode, _from-a2ui;
+  generative-ui_components_standard-catalog.md (/ag2/generative-ui/components/standard-catalog
+  redirects to /generative-ui/components/standard-catalog).
+
 ## 2026-11-08
 
 - guides/frontend-tools-generative-ui: NEW new (+246 / -0)

@@ -14,6 +14,16 @@ export const routes: Routes = [
   { path: 'auth/demo', loadComponent: () => import('./pages/demos').then((m) => m.AuthDemo) },
   { path: 'subagents/demo', loadComponent: () => import('./pages/demos').then((m) => m.SubagentsDemo) },
   { path: 'generative-ui-components/demo', loadComponent: () => import('./pages/demos').then((m) => m.GenUiDemo) },
+  // HARNESS: demo routes for the nine Components and surfaces pages (2026-11-09).
+  { path: 'cmp-components/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpComponentsDemo) },
+  { path: 'cmp-surfaces/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpSurfacesDemo) },
+  { path: 'cmp-catalogs/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpCatalogsDemo) },
+  { path: 'cmp-standard-catalog/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpStandardCatalogDemo) },
+  { path: 'cmp-state-and-actions/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpStateAndActionsDemo) },
+  { path: 'cmp-theming/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpThemingDemo) },
+  { path: 'cmp-transports/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpTransportsDemo) },
+  { path: 'cmp-markdown-mode/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpMarkdownModeDemo) },
+  { path: 'cmp-from-a2ui/demo', loadComponent: () => import('./pages/demos').then((m) => m.CmpFromA2uiDemo) },
   {
     path: 'ide',
     loadComponent: () =>

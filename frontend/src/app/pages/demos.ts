@@ -172,3 +172,70 @@ export class WebmcpDemo {}
   template: `<app-demo-frame backTo="/" heading="Authentication"><app-auth-chat /></app-demo-frame>`,
 })
 export class AuthDemo {}
+
+// HARNESS: demo routes for the nine Components and surfaces pages (/ag2/generative-ui/components*,
+// Angular tab), added 2026-11-09. One chat each; see features/components/cmp-chat.component.ts.
+import { CmpChatComponent } from '../features/components/cmp-chat.component';
+
+@Component({
+  selector: 'app-cmp-components-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Components and surfaces"><app-cmp-chat runtime="components" /></app-demo-frame>`,
+})
+export class CmpComponentsDemo {}
+
+@Component({
+  selector: 'app-cmp-surfaces-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Surfaces"><app-cmp-chat /></app-demo-frame>`,
+})
+export class CmpSurfacesDemo {}
+
+@Component({
+  selector: 'app-cmp-catalogs-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Catalogs"><app-cmp-chat /></app-demo-frame>`,
+})
+export class CmpCatalogsDemo {}
+
+@Component({
+  selector: 'app-cmp-standard-catalog-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Standard catalog"><app-cmp-chat /></app-demo-frame>`,
+})
+export class CmpStandardCatalogDemo {}
+
+@Component({
+  selector: 'app-cmp-state-and-actions-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="State and actions"><app-cmp-chat /></app-demo-frame>`,
+})
+export class CmpStateAndActionsDemo {}
+
+@Component({
+  selector: 'app-cmp-theming-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Theming"><app-cmp-chat /></app-demo-frame>`,
+})
+export class CmpThemingDemo {}
+
+@Component({
+  selector: 'app-cmp-transports-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Transports"><app-cmp-chat /></app-demo-frame>`,
+})
+export class CmpTransportsDemo {}
+
+@Component({
+  selector: 'app-cmp-markdown-mode-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Markdown mode"><app-cmp-chat /></app-demo-frame>`,
+})
+export class CmpMarkdownModeDemo {}
+
+@Component({
+  selector: 'app-cmp-from-a2ui-demo',
+  imports: [DemoFrame, CmpChatComponent],
+  template: `<app-demo-frame backTo="/" heading="Adopt from A2UI"><app-cmp-chat /></app-demo-frame>`,
+})
+export class CmpFromA2uiDemo {}

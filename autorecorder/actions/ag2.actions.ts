@@ -53,6 +53,44 @@ export const FINDING_EVIDENCE: Record<string, DocEvidence[]> = {
     { text: 'from ._state import publish_state', caption: '_state is never shown either', clickTab: 'Code' },
     { text: 'registerRenderToolCall(subAgentRendererConfig(name));', caption: 'subAgentRendererConfig / readDelegations are never defined' },
   ],
+  // Components and surfaces pages (Angular tab; the doc opens on it via docStorage). FINDINGS.md #14-#16.
+  'cmp-components': [
+    { text: 'import { provideGenerativeUI, standardUI } from "@copilotkit/angular/generative-ui";', caption: 'The entry point is not in @copilotkit/angular 0.6.0: TS2307 (FINDINGS.md #14)' },
+    { text: 'Start it with npx tsx server.ts', caption: 'tsx in an Angular app: ERR_PACKAGE_PATH_NOT_EXPORTED on @tanstack/ai (FINDINGS.md #15)' },
+    { text: 'return chat({', caption: 'No threadId: every run fails "chat() needs a threadId" (FINDINGS.md #15)' },
+  ],
+  'cmp-surfaces': [
+    { text: 'import { CopilotGenerativeUISurface } from "@copilotkit/angular/generative-ui";', caption: 'TS2307 (FINDINGS.md #14)' },
+    { text: 'readonly products = input.required<Product[]>();', caption: 'Product / ProductRow never defined (FINDINGS.md #16)' },
+  ],
+  'cmp-catalogs': [
+    { text: '} from "@copilotkit/angular/generative-ui";', caption: 'createGenerativeUI from the missing entry point: TS2307 (FINDINGS.md #14)' },
+    { text: 'extends: [standardUI, cartUI],', caption: 'cartUI / Hero never defined (FINDINGS.md #16)' },
+  ],
+  'cmp-standard-catalog': [
+    { text: 'import { provideGenerativeUI, standardUI } from "@copilotkit/angular/generative-ui";', caption: 'TS2307 (FINDINGS.md #14)' },
+    { text: 'ProductCard: { component: ProductCard, props: productSchema },', caption: 'ProductCard / productSchema never defined (FINDINGS.md #16)' },
+  ],
+  'cmp-state-and-actions': [
+    { text: 'import { connectGenerativeUIState } from "@copilotkit/angular/generative-ui";', caption: 'TS2307 (FINDINGS.md #14)' },
+    { text: 'import { CartStore } from "./cart.store";', caption: 'cart.store is never shown (FINDINGS.md #16)' },
+  ],
+  'cmp-theming': [
+    { text: 'provideGenerativeUI({', caption: 'The whole theming setup is this provider (FINDINGS.md #14)' },
+    { text: 'import type { GenerativeUITheme } from "@copilotkit/angular/generative-ui";', caption: 'TS2307 (FINDINGS.md #14)' },
+  ],
+  'cmp-transports': [
+    { text: 'provideGenerativeUI({ ui: standardUI }),', caption: 'Tool transport: the provider from the missing entry point (FINDINGS.md #14)' },
+    { text: 'provideGenerativeUI({ ui: standardUI, transport: "markdown" }),', caption: 'Markdown transport: same provider' },
+  ],
+  'cmp-markdown-mode': [
+    { text: 'import { provideGenerativeUI, standardUI } from "@copilotkit/angular/generative-ui";', caption: 'TS2307 (FINDINGS.md #14)' },
+    { text: 'provideGenerativeUI({ ui: standardUI, transport: "markdown" }),', caption: 'Markdown mode is this one option on that provider' },
+  ],
+  'cmp-from-a2ui': [
+    { text: '} from "@copilotkit/angular/generative-ui";', caption: 'The After catalog imports the missing entry point: TS2307 (FINDINGS.md #14)' },
+    { text: 'component: Airport,', caption: 'Airport / Arrow components never shown (FINDINGS.md #16)' },
+  ],
 };
 
 export const FINDING_NOTES: Record<string, string> = {
@@ -107,6 +145,63 @@ export const FINDING_NOTES: Record<string, string> = {
     'so the actual auth logic has to be invented to make this page run',
     'with my own token check, signed out the runtime answers 401 and the chat gets no reply',
     'signed in with a made up demo token it replies',
+  ].join('\n'),
+  'cmp-components': [
+    'step 3 imports provideGenerativeUI and standardUI from @copilotkit/angular/generative-ui',
+    'that entry point isnt in the latest @copilotkit/angular on npm, cannot find module',
+    'ng serve type checks so the app wont build with it',
+    'step 2 says start the runtime with npx tsx server.ts but in an angular app it crashes',
+    'err package path not exported, @tanstack/ai is esm only,i had to rename it to .mts',
+    'then every run fails with chat needs a threadId, so the chat never replies at all',
+  ].join('\n'),
+  'cmp-surfaces': [
+    'the angular surface imports CopilotGenerativeUISurface from @copilotkit/angular/generative-ui',
+    'that entry point isnt in the latest @copilotkit/angular, cannot find module so ng serve fails',
+    'Product and ProductRow are never shown either',
+    'without it the agent just wrote the shoes as text, nothing rendered on the page',
+  ].join('\n'),
+  'cmp-catalogs': [
+    'the catalog uses createGenerativeUI from @copilotkit/angular/generative-ui',
+    'not in the latest @copilotkit/angular,cannot find module, app doesnt build',
+    'cartUI and Hero in the combine example are never defined',
+    'so asking for product cards just gave me html code as text, no cards',
+  ].join('\n'),
+  'cmp-standard-catalog': [
+    'the page says use it as it is, provideGenerativeUI with standardUI',
+    'both come from @copilotkit/angular/generative-ui which isnt in the latest package',
+    'cannot find module so ng serve wont build',
+    'ProductCard and productSchema in add your own are never defined',
+    'asked for a card and got jsx code as text,no card component',
+  ].join('\n'),
+  'cmp-state-and-actions': [
+    'connectGenerativeUIState and registerGenerativeUIFunction come from @copilotkit/angular/generative-ui',
+    'that entry point doesnt exist in the latest @copilotkit/angular, cannot find module',
+    'cart.store is imported but never shown',
+    'so no product card, no add to cart, the agent just wrote html as text',
+  ].join('\n'),
+  'cmp-theming': [
+    'theming is just the theme option on provideGenerativeUI',
+    'and GenerativeUITheme, both from @copilotkit/angular/generative-ui',
+    'not in the latest @copilotkit/angular,cannot find module so the app wont build',
+    'no standard components render so theres nothing to theme, agent gave me jsx text',
+  ].join('\n'),
+  'cmp-transports': [
+    'both transports are just options on provideGenerativeUI',
+    'the page never shows the import,the other pages import it from @copilotkit/angular/generative-ui',
+    'that entry point isnt in the latest @copilotkit/angular, cannot find module',
+    'so no render ui tool and no table component, the agent replied with plain text',
+  ].join('\n'),
+  'cmp-markdown-mode': [
+    'markdown mode is provideGenerativeUI with transport markdown',
+    'imported from @copilotkit/angular/generative-ui, which doesnt exist in the latest package',
+    'cannot find module so ng serve fails',
+    'without it no a2ui blocks get rendered, the agent just wrote html code as text',
+  ].join('\n'),
+  'cmp-from-a2ui': [
+    'the after catalog imports createGenerativeUI and standardUI from @copilotkit/angular/generative-ui',
+    'that entry point isnt in the latest @copilotkit/angular, cannot find module',
+    'Airport and Arrow components are never shown and z isnt imported',
+    'so u cant move to the new engine at all, the agent just wrote react code as text',
   ].join('\n'),
 };
 
@@ -310,5 +405,50 @@ export const runInspectorAction: PageActionHandler = async (page, config, _root,
     } else {
       ctx.warn(`Inspector pane "${pane}" not found.`);
     }
+  }
+};
+
+// ---------------------------------------------------------------------------------------------
+// Components and surfaces (nine pages under /ag2/generative-ui/components, Angular tab), 2026-11-09
+// ---------------------------------------------------------------------------------------------
+
+/** Anything the generative UI engine would mount: a surface, a target, a standard component. */
+const GENERATED_UI =
+  'copilot-generative-ui-surface, [data-generative-ui-surface], .a2ui-surface, app-product-card, app-product-grid';
+
+/**
+ * Each page: send its prompt; nothing generated renders (the verbatim provider can't be added:
+ * @copilotkit/angular/generative-ui doesn't exist); type-check the verbatim files into
+ * logs/doc-typecheck.log for the failure terminal; doc evidence + Notepad. The Components page
+ * runs on the doc's own TanStack runtime, which fails every run ("chat() needs a threadId").
+ */
+export const runComponentsAction: PageActionHandler = async (page, config, root, ctx) => {
+  const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 15000 });
+  await settle(page, msgCount, ctx, config.id === 'cmp-components' ? 20000 : 3000);
+  const last = page.locator('copilot-chat-assistant-message').last();
+  const reply = (await last.innerText().catch(() => '')) || '';
+  const rendered = await page
+    .locator(GENERATED_UI)
+    .first()
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .then(() => true)
+    .catch(() => false);
+  if (reply.trim()) await glideTo(page, last, 2500);
+  else await glideTo(page, page.locator('copilot-chat-input, textarea').first(), 2500);
+  if (!rendered) mark('error', reply.trim() ? 'reply is text, no generated UI' : 'no reply');
+  await sleep(1500);
+  await typecheck(root, config.id);
+  // The doc's server.ts as published (.ts, `npx tsx server.ts`) in an Angular workspace: crashes on
+  // the ESM-only @tanstack packages. The take's runtime is the HARNESS .mts copy.
+  if (config.id === 'cmp-components') {
+    await runToLog(root, 'components-runtime-verbatim.log', 'frontend', 'npx', ['tsx', 'components-runtime.ts']);
+  }
+  await writeFinding(page, config.id, config);
+  if (!rendered) {
+    ctx.fail(
+      reply.trim()
+        ? `No generated UI rendered, the agent answered in text: "${reply.slice(0, 120)}". The page's provider comes from @copilotkit/angular/generative-ui, which @copilotkit/angular 0.6.0 doesn't have (TS2307).`
+        : 'The agent never replied: every run of the page\'s TanStack agent fails with "chat() needs a threadId", and the page\'s provider comes from @copilotkit/angular/generative-ui, which doesn\'t exist (TS2307).',
+    );
   }
 };

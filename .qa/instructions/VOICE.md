@@ -74,6 +74,6 @@ No reasons or root-cause explaining: the team already reported it.
 
 ## 7. Review and checks before handing a clip over
 
-- **The owner reviews the script for every new finding before its audio is generated.** In the daily flow, Claude Code shows the script and waits for the owner's OK before calling Fish Audio (never in CI).
+- **No script approval needed (owner, 2026-11-09):** Claude Code writes the script and generates the audio locally (never in CI), then lists new scripts in its summary.
 - No voice cut off by the next segment. Silences are fine; the room tone must be audible through them.
 - Background level steady; transitions listened to.

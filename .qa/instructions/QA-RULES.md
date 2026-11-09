@@ -48,9 +48,9 @@ Each Vue repo runs its own backend; none depends on a React repo's servers at ru
 
 ## 6. Approval
 
-- Never write a finding automatically from a page failure. Propose it; add it only after the owner approves.
-- In the daily flow, Claude Code proposes findings after the local Haiku review, and **the owner approves them locally** before anything is written (see [REVIEW.md](REVIEW.md)). CI never writes findings.
-- Exception (Antigravity React/Vue assignment of 2026-11-04 only): findings were logged directly and the owner reviewed at the end. Do not extend this to other repos or new work.
+- **No approval needed (owner, 2026-11-09):** Claude Code writes findings, sets statuses and generates voice-over directly, from probe evidence and the local Haiku review, then tells the owner what it changed. The owner reviews afterwards and reverts what's wrong.
+- Every finding still needs evidence (probe result, error text, frame) and follows §5 and §8a. When genuinely unsure between levels, pick by §8a and say so in the summary.
+- CI never writes findings (no LLM in CI).
 
 ## 7. Temperature-only failures
 
@@ -81,7 +81,7 @@ Every explained error costs the owner work (explaining it, keeping it known ever
 | **3. Minor** ✅ | A developer fixes it in seconds: missing import / `"use client"` / obvious helper, wrong `runtime-url`, `.env` not loaded, `temperature`, a missing install step | ✅ `Working` + one short `Note:` | Plain working clip (obvious fix as a `HARNESS` line) | No | One line under *Minor notes* |
 | **4. Ignore** | Type or build-only errors, the Next.js "N Issues" badge, cosmetic gaps, wrong comments, harness-only trouble | Nothing | Nothing | No | One line at most |
 
-- **Team ✅ but ours is a level-1 blocker** → a *new big bug*: show the owner first (probe evidence); full clip only after approval.
+- **Team ✅ but ours is a level-1 blocker** → a *new big bug*: confirm it with the probe (several runs), record the full clip, and call it out in the summary to the owner.
 - **Team ⚠️/❌ but ours works** → ✅ ("now working").
 - `⚠️` only where the team used ⚠️ for the same problem.
 - Anything that needs guesswork to fix stays level 1, even if a harness workaround exists.

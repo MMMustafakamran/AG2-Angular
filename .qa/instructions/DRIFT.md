@@ -23,8 +23,8 @@ Manual dispatch inputs: `ignore_drift` (record held pages anyway: only to reprod
 
 1. Open `drift/drift.md` and `versions.md` from the run artifact **first**. Diffs of each changed page: `drift/live/<file>.diff.txt`; the full live page next to it.
 2. Sort each held page into a row of section 3. Look at the rendered page too, not only the `.md` export (they can differ).
-3. Show the owner one short list: page · what changed · proposed action. Status changes and new findings wait for the owner's OK ([QA-RULES.md](QA-RULES.md) §6).
-4. After the OK: update the harness (verbatim), `probe` the page, then `node .qa/tools/drift.mjs --sync=<docPath>[,...]` (updates the snapshot, appends `doc-snapshot/CHANGELOG.md`), commit, and rerun just those pages (`gh workflow run daily.yml -f pages=<ids>`).
+3. Decide and act (no owner OK needed, [QA-RULES.md](QA-RULES.md) §6); list page · what changed · what was done in the summary.
+4. Then: update the harness (verbatim), `probe` the page, then `node .qa/tools/drift.mjs --sync=<docPath>[,...]` (updates the snapshot, appends `doc-snapshot/CHANGELOG.md`), commit, and rerun just those pages (`gh workflow run daily.yml -f pages=<ids>`).
 5. New baselines for sidebar and links: `drift.mjs --sync-nav` once the new/removed pages are decided.
 
 ## 3. What to do for each kind of change
@@ -33,17 +33,17 @@ Manual dispatch inputs: `ignore_drift` (record held pages anyway: only to reprod
 |---|---|---|
 | Whitespace / formatting only | No (not reported) | Nothing. |
 | Prose / typo, same steps (LOW, ✅ page) | No | `--sync` it. If the text adds or removes a step, treat it as a new step. |
-| Prose on a ⚠️/❌ page (LOW) | Yes | Is the evidence text we drag-select still there? Changed → update `FINDING_EVIDENCE` and the narration lines (owner OK), probe, re-record. Gone because the doc now explains the step → is the finding fixed? |
+| Prose on a ⚠️/❌ page (LOW) | Yes | Is the evidence text we drag-select still there? Changed → update `FINDING_EVIDENCE` and the narration lines probe, re-record. Gone because the doc now explains the step → is the finding fixed? |
 | Code snippet changed (HIGH) | Yes | Copy the new code verbatim into the harness, probe, compare with the current status. Same result → re-record. Different → resolved / new finding (owner). |
 | Install command or package list changed (`install`) | Yes | Install exactly what the doc says now (add/remove packages, version spec). A package that won't install is a level-1 finding. |
 | Model or agent config changed (model id, `modelKwargs`, temperature) | Yes | Update the agent file verbatim. Temperature-only failures: QA-RULES §7. |
 | New step or prerequisite (env var, file, command) | Yes | Add it to the harness as the doc says. If it needs guesswork → level-1 finding. |
 | Step or snippet removed | Yes | Remove it from the harness. If the page now misses a piece the reader needs → finding. |
-| The change fixes our finding | Yes | Probe. Works → ✅ "now working", the finding closes after the owner's OK, plain clip, no narration. |
+| The change fixes our finding | Yes | Probe. Works → ✅ "now working", the finding closes, plain clip, no narration. |
 | The change adds a new problem | Yes | Probe, propose a finding (level per QA-RULES §8a). Nothing written before the OK. |
 | "Not supported / coming soon" banner added or removed (MEDIUM `banner`) | Yes | Added → probe; if the feature really is gone, the row follows the banner. Removed → the page is testable now: record it. |
 | Headings / tabs / callouts changed (MEDIUM `structure`) | Yes | Usually re-organised content: re-check the tour and evidence scroll targets, then re-record. A framework tab removed (our framework's code gone) → finding. |
-| Page gone (404), not renamed | Yes | Remove the route, recorder entry and report row; close its findings (owner OK). Keep the harness code in git history. |
+| Page gone (404), not renamed | Yes | Remove the route, recorder entry and report row; close its findings. Keep the harness code in git history. |
 | Page gone, "probably renamed to X" / redirects to X | Yes | Same content at a new URL: update `docPath` in `pages.config.ts` and `assignment.json`, the snapshot file name and the report link, then record. Content split or merged → treat as removed + new pages, move each finding to the page that now has that code. |
 | Tracked page: sidebar → in-content | Yes | Set `reachable: in-content`, note which page links to it, keep testing it. |
 | Tracked page: → none (no longer linked anywhere) | Yes | `reachable: none`: drop it from the report and recording; findings close. Keep the harness code. |

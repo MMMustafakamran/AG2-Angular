@@ -1,0 +1,11 @@
+<!-- Doc: https://docs.copilotkit.ai/ag2/generative-ui/components/theming (Angular tab), src/index.html. Verbatim. -->
+<head>
+  <script>
+    (() => {
+      const media = matchMedia("(prefers-color-scheme: dark)");
+      const apply = () => document.documentElement.classList.toggle("dark", media.matches);
+      apply();
+      media.addEventListener("change", apply);
+    })();
+  </script>
+</head>
