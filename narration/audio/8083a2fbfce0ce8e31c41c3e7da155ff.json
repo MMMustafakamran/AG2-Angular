@@ -1,0 +1,9 @@
+{
+ "text": "So basically on AG2, the state the app writes never reaches the agent, every time I tried. The page says both sides read and write it, and that's just not true with an AG2 agent.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 13.56,
+ "file": "8083a2fbfce0ce8e31c41c3e7da155ff.mp3",
+ "clip": "AG2-angular-08-SharedState",
+ "at": "notepad"
+}

@@ -1,0 +1,9 @@
+{
+ "text": "So the page shows where the auth goes, but not the auth itself. Read session token and verify session don't exist, there are no imports, and the express app isn't shown, so umm, you have to invent the whole thing.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 15.929,
+ "file": "f0d6d93dafa539b4b320d647c8313e84.mp3",
+ "clip": "AG2-angular-11-Authentication",
+ "at": "notepad"
+}

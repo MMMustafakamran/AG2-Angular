@@ -1,0 +1,9 @@
+{
+ "text": "Moving on to the demo. So I asked it to research, write, and critique. The chat answered from my plain agent, but umm, the delegation log stayed empty, because the doc's agent file can't even be imported.",
+ "model": "s2.1-pro-free",
+ "refSha256": "2c9d0ecf4608feacc07c88e869cd4dec601481306a939b7be92fc1bff521a727",
+ "duration": 13.56,
+ "file": "e9eb21a781295ff5a3653bd4b0a18b96.mp3",
+ "clip": "AG2-angular-12-SubAgents",
+ "at": "demo"
+}
