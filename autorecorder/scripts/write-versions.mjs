@@ -29,6 +29,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(HERE, '..', '..');
 const FRONTEND_DIR = path.join(ROOT_DIR, 'frontend');
+// This repo's own backend dir (never a sibling repo: CI only has this checkout).
 const BACKEND_DIR = path.join(ROOT_DIR, 'backend');
 const OUT = path.join(FRONTEND_DIR, 'VERSIONS.md');
 
@@ -113,22 +114,37 @@ function backendVersions(dir) {
   return out;
 }
 
+/** Node backend: every dependency in its package.json, read from its node_modules. */
+function nodeBackendVersions(dir) {
+  const out = {};
+  let pkg;
+  try {
+    pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+  } catch {
+    return out;
+  }
+  for (const name of Object.keys(pkg.dependencies ?? {})) out[name] = resolveVersion(dir, pkg, name);
+  return out;
+}
+
 function getPackageVersions() {
   const versions = { frontend: {}, backend: {} };
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(FRONTEND_DIR, 'package.json'), 'utf8'));
     versions.frontend = {
-      '@copilotkit/vue': resolveVersion(FRONTEND_DIR, pkg, '@copilotkit/vue'),
+      '@copilotkit/angular': resolveVersion(FRONTEND_DIR, pkg, '@copilotkit/angular'),
       '@copilotkit/runtime': resolveVersion(FRONTEND_DIR, pkg, '@copilotkit/runtime'),
-      vue: resolveVersion(FRONTEND_DIR, pkg, 'vue'),
+      '@angular/core': resolveVersion(FRONTEND_DIR, pkg, '@angular/core'),
       '@ag-ui/client': resolveVersion(FRONTEND_DIR, pkg, '@ag-ui/client'),
-      vite: resolveVersion(FRONTEND_DIR, pkg, 'vite'),
     };
   } catch {
     // ignore
   }
   try {
-    versions.backend = backendVersions(BACKEND_DIR);
+    if (BACKEND_DIR) {
+      versions.backend = backendVersions(BACKEND_DIR);
+      if (!Object.keys(versions.backend).length) versions.backend = nodeBackendVersions(BACKEND_DIR);
+    }
   } catch {
     // ignore
   }

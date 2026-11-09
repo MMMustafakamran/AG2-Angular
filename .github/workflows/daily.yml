@@ -283,6 +283,8 @@ jobs:
           PAGES: ${{ matrix.pages }}
         run: |
           set +e
+          # VERSIONS.md (shown in the Quickstart IDE segment) describes today's install, never a committed one.
+          node autorecorder/scripts/write-versions.mjs || echo "::warning::write-versions failed"
           cd autorecorder
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             npm run record -- "--pages=$PAGES" 2>&1 | tee ../logs/record.log
