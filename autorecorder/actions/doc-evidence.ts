@@ -92,7 +92,7 @@ async function pageWheelPoint(page: Page): Promise<{ x: number; y: number } | nu
             const oy = getComputedStyle(el).overflowY;
             if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 4) break;
           }
-          if (el && el !== document.body && el.clientHeight >= h * 0.7) return { x, y };
+          if (el && el !== document.body && el.clientHeight >= h * 0.7 && (!art || el.contains(art))) return { x, y }; // the sidebar is tall too: skip it
         }
       }
       return null;

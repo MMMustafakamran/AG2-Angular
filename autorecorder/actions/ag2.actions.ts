@@ -94,7 +94,6 @@ export const FINDING_NOTES: Record<string, string> = {
     'the page says agent and application both read and write the value, not true on ag2',
   ].join('\n'),
   'multi-agent-subagents': [
-    'the setup step is empty, the md export says setup skipped',
     'the code tab subagents.py imports ._loop_cap and ._state, neither is shown anywhere',
     'python fails with modulenotfound no module named src.agents._loop_cap',
     'the code tab frontend files are react, page.tsx and delegation-log.tsx, on the angular page',
