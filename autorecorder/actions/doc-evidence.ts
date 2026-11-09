@@ -136,6 +136,7 @@ async function wheelBurst(page: Page, delta: number): Promise<void> {
 async function wheelIntoView(page: Page, target: Locator, text?: string): Promise<void> {
   const vh = page.viewportSize()?.height ?? 900;
   const mid = vh * 0.5;
+  let lastPageY: number | null = null;
   for (let i = 0; i < 60; i++) {
     const box = await target.boundingBox().catch(() => null);
     if (!box) break;
@@ -155,6 +156,9 @@ async function wheelIntoView(page: Page, target: Locator, text?: string): Promis
     const anchor = inner && (ty < inner.top || ty > inner.bottom) ? (inner.top + inner.bottom) / 2 : ty;
     const off = anchor - mid;
     if (Math.abs(off) < 140) break;
+    // Page already at its top or bottom: the line can't get closer to the middle, stop wheeling.
+    if (lastPageY !== null && Math.abs(anchor - lastPageY) < 4 && anchor > 70 && anchor < vh - 30) break;
+    lastPageY = anchor;
     const pt = (await pageWheelPoint(page)) ?? { x: 40, y: mid };
     const { x, y } = getGlobalCursorPos();
     if (Math.abs(x - pt.x) > 60 || Math.abs(y - pt.y) > 60) await humanGlide(page, pt.x, pt.y);
