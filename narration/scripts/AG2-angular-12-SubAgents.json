@@ -11,11 +11,11 @@
   },
   {
    "at": "demo",
-   "text": "Moving on to the demo. So I asked it to research, write, and critique, and the delegation log stayed empty. No supervisor is running, because the doc's agent file can't even be imported."
+   "text": "Moving on to the demo. So I asked it to research, write, and critique. The chat answered from my plain agent, but umm, the delegation log stayed empty, because the doc's agent file can't even be imported."
   },
   {
    "at": "evidence",
-   "text": "Back on the doc. It imports loop cap from a local module, uh, that's never shown."
+   "text": "Back on the doc, in the code tab. It imports loop cap from a local module, uh, that's never shown."
   },
   {
    "at": "evidence#2",
@@ -27,7 +27,7 @@
   },
   {
    "at": "notepad",
-   "text": "So the Python file fails with module not found for loop cap. The code tab's frontend files are React, not Angular, umm, and read delegations and the renderer config are missing. So there's nothing to run here."
+   "text": "So the Python file fails with module not found for loop cap. The code tab's frontend files are React, not Angular, umm, and read delegations and the renderer config are missing. So no sub-agents ever run, and the log stays empty."
   },
   {
    "at": "+",

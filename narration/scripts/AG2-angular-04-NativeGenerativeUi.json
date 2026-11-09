@@ -11,7 +11,7 @@
   },
   {
    "at": "demo",
-   "text": "Moving on to the demo. So I asked for a product card, and uh, no component rendered, just text. The provider from the page can't even be added, because the app doesn't build with it."
+   "text": "Moving on to the demo. So I asked for a product card, and uh, it just wrote some HTML code as text, no card component rendered. The provider from the page can't even be added, because the app doesn't build with it."
   },
   {
    "at": "evidence",

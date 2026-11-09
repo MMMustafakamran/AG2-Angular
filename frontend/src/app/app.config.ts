@@ -4,25 +4,10 @@ import {
 } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideClientHydration } from '@angular/platform-browser';
-import {
-  provideCopilotKit,
-  type SandboxFunction,
-} from '@copilotkit/angular';
-import { z } from 'zod';
+import { provideCopilotKit } from '@copilotkit/angular';
 
 import { routes } from './app.routes';
 
-// frontend tools : open generative ui host function start
-const setDashboardFilter: SandboxFunction<{ filter: string }> = {
-  name: 'setDashboardFilter',
-  description: 'Set the active dashboard filter',
-  parameters: z.object({ filter: z.string() }),
-  handler: async ({ filter }) => {
-    sessionStorage.setItem('dashboard-filter', filter);
-    return { applied: filter };
-  },
-};
-// frontend tools : open generative ui host function end
 
 
 /**
@@ -55,16 +40,10 @@ export const appConfig: ApplicationConfig = {
         recovery: { showAfterMs: 2_000, showAfterAttempts: 2 },
       },
       // a2ui : recover incomplete streams end
-      // frontend tools : open generative ui start
-      openGenerativeUI: {
-        // `sandboxFunctions` is typed `SandboxFunction[]`, i.e.
-        // `SandboxFunction<Record<string, unknown>>[]`, so the guide's
-        // `SandboxFunction<{ filter: string }>` is not assignable to it as
-        // written. Cast at the array site, the same idiom the docs use for the
-        // equivalent `component` variance problem. See README known issues.
-        sandboxFunctions: [setDashboardFilter as unknown as SandboxFunction],
-      },
-      // frontend tools : open generative ui end
+      // HARNESS: the Frontend tools page's Open Generative UI config (openGenerativeUI with
+      // setDashboardFilter) is kept verbatim in doc-verbatim/frontend-tools/app.config.ts, not here:
+      // registered at the root it gave every page's agent a generateSandboxedUi tool, which on the
+      // Native generative UI demo answered with an empty message instead of text.
     }),
     // quickstart : connect to copilot runtime end
   ],

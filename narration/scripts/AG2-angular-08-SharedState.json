@@ -11,7 +11,7 @@
   },
   {
    "at": "demo",
-   "text": "Moving on to the demo. So I marked the priority as high, and then it reset. The agent said it has no access to a priority setting. And umm, it also said it can't see my timezone, even though the context sends it."
+   "text": "Moving on to the demo. So I marked the priority as high, and it shows high on the page. Then I asked the agent what the priority is, and umm, it said it doesn't see any priority."
   },
   {
    "at": "evidence",
@@ -19,15 +19,11 @@
   },
   {
    "at": "evidence#2",
-   "text": "This set state call is the write, and the agent never gets it."
-  },
-  {
-   "at": "evidence#3",
-   "text": "And this is the agent context, uh, which the agent never sees either."
+   "text": "And this set state call is the write, uh, the agent never gets it."
   },
   {
    "at": "notepad",
-   "text": "So basically on AG2, the stream drops the state the app writes and ignores the agent context. So neither half of this page works with an AG2 agent, and the page doesn't mention it."
+   "text": "So basically on AG2, the state the app writes never reaches the agent, every time I tried. The page says both sides read and write it, and that's just not true with an AG2 agent."
   },
   {
    "at": "+",

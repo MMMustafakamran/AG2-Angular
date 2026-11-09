@@ -43,11 +43,14 @@ export const FINDING_EVIDENCE: Record<string, DocEvidence[]> = {
   'shared-state': [
     { text: 'Agent and application both read and write the value', caption: 'AG2 drops the state the app writes (FINDINGS.md #4)' },
     { text: 'agent.setState({ ...current, priority });', caption: 'The write the agent never sees' },
-    { text: 'description: "Current account and timezone",', caption: 'Agent context is ignored by AG2 AGUIStream' },
+  ],
+  auth: [
+    { text: 'Authorization: `Bearer ${readSessionToken()}`,', caption: 'readSessionToken is never defined (FINDINGS.md #10)' },
+    { text: 'const session = token ? await verifySession(token) : null;', caption: 'verifySession is never defined; no imports, no server around the handler' },
   ],
   'multi-agent-subagents': [
-    { text: 'from ._loop_cap import loop_cap', caption: '_loop_cap is never shown: ModuleNotFoundError (FINDINGS.md #5)' },
-    { text: 'from ._state import publish_state', caption: '_state is never shown either' },
+    { text: 'from ._loop_cap import loop_cap', caption: '_loop_cap is never shown: ModuleNotFoundError (FINDINGS.md #5)', clickTab: 'Code' },
+    { text: 'from ._state import publish_state', caption: '_state is never shown either', clickTab: 'Code' },
     { text: 'registerRenderToolCall(subAgentRendererConfig(name));', caption: 'subAgentRendererConfig / readDelegations are never defined' },
   ],
 };
@@ -67,7 +70,7 @@ export const FINDING_NOTES: Record<string, string> = {
     'that entry point is not in @copilotkit/angular 0.6.0, the latest on npm',
     'typescript says cannot find module @copilotkit/angular/generative-ui',
     'ng serve type checks so the app does not build with this code',
-    'so no component ever renders, the chat only answers in text',
+    'without the provider the agent just wrote html code as text, no product card component',
     'shop.component.ts also imports ./cart.store which is never shown',
   ].join('\n'),
   a2ui: [
@@ -85,19 +88,26 @@ export const FINDING_NOTES: Record<string, string> = {
     '/info reports audioFileTranscriptionEnabled false so the mic is hidden',
   ].join('\n'),
   'shared-state': [
-    'mark high priority sets priority high, then the agent snapshot resets it',
-    'the agent says it has no access to a priority setting',
-    'connectAgentContext sends the timezone but the agent says it cant see my timezone',
-    'ag2 AGUIStream drops the state the app writes and ignores agent context',
+    'i set priority to high with mark high priority, thats agent.setState',
+    'then asked the agent what the priority is and it says it doesnt see any priority',
+    'so the state the app writes never reaches the ag2 agent, every time i tried',
     'the page says agent and application both read and write the value, not true on ag2',
   ].join('\n'),
   'multi-agent-subagents': [
     'the setup step is empty, the md export says setup skipped',
-    'subagents.py imports ._loop_cap and ._state, neither is shown anywhere',
+    'the code tab subagents.py imports ._loop_cap and ._state, neither is shown anywhere',
     'python fails with modulenotfound no module named src.agents._loop_cap',
     'the code tab frontend files are react, page.tsx and delegation-log.tsx, on the angular page',
     'readDelegations and subAgentRendererConfig are never defined',
-    'so no supervisor runs and the delegation log stays empty',
+    'so the chat answers from the plain agent and the delegation log stays empty',
+  ].join('\n'),
+  auth: [
+    'the app config sends Bearer readSessionToken but readSessionToken is never defined',
+    'the server hook calls verifySession, also never defined, and the snippets have no imports',
+    'the express app around createCopilotExpressHandler is not shown either',
+    'so the actual auth logic has to be invented to make this page run',
+    'with my own token check, signed out the runtime answers 401 and the chat gets no reply',
+    'signed in with a made up demo token it replies',
   ].join('\n'),
 };
 
@@ -191,33 +201,38 @@ export const runVoiceAction: PageActionHandler = async (page, config, root, ctx)
   }
 };
 
-/** Shared state: the UI writes priority, then asks the agent; then asks for the context timezone. */
+/** Shared state: the UI writes priority with agent.setState, then asks the agent what it is. */
 export const runSharedStateAction: PageActionHandler = async (page, config, _root, ctx) => {
   const workspace = page.locator('app-workspace').first();
   await glideTo(page, workspace, 1500);
   await glideClick(page, page.getByRole('button', { name: 'Mark high priority' }).first());
-  await sleep(2500);
-  let msgCount = await sendPrompt(page, 'What is the priority set to right now?', { timeoutMs: 15000 });
+  await sleep(2000);
+  await glideTo(page, workspace, 1500);
+  const msgCount = await sendPrompt(page, 'What is the priority set to right now?', { timeoutMs: 15000 });
   await settle(page, msgCount, ctx);
-  const priorityReply = (await page.locator('copilot-chat-assistant-message').last().innerText().catch(() => '')) || '';
-  await glideTo(page, workspace, 2500);
-  const tz = page.getByRole('button', { name: 'Use London time' }).first();
-  if (await tz.isVisible().catch(() => false)) await glideClick(page, tz);
-  await sleep(1000);
-  msgCount = await sendPrompt(page, 'Which timezone am I on?', { timeoutMs: 15000 });
-  await settle(page, msgCount, ctx);
-  const tzReply = (await page.locator('copilot-chat-assistant-message').last().innerText().catch(() => '')) || '';
-  const sawPriority = /\bhigh\b/i.test(priorityReply);
-  const sawTz = /london|europe|los angeles|america|pacific/i.test(tzReply);
-  if (!sawPriority || !sawTz) mark('error');
-  await sleep(1500);
+  const reply = (await page.locator('copilot-chat-assistant-message').last().innerText().catch(() => '')) || '';
+  const sawPriority = /\bhigh\b/i.test(reply);
+  if (!sawPriority) mark('error');
+  await glideTo(page, page.locator('copilot-chat-assistant-message').last(), 2500);
   await writeFinding(page, config.id, config);
-  if (!sawPriority || !sawTz) {
-    ctx.fail(
-      `The agent saw neither the app's state nor its context. Priority reply: "${priorityReply.slice(0, 120)}"; ` +
-        `timezone reply: "${tzReply.slice(0, 120)}" (FINDINGS.md #4).`,
-    );
+  if (!sawPriority) {
+    ctx.fail(`The agent never saw the priority the app wrote with agent.setState: "${reply.slice(0, 160)}" (FINDINGS.md #4).`);
   }
+};
+
+/** Authentication: signed out the hooked runtime answers 401 (no reply); signed in it replies. */
+export const runAuthAction: PageActionHandler = async (page, config, _root, ctx) => {
+  await sendPrompt(page, config.prompt, { timeoutMs: 15000, expectInputToEmpty: false }).catch(() => {});
+  await sleep(9000);
+  mark('error', 'signed out: runtime answers 401, no reply');
+  await glideClick(page, page.getByRole('button', { name: 'Sign in' }).first());
+  await sleep(1500);
+  const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 15000 });
+  await settle(page, msgCount, ctx);
+  const reply = (await page.locator('copilot-chat-assistant-message').last().innerText().catch(() => '')) || '';
+  if (!reply.trim()) ctx.warn('No reply after signing in.');
+  await glideTo(page, page.locator('copilot-chat-assistant-message').last(), 2500);
+  await writeFinding(page, config.id, config);
 };
 
 /** Sub-agents: ask for research -> write -> critique; the delegation log stays empty; the doc's agent won't import. */

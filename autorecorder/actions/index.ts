@@ -9,6 +9,7 @@ import { type Page } from 'playwright';
 import { waitForPageReady } from './page-ready';
 import {
   runA2uiAction,
+  runAuthAction,
   runFrontendToolsAction,
   runGenUiAction,
   runHitlAction,
@@ -30,6 +31,7 @@ export const ACTION_MAP: Record<string, PageActionHandler> = {
   'shared-state': runSharedStateAction,
   'multi-agent-subagents': runSubagentsAction,
   inspector: runInspectorAction,
+  auth: runAuthAction,
 };
 
 export async function executePageAction(

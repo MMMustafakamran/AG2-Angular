@@ -256,7 +256,7 @@
     4
    ],
    "notes": [
-    "Issue: AG2 drops the state the app sets (priority resets) and ignores agent context, so the agent never sees either."
+    "Issue: the agent never sees the state the app writes with agent.setState (asked for the priority, it says it doesn't see one)."
    ],
    "block": null,
    "links": [
@@ -341,20 +341,20 @@
    "child": false,
    "docPath": "auth",
    "reachable": "sidebar",
-   "status": "✅",
+   "status": "❌",
    "findings": [
     10
    ],
    "notes": [
-    "Note: readSessionToken and verifySession are never defined and the snippets have no imports; with those added the runtime rejects requests without a token (401)."
+    "Issue: readSessionToken and verifySession are never defined and no server or imports are shown, so the auth logic has to be invented."
    ],
    "block": null,
    "links": [
     {
-     "text": "Authentication - Angular",
+     "text": "Issue",
      "clip": "AG2-angular-11-Authentication",
      "loom": null,
-     "narration": null
+     "narration": "narration/scripts/AG2-angular-11-Authentication.json"
     }
    ],
    "review": {

@@ -21,14 +21,20 @@ Stack: `@copilotkit/angular` 0.6.0 (npm latest; declared ^0.6.0), `@copilotkit/r
 - **Result:** the link points to the same page, and there's no `#backend` anchor on it. No route or `transcriptionService` code is shown, so `/info` reports `"audioFileTranscriptionEnabled":false` and the chat has no mic button. Attachments work ("The chart is titled "Quarterly revenue." Q4 comes to 300.").
 
 ### [Shared state and agent context](https://docs.copilotkit.ai/angular/ag2/guides/shared-state)
-**#4 Neither shared state nor agent context reaches an AG2 agent.**
-- **Doc:** "Agent and application both read and write the value | `injectAgentStore` and `agent.setState`", and `connectAgentContext` for "the signed-in user's name, selected record, timezone".
-- **Result:** "Mark high priority" shows `Priority: high`, then the agent's `STATE_SNAPSHOT` (`{"language":"english"}`) replaces it with an empty value. Asked "What is the priority set to right now?" the agent says "I don't have access to a "priority" setting in this chat". Asked "Which timezone am I on?" (context `America/Los_Angeles` registered) it says "I can't directly see your timezone from here." A direct AG-UI POST to the AG2 endpoint with `state` and `context` shows the same: AG2's `AGUIStream` drops incoming state and ignores `context`. The page never says this.
+**#4 The state the app writes never reaches an AG2 agent.**
+- **Doc:** "Agent and application both read and write the value | `injectAgentStore` and `agent.setState`", with `WorkspaceComponent.setPriority()` calling `agent.setState({ ...current, priority })`.
+- **Result:** after "Mark high priority" the workspace shows `Priority: high`, but asked "What is the priority set to right now?" the agent answers "I'm not sure which "priority" you mean" / "I don't have access to any current priority setting". Every try (CI runs and 3 local runs). A direct AG-UI request to the AG2 endpoint with `state: {"priority": "high"}` gets the same, and the run's `STATE_SNAPSHOT` is only the agent's own variables (`{"language":"english"}`): AG2's `AGUIStream` doesn't pass the app's state to the agent. The page doesn't say this. (Agent context from `connectAgentContext` is inconsistent: the CI runs answered "You're currently set to Europe/London", local runs and direct requests did not.)
 
 ### [Sub-agents](https://docs.copilotkit.ai/angular/ag2/multi-agent/subagents)
 **#5 The sub-agents code can't be run: it imports modules the page never shows, and the frontend code is React.**
 - **Doc:** "Setting up sub-agents" has no setup steps (`.md`: `<!-- setup skipped: subagents-setup is not bundled for ag2 -->`). The page's Code tab (`subagents.py`, the complete file with `supervisor = Agent(...)` and `subagents_app.mount("", stream.build_asgi())`) and the two snippets below it all do `from ._loop_cap import loop_cap` and `from ._state import publish_state`; neither module is shown anywhere. The Code tab's frontend files are React (`page.tsx`, `delegation-log.tsx`, `route.ts`) on the Angular page; the Angular snippet calls `readDelegations(...)` and `subAgentRendererConfig(name)`, which are never defined. The snippet's Python block is printed twice.
 - **Error:** `ModuleNotFoundError: No module named 'src.agents._loop_cap'` (Code-tab file saved as `src/agents/subagents.py`, verbatim). Nothing can be served, and there is no Angular code for the delegation log.
+
+### [Authentication](https://docs.copilotkit.ai/angular/ag2/auth)
+**#10 The authentication logic itself is never shown.**
+- **Doc:** `headers: { Authorization: `Bearer ${readSessionToken()}` }` in `provideCopilotKit`, `copilotKit.updateRuntime({ headers: sessionToken ? … : {} })`, and in `server.ts` `const handler = createCopilotExpressHandler({ … onRequest: … const session = token ? await verifySession(token) : null; … })`.
+- **Result:** `readSessionToken`, `sessionToken` and `verifySession` are never defined, the snippets have no imports, and the Express app the handler belongs to isn't shown, so the session handling and the token check have to be invented before the page does anything.
+- **Confirmed by harness:** with a made-up token check (`frontend/auth-runtime.ts`, `verifySession` accepts the Showcase's `demo-token-123`) and a sign-in button that sets that token (`auth-chat.component.ts`), the doc's `onRequest` hook works: signed out the runtime answers `401 Unauthorized` (`Runtime info request failed with status 401`) and the chat gets no reply; signed in it replies.
 
 ### [Native generative UI](https://docs.copilotkit.ai/angular/ag2/guides/generative-ui-components) (in-content: linked from Frontend tools and generative UI, and Using the Angular docs)
 **#6 The package entry point the page uses doesn't exist.**
@@ -39,7 +45,6 @@ Stack: `@copilotkit/angular` 0.6.0 (npm latest; declared ^0.6.0), `@copilotkit/r
 - #7 Frontend tools: `WeatherCardComponent` reads `call.args.city`, but no page shows the AG2 `getWeather` tool it renders. With the harness tool (`location`), the card's heading is empty (`<strong></strong>`) and the result shows.
 - #8 Human-in-the-loop: the interrupt half (`store().interruptController`, `injectInterrupt`) can't fire on AG2 (its AG-UI bridge emits no interrupt events); the page doesn't say so. The `registerHumanInTheLoop` half works.
 - #9 WebMCP: `searchOrders(status)` is never defined (`error TS2304: Cannot find name 'searchOrders'.`, so `ng serve` won't build until a helper is added). With a helper, the tool registers on `document.modelContext` (Chromium with `WebMCPTesting`).
-- #10 Authentication: snippets have no imports; `readSessionToken()` and `verifySession()` are never defined, and the Express app around `createCopilotExpressHandler` isn't shown. With those filled in, the hook works (no token `401 Unauthorized`, valid token `200`).
 - #11 Quickstart: the install step doesn't add `@ag-ui/client` (needed for `HttpAgent` in the runtime).
 - #12 Threads, memory, attachments, headless: the thread list and memories stay empty without Intelligence (`threadEndpoints.list:false`); chat, headless UI and attachments work.
 - #13 Inspector: "**[Inspector](/angular/ag2/inspector)** is the page to read for what the panes show" links to the page itself.
