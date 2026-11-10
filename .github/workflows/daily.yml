@@ -12,11 +12,11 @@ on:
   workflow_dispatch:   # manual only (owner, 2026-11-10): no daily schedule
     inputs:
       scope:
-        description: 'Pages to record when "pages" is empty: all, failures (❌), or failures + partials (❌ ⚠️)'
+        description: 'Pages to record when "pages" is empty: auto (all if a CopilotKit version changed vs the committed lockfile, else ❌ ⚠️), all, failures (❌), or failures + partials (❌ ⚠️)'
         required: false
         type: choice
-        options: [all, failures, failures-and-partials]
-        default: all
+        options: [auto, all, failures, failures-and-partials]
+        default: auto
       pages:
         description: 'Recorder page ids, comma-separated (empty = every page)'
         required: false
@@ -91,7 +91,8 @@ jobs:
       - id: m
         env:
           PAGES: ${{ inputs.pages }}
-          SCOPE: ${{ inputs.scope || 'all' }}
+          SCOPE: ${{ inputs.scope || 'auto' }}
+          USE_LOCKFILE: ${{ inputs.use_lockfile || false }}
           SHARDS: ${{ inputs.shards || 5 }}
           IGNORE_DRIFT: ${{ inputs.ignore_drift || false }}
         run: |
@@ -101,6 +102,51 @@ jobs:
             # Scope (QA-RULES section 9): only pages a reader reaches by clicking through the docs.
             # Recorder pages are joined to assignment.json by docPath: reachable sidebar / in-content
             # are recorded, none is skipped, a docPath assignment.json doesn't list is kept (warning).
+            # scope=auto (default): every page when a CopilotKit package (@copilotkit/* on npm, copilotkit
+            # on PyPI) resolves today to another version than the committed lockfile, else only ❌ ⚠️.
+            # use_lockfile = no change; versions.json missing or unreadable = all (safe side, warning).
+            if [ "$SCOPE" = "auto" ]; then
+              SCOPE=$(python3 - <<'PY'
+          import json, os, re, sys
+          CK = re.compile(r"^(@copilotkit/|copilotkit$)", re.I)
+          def say(line):
+              s = os.environ.get("GITHUB_STEP_SUMMARY")
+              if s:
+                  with open(s, "a", encoding="utf8") as f:
+                      f.write(line + "\n\n")
+              print(line, file=sys.stderr)
+          if os.environ.get("USE_LOCKFILE") == "true":
+              say("**Scope auto: failures-and-partials** (❌ ⚠️ only): use_lockfile=true, the committed lockfiles are installed, so no CopilotKit change.")
+              print("failures-and-partials"); sys.exit(0)
+          try:
+              d = json.load(open("plan-out/versions.json", encoding="utf8"))
+              rows = d["rows"]
+          except Exception as e:
+              print(f"::warning::scope auto: plan-out/versions.json missing or unreadable ({type(e).__name__}); recording every page", file=sys.stderr)
+              say("**Scope auto: all pages**: the versions check wrote no readable versions.json, so a CopilotKit change is unknown (safe side).")
+              print("all"); sys.exit(0)
+          ck = [r for r in rows if CK.match(r.get("name") or "")]
+          changed, seen = [], set()
+          for r in ck:
+              if r.get("committed") != r.get("today") and (r["name"], r.get("committed"), r.get("today")) not in seen:
+                  seen.add((r["name"], r.get("committed"), r.get("today")))
+                  changed.append(r)
+          notes = d.get("notes") or []
+          extra = (" Not re-resolved (committed lockfile used): " + "; ".join(n.split(":")[0] for n in notes) + ".") if notes else ""
+          if changed:
+              lst = ", ".join(f"{r['name']} {r.get('committed') or '-'} → {r.get('today')} ({r.get('dir')})" for r in changed[:6])
+              more = f" and {len(changed) - 6} more" if len(changed) > 6 else ""
+              say(f"**Scope auto: all pages**: CopilotKit changed since the committed lockfile: {lst}{more}.{extra}")
+              print("all")
+          else:
+              if not ck:
+                  print("::warning::scope auto: versions.json lists no CopilotKit package (a re-resolve failed?); treating it as no change", file=sys.stderr)
+              say(f"**Scope auto: failures-and-partials** (❌ ⚠️ only): no CopilotKit change since the committed lockfile ({len(ck)} CopilotKit rows checked).{extra}")
+              print("failures-and-partials")
+          PY
+              )
+              export SCOPE
+            fi
             PAGES=$(python3 - <<'PY'
           import json, sys
           rec = json.load(open("recorder-pages.json"))
