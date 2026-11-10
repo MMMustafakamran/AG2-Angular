@@ -9,10 +9,14 @@ name: Daily QA run
 # written to the backend .env at runtime and never printed. Harness ports only (never 3000/8000).
 
 on:
-  schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC daily
-  workflow_dispatch:
+  workflow_dispatch:   # manual only (owner, 2026-11-10): no daily schedule
     inputs:
+      scope:
+        description: 'Pages to record when "pages" is empty: all, failures (❌), or failures + partials (❌ ⚠️)'
+        required: false
+        type: choice
+        options: [all, failures, failures-and-partials]
+        default: all
       pages:
         description: 'Recorder page ids, comma-separated (empty = every page)'
         required: false
@@ -87,6 +91,7 @@ jobs:
       - id: m
         env:
           PAGES: ${{ inputs.pages }}
+          SCOPE: ${{ inputs.scope || 'all' }}
           SHARDS: ${{ inputs.shards || 5 }}
           IGNORE_DRIFT: ${{ inputs.ignore_drift || false }}
         run: |
@@ -100,10 +105,16 @@ jobs:
           import json, sys
           rec = json.load(open("recorder-pages.json"))
           norm = lambda s: (s or "").strip("/").lower()
+          import os
+          scope = os.environ.get("SCOPE", "all")
+          want = {"failures": ("❌",), "failures-and-partials": ("❌", "⚠️")}.get(scope)
+          status = {norm(p.get("docPath")): p.get("status") for p in json.load(open("assignment.json", encoding="utf8"))["pages"]}
           reach = {norm(p.get("docPath")): ("excluded" if p.get("excluded") else p.get("reachable")) for p in json.load(open("assignment.json", encoding="utf8"))["pages"]}
           keep = []
           for r in rec:
               st = reach.get(norm(r["docPath"]))
+              if want and status.get(norm(r["docPath"])) not in want:
+                  continue
               if st in ("sidebar", "in-content"):
                   keep.append(r["id"])
               elif st is None:
