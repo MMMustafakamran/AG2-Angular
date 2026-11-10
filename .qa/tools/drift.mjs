@@ -40,10 +40,12 @@ const assignment = JSON.parse(fs.readFileSync("assignment.json", "utf8"));
 const ROOT = new URL(assignment.docBase).pathname.replace(/^\/|\/$/g, ""); // e.g. vue/langgraph-typescript
 const norm = (s) => s.replace(/^﻿/, "").replace(/\r\n?/g, "\n").split("\n").map((l) => l.trimEnd()).join("\n").trim();
 const baseDoc = (p) => (p || "").split("?")[0].replace(/^\/|\/$/g, "");
-const urlOf = (doc) => `/${ROOT}${doc ? "/" + doc : ""}`;
+// A docPath may be a full URL (a page outside ROOT that a reachable page links to, e.g. AG2 Angular -> /ag2/...).
+const abs = (doc) => /^https?:\/\//.test(doc || "");
+const urlOf = (doc) => abs(doc) ? new URL(doc).pathname.replace(/\/$/, "") : `/${ROOT}${doc ? "/" + doc : ""}`;
 const cleanUrl = (u) => u.replace(/\.md$/, "").replace(/\/index$/, "").replace(/\/$/, "");
 const docOf = (u) => { u = cleanUrl(u); return u === `/${ROOT}` ? "" : u.startsWith(`/${ROOT}/`) ? u.slice(ROOT.length + 2) : null; };
-const fileOf = (doc) => `${(ROOT + (doc ? "/" + doc : "")).replace(/\//g, "_")}.md`;
+const fileOf = (doc) => abs(doc) ? `${urlOf(doc).slice(1).replace(/\//g, "_")}.md` : `${(ROOT + (doc ? "/" + doc : "")).replace(/\//g, "_")}.md`;
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 
 // ---------- fetching ----------
@@ -295,6 +297,9 @@ async function check() {
         inSb = !own.error && own.pages.some((p) => p.url === u);
         if (own.error && (t.reachable || "none") === "sidebar") inSb = true; // unknown, not removed
       }
+      // Pages outside ROOT (full-URL docPath) are reached through out-of-section links the link scan
+      // never follows: keep their recorded reachability unless the page is gone.
+      if (abs(d) && row?.state !== "gone") continue;
       let now = row?.state === "gone" ? "gone" : inSb ? "sidebar" : linkSet.has(u) ? "in-content" : "none";
       if (now !== "gone" && now !== (t.reachable || "none") && now !== "sidebar") {
         // The rendered page can redirect where the .md export doesn't (e.g. /vue/<fw>/quickstart
