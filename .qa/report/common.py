@@ -60,7 +60,7 @@ def validate(a, path='assignment'):
             errs.append(f'{path}: {pid}: group {p["group"]!r} is not in sections')
         for l in p.get('links', []):
             c = l.get('clip')
-            if c and c in clips:
+            if c and c in clips and not l.get('shared'):  # shared: one clip deliberately covers several rows (e.g. banner pages)
                 errs.append(f'{path}: {pid}: clip {c} used twice')
             clips.add(c)
             if l.get('loom') and not re.match(r'https://www\.loom\.com/share/[0-9a-f]{32}', l['loom']):
