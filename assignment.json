@@ -52,7 +52,7 @@
     11
    ],
    "notes": [
-    "Issue: the backend step is empty (\"setup skipped\"): no AG2 agent, no runtime server and no @ag-ui/client install, so the chat has nothing to talk to without guessing."
+    "Issue: the backend step is only a callout: no AG2 agent, no runtime server and no @ag-ui/client install; the linked runtime page shows only a Next.js route, so the chat has nothing to talk to without guessing."
    ],
    "block": null,
    "links": [
@@ -108,7 +108,7 @@
     7
    ],
    "notes": [
-    "Note: no page shows the AG2 getWeather tool the weather card renders, so the card's city heading stays empty."
+    "Note: the browser getWeather tool calls /api/weather, which no page shows."
    ],
    "block": null,
    "links": [
@@ -224,12 +224,8 @@
    "docPath": "guides/human-in-the-loop",
    "reachable": "sidebar",
    "status": "✅",
-   "findings": [
-    8
-   ],
-   "notes": [
-    "Note: the approval tool works; the interrupt part can't fire on AG2 and the page doesn't say so."
-   ],
+   "findings": [],
+   "notes": [],
    "block": null,
    "links": [
     {
@@ -258,7 +254,7 @@
     4
    ],
    "notes": [
-    "Issue: the agent never sees the state the app writes with agent.setState (asked for the priority, it says it doesn't see one)."
+    "Issue: the agent can't read the state the app writes with agent.setState (asked for the priority, it says it has none); the page never shows how an AG2 agent reads that state."
    ],
    "block": null,
    "links": [
@@ -284,12 +280,8 @@
    "docPath": "guides/threads-memory-attachments-headless",
    "reachable": "sidebar",
    "status": "✅",
-   "findings": [
-    12
-   ],
-   "notes": [
-    "Note: thread list and memories need Intelligence; chat, headless UI and attachments work."
-   ],
+   "findings": [],
+   "notes": [],
    "block": null,
    "links": [
     {
@@ -343,20 +335,19 @@
    "child": false,
    "docPath": "auth",
    "reachable": "sidebar",
-   "status": "❌",
+   "status": "✅",
    "findings": [
     10
    ],
    "notes": [
-    "Issue: readSessionToken and verifySession are never defined and no server or imports are shown, so the auth logic has to be invented."
+    "Note: readSessionToken and verifySession are never defined; with small helpers the onRequest hook works (401 signed out, reply signed in)."
    ],
    "block": null,
    "links": [
     {
-     "text": "Issue",
+     "text": "Authentication - Angular",
      "clip": "AG2-angular-11-Authentication",
-     "loom": "https://www.loom.com/share/be790e63c801409ab92555118c5c7026",
-     "narration": "narration/scripts/AG2-angular-11-Authentication.json"
+     "loom": "https://www.loom.com/share/be790e63c801409ab92555118c5c7026"
     }
    ],
    "review": {

@@ -19,11 +19,11 @@
   },
   {
    "at": "evidence#2",
-   "text": "And this set state call is the write, uh, the agent never gets it."
+   "text": "And this set state call is the write, uh, but the agent can't read it."
   },
   {
    "at": "notepad",
-   "text": "So basically on AG2, the state the app writes never reaches the agent, every time I tried. The page says both sides read and write it, and that's just not true with an AG2 agent."
+   "text": "So basically, every time I tried, the agent couldn't see the priority. AG2 does copy the state into the agent's variables, but umm, nothing puts it in the prompt, and the page never shows how an AG2 agent reads it."
   },
   {
    "at": "+",

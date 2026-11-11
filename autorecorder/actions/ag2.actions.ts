@@ -41,12 +41,8 @@ export const FINDING_EVIDENCE: Record<string, DocEvidence[]> = {
     { text: 'Follow the Voice backend setup to add a dedicated Runtime', caption: 'The link points to a #backend anchor that does not exist (FINDINGS.md #3)' },
   ],
   'shared-state': [
-    { text: 'Agent and application both read and write the value', caption: 'AG2 drops the state the app writes (FINDINGS.md #4)' },
+    { text: 'Agent and application both read and write the value', caption: 'No AG2 code shows how the agent reads this state (FINDINGS.md #4)' },
     { text: 'agent.setState({ ...current, priority });', caption: 'The write the agent never sees' },
-  ],
-  auth: [
-    { text: 'Authorization: `Bearer ${readSessionToken()}`,', caption: 'readSessionToken is never defined (FINDINGS.md #10)' },
-    { text: 'const session = token ? await verifySession(token) : null;', caption: 'verifySession is never defined; no imports, no server around the handler' },
   ],
   'multi-agent-subagents': [
     { text: 'from ._loop_cap import loop_cap', caption: '_loop_cap is never shown: ModuleNotFoundError (FINDINGS.md #5)', clickTab: 'Code' },
@@ -95,9 +91,9 @@ export const FINDING_EVIDENCE: Record<string, DocEvidence[]> = {
 
 export const FINDING_NOTES: Record<string, string> = {
   quickstart: [
-    'the backend step is just a callout, the md export says setup skipped, agent-setup is not bundled for ag2',
+    'the backend step is just a callout, no code at all',
     'no ag2 agent, no runtime server.ts, and @ag-ui/client is not in the install step',
-    'the copilot runtime page it links only has a next.js route with your agents go here',
+    'the copilot runtime page it links only has a next.js route.ts with an HttpAgent example,no ag2 agent no node server',
     'so following the page the chat has nothing to talk to',
     'this chat only works bc i wrote backend/main.py with AGUIStream on fastapi',
     'and frontend/server.ts with an HttpAgent myself',
@@ -128,8 +124,9 @@ export const FINDING_NOTES: Record<string, string> = {
   'shared-state': [
     'i set priority to high with mark high priority, thats agent.setState',
     'then asked the agent what the priority is and it says it doesnt see any priority',
-    'so the state the app writes never reaches the ag2 agent, every time i tried',
-    'the page says agent and application both read and write the value, not true on ag2',
+    'every time i tried, page says agent and application both read and write the value',
+    'ag2 does copy the state into the agent context variables but nothing puts it in the prompt',
+    'and the page never shows how an ag2 agent reads that state',
   ].join('\n'),
   'multi-agent-subagents': [
     'the code tab subagents.py imports ._loop_cap and ._state, neither is shown anywhere',
@@ -137,14 +134,6 @@ export const FINDING_NOTES: Record<string, string> = {
     'the code tab frontend files are react, page.tsx and delegation-log.tsx, on the angular page',
     'readDelegations and subAgentRendererConfig are never defined',
     'so the chat answers from the plain agent and the delegation log stays empty',
-  ].join('\n'),
-  auth: [
-    'the app config sends Bearer readSessionToken but readSessionToken is never defined',
-    'the server hook calls verifySession, also never defined, and the snippets have no imports',
-    'the express app around createCopilotExpressHandler is not shown either',
-    'so the actual auth logic has to be invented to make this page run',
-    'with my own token check, signed out the runtime answers 401 and the chat gets no reply',
-    'signed in with a made up demo token it replies',
   ].join('\n'),
   'cmp-components': [
     'step 3 imports provideGenerativeUI and standardUI from @copilotkit/angular/generative-ui',
@@ -318,7 +307,7 @@ export const runSharedStateAction: PageActionHandler = async (page, config, _roo
 export const runAuthAction: PageActionHandler = async (page, config, _root, ctx) => {
   await sendPrompt(page, config.prompt, { timeoutMs: 15000, expectInputToEmpty: false }).catch(() => {});
   await sleep(9000);
-  mark('error', 'signed out: runtime answers 401, no reply');
+  mark('action', 'signed out: runtime answers 401, no reply');
   await glideClick(page, page.getByRole('button', { name: 'Sign in' }).first());
   await sleep(1500);
   const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 15000 });
@@ -326,7 +315,6 @@ export const runAuthAction: PageActionHandler = async (page, config, _root, ctx)
   const reply = (await page.locator('copilot-chat-assistant-message').last().innerText().catch(() => '')) || '';
   if (!reply.trim()) ctx.warn('No reply after signing in.');
   await glideTo(page, page.locator('copilot-chat-assistant-message').last(), 2500);
-  await writeFinding(page, config.id, config);
 };
 
 /** Sub-agents: ask for research -> write -> critique; the delegation log stays empty; the doc's agent won't import. */

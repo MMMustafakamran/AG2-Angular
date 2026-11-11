@@ -23,7 +23,7 @@
   },
   {
    "at": "notepad",
-   "text": "So basically, the step for the AG2 backend is empty, the markdown even says setup skipped. There's no AG2 agent, no runtime server, and the at ag-ui slash client package isn't in the install step. Umm, the runtime page it links only has a Next JS route."
+   "text": "So basically, the step for the AG2 backend is just a callout, no code. There's no AG2 agent, no runtime server, and the at ag-ui slash client package isn't in the install step. Umm, the runtime page it links only has a Next JS route with an example agent."
   },
   {
    "at": "+",
