@@ -699,5 +699,6 @@
     "by": null
    }
   }
- ]
+ ],
+ "quickstartBlocked": "the Angular quickstart has no AG2 agent, no runtime server and no @ag-ui/client install, so a reader has no working Angular app to build on"
 }
