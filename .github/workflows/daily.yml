@@ -173,6 +173,19 @@ jobs:
           )
           fi
           echo "pages: $PAGES"
+          # Owner rule (QA-RULES 8b): while assignment.json has "quickstartBlocked", the framework's quickstart is a
+          # complete block, so only the quickstart is recorded (and drift-checked) until it becomes usable.
+          PAGES=$(python3 - "$PAGES" <<'PY'
+          import json, sys
+          pages = [p for p in sys.argv[1].split(",") if p]
+          if json.load(open("assignment.json", encoding="utf8")).get("quickstartBlocked"):
+              keep = [p for p in pages if "quickstart" in p]
+              print(f"quickstartBlocked: recording only {keep or 'nothing'} (skipped {len(pages) - len(keep)} pages)", file=sys.stderr)
+              pages = keep
+          print(",".join(pages))
+          PY
+          )
+          echo "pages after quickstart rule: $PAGES"
           # Doc drift (DRIFT.md): pages whose doc changed since doc-snapshot/ are held, not recorded.
           mkdir -p plan-out
           if [ "$IGNORE_DRIFT" = "true" ]; then
