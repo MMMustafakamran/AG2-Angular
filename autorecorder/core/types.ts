@@ -121,6 +121,14 @@ export interface PageDefinition {
   docOnlyAction?: boolean;
 
   /**
+   * The demo route is expected to error as published (it doesn't compile, or Next shows a full-page
+   * error such as "Blocking Route"). The take does not stop on an HTTP 4xx/5xx and does not wait for
+   * the chat to render: it settles on whatever the route shows (the Next error overlay), then runs the
+   * page's action, which films the error and goes on to the doc evidence and Notepad note.
+   */
+  demoMayError?: boolean;
+
+  /**
    * localStorage entries set on every page of the take before the doc loads, e.g. the docs site's
    * persisted tab choice (`{ "shell-docs.tab.frontend_framework": "angular" }`) so a page whose
    * code sits behind a framework tab opens on that tab, as it would for a reader who picked it.

@@ -4,7 +4,7 @@ The docs and the packages move every day. CI tests what a new reader gets **toda
 
 ## 1. What CI does (plan job, before anything records)
 
-1. **Versions:** `versions.mjs` re-resolves each project's lockfile within the ranges already in `package.json` / `pyproject.toml`, so `^1.84.1` installs the newest 1.x the night it ships. All shards install that one resolution. The recorder's own deps stay locked. Ranges are never rewritten in CI (`ncu -u` broke the old repos' CI). The run summary lists committed vs today vs npm latest.
+1. **Versions (owner, 2026-11-13):** every run installs **npm `latest`** (the dist-tag, never `next`) of every direct `@copilotkit/*` and `@ag-ui/*` dependency, even past the `package.json` range, and the latest `copilotkit` / `ag-ui-*` on PyPI (`uv lock --upgrade`; a direct one still below latest gets its floor raised). `versions.mjs` writes that into a CI copy of `package.json` / `pyproject.toml` plus fresh lockfiles in `resolved/`; the committed files are untouched. Every other dependency is re-resolved within its range only (`ncu -u` broke the old repos' CI). All shards copy `resolved/` over the checkout, install it, then write `VERSIONS.md` from the installed tree (shown in the Quickstart IDE segment). The recorder's own deps stay locked. The run summary lists committed vs installed vs latest; a CopilotKit/AG-UI package still behind latest (held by another package's exact pin) is called out.
 2. **Drift:** `drift.mjs` compares the live docs with `doc-snapshot/`:
    - **pages:** `doc-snapshot/pages/*.md` vs `<docs>/<path>.md`, sorted by severity:
      - **HIGH:** a code block changed (an install command change is flagged as `install`);
@@ -17,7 +17,7 @@ The docs and the packages move every day. CI tests what a new reader gets **toda
 3. **Hold:** recorded pages with HIGH or MEDIUM drift, LOW drift on a ⚠️/❌ page (the highlighted evidence can be prose), gone, moved or reachability changes are **not recorded**. They are listed under "Held" in the run summary and `drift/held.md`; their old clip, status and Loom link stay until we decide.
 4. **Recorded anyway:** LOW drift on a ✅ page, and pages the docs site failed to serve (drift unknown, not absent: said in the summary).
 
-Manual dispatch inputs: `ignore_drift` (record held pages anyway: only to reproduce something), `use_lockfile` (install the committed lockfiles: to tell whether a break came from the doc or from a new package version).
+Manual dispatch inputs: `ignore_drift` (record held pages anyway: only to reproduce something), `use_lockfile` (skip `versions.mjs` and install the committed package.json + lockfiles: to tell whether a break came from the doc or from a new package version).
 
 ## 2. Daily: read the drift before the clips
 
@@ -51,6 +51,7 @@ Manual dispatch inputs: `ignore_drift` (record held pages anyway: only to reprod
 | New page in the sidebar or newly linked ("New pages to decide") | Not recorded yet | Same as above. If the owner decides to skip it, `--sync-nav` so it stops showing. |
 | Sidebar page renamed or moved to another group | No | Update the report's grouping rows / page label. |
 | Dead link (in-section link → 404) | No | Minor note in FINDINGS.md (level 3/4); not a blocker unless the reader needs that page to finish the steps. |
+| Quickstart changed in a repo with `quickstartBlocked` (QA-RULES 8b) | Yes (it's the only page CI records and drift-checks there) | Probe the new quickstart. Still no usable setup → keep the flag, update its clip. Usable now → remove `quickstartBlocked`, then run the whole framework again: `drift.mjs --out=drift` on every page (snapshots may be stale), update the harness for each drifted page, probe, record `scope=all`, upload, rebuild the report. |
 | Docs site unreachable / page fetch error | No | Recorded on the old snapshot; summary says "drift unknown". Check it by hand next day if it repeats. |
 | Sidebar baseline missing | No | Run `drift.mjs --sync-nav` locally and commit. |
 
@@ -58,7 +59,8 @@ Manual dispatch inputs: `ignore_drift` (record held pages anyway: only to reprod
 
 | Versions report says | What to do |
 |---|---|
-| A package changed since the committed lockfile (e.g. `@copilotkit/runtime` 1.84.1 → 1.85.0) | All pages were recorded on it. Review as usual; a status change is a finding or a "now working". After review, commit `resolved/` lockfiles from the run artifact and update the `Stack:` line in FINDINGS.md and `assignment.json` `versions` / `testedContext`. |
-| **Behind npm latest** (range blocks it: new major, `^0.0.x`, an exact pin from a scaffold like `next 16.4.5`) | A reader starting today gets the newer one. If the doc's install command has no version → owner decides on bumping the range (reviewed edit to package.json, never CI). If the doc pins the version → keep it. |
+| A package changed since the committed lockfile (e.g. `@copilotkit/runtime` 1.86.0 → 1.87.1) | All pages were recorded on it. Review as usual; a status change is a finding or a "now working". After review, commit the `resolved/` lockfiles (and the CI `package.json` / `pyproject.toml` when CopilotKit/AG-UI went past the range) from the run artifact and update the `Stack:` line in FINDINGS.md and `assignment.json` `versions` / `testedContext`. |
+| **CopilotKit / AG-UI behind latest** (only when another package exact-pins it, e.g. `@copilotkit/angular` pinning `@copilotkit/core`) | Say so in the review; that is what a reader gets today too. Not a finding by itself. |
+| **Other dependency behind npm latest** (range blocks it: new major, `^0.0.x`, an exact pin from a scaffold like `next 16.4.5`) | A reader starting today gets the newer one. If the doc's install command has no version → owner decides on bumping the range (reviewed edit to package.json, never CI). If the doc pins the version → keep it. |
 | A dir failed to re-resolve | That dir used the committed lockfile: say so in the review; often a peer-dependency clash in the new release (could itself be a finding if the doc's install fails the same way). |
 | Something breaks only on the new versions | Rerun with `use_lockfile` to confirm the doc code is unchanged and the package caused it. That is a finding (the doc's own install gives the reader the breaking version). |

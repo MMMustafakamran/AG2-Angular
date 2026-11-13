@@ -67,13 +67,28 @@ def status_cell(a, p):
     if links and links[0].get('clip') is None and not links[0].get('loom'):
         warnings.append(f"{a['repo']}: {p['id']}: clip not recorded yet")
         links = []
-    first = [f'<a href="{href(l)}">{esc(l.get("text") or head)}</a>' for l in links] or [esc(head)]
+    # status style: the link text is always the status label (emoji + word), never a per-clip text
+    first = [f'<a href="{href(l)}">{esc(head)}</a>' for l in links] or [esc(head)]
     notes = [f'<span style="font-size:9pt">{esc(n)}</span>' for n in p.get('notes', [])]
     return '<br>'.join(first + notes)
 
 
 def cell(a, p):
-    return (team_cell if a['report']['style'] == 'team' else status_cell)(a, p)
+    if a.get('quickstartBlocked') and p.get('kind', 'guide') == 'guide' and p.get('notTested'):
+        # QA-RULES 8b: a page never built because the quickstart blocks the framework
+        return '<br>'.join(['❌', esc('Blocked: ' + a['quickstartBlocked']), esc('Not tested: nothing to build on until the quickstart works.')])
+    c = (team_cell if a['report']['style'] == 'team' else status_cell)(a, p)
+    # Owner rule (2026-11-12, QA-RULES 8b): when the framework's quickstart is a complete block (level 1, no
+    # usable setup), every other page is blocked for a reader: the row is ❌ "Blocked", and what the page did
+    # on a hand-built setup follows as secondary info. assignment.json top level: "quickstartBlocked": "<reason>".
+    qb = a.get('quickstartBlocked')
+    if qb and p.get('kind', 'guide') == 'guide' and p['status'] in ('✅', '⚠️', '❌') and c:
+        tested = {'✅': 'works', '⚠️': 'works with a minor issue', '❌': 'also fails on its own'}[p['status']]
+        if c.startswith(p['status'] + '<br>'):
+            c = c[len(p['status']) + 4:]  # the row's emoji is ❌ now; the link and notes stay
+        c = '<br>'.join(['❌', esc('Blocked: ' + qb),
+                         esc(f'Tested anyway on a setup built by hand: the page {tested}.'), c])
+    return c
 
 
 def label_cell(a, p):

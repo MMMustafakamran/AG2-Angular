@@ -31,6 +31,8 @@ Order: **demo → back to the doc → highlight each faulty snippet → Notepad 
 
 **Check every evidence text against the rendered page, not the `.md` export.** The two can differ.
 
+CI enforces it: `tools/evidence_check.mjs` (plan job) holds a page whose `FINDING_EVIDENCE` text is not in the live page's rendered HTML, and `tools/gate.py` (after Record) retakes a finding clip once when an `evidence` checkpoint failed or the `notepad` / `notepad-closed` mark is missing, then warns.
+
 ### Notepad note
 
 - About **5-8 lines**: what the doc says, what actually happened, the harness fix if any. A viewer who skips the doc and code segments must still know what broke.

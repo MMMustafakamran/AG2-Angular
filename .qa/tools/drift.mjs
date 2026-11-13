@@ -267,7 +267,7 @@ async function check() {
   const sb = await liveSidebar();
   const baseSb = readJson(path.join(SNAP, "sidebar.json"), null);
   const baseLinks = readJson(path.join(SNAP, "links.json"), null);
-  let sidebarSet = null, linkSet = null, linksNow = {};
+  let sidebarSet = null, linkSet = null, linksNow = {}, renderedLinks = null, from = [];
   if (sb.error) report.unknown.push(`sidebar: ${sb.error}`);
   else {
     sidebarSet = new Set(sb.pages.map((p) => p.url));
@@ -279,7 +279,7 @@ async function check() {
         .map((p) => ({ url: p.url, from: `${ob.get(p.url).group} > ${ob.get(p.url).name}`, to: `${p.group} > ${p.name}` }));
     } else report.unknown.push("sidebar: no baseline (doc-snapshot/sidebar.json); run drift.mjs --sync-nav locally");
     // links from every in-scope sidebar page (one hop = in-content, QA-RULES section 9)
-    const from = sb.pages.map((p) => p.url).filter((u) => inScope(docOf(u)));
+    from = sb.pages.map((p) => p.url).filter((u) => inScope(docOf(u)));
     const got = await pool(from, 6, (u) => (live.has(docOf(u)) ? live.get(docOf(u)) : get(`${ORIGIN}${u}.md`)));
     linkSet = new Set();
     for (const [u, r] of got) if (r.status === 200) { linksNow[u] = links(r.text, u); linksNow[u].forEach((x) => linkSet.add(x)); }
@@ -310,6 +310,17 @@ async function check() {
           row && (row.redirectsTo = to);
           if (sidebarSet.has(to)) now = "sidebar"; else if (linkSet.has(to) && now === "none") now = "in-content";
         }
+      }
+      if (now === "none" && (t.reachable || "none") !== "none") {
+        // Cards and buttons on the rendered page (e.g. the quickstart's "Read the docs" cards) never
+        // appear in the .md export: before calling a page unlinked, check the rendered HTML of the
+        // in-scope sidebar pages too (fetched once, only when needed).
+        if (!renderedLinks) {
+          renderedLinks = new Set();
+          const html = await pool(from, 6, (x) => get(`${ORIGIN}${x}`));
+          for (const [x, r] of html) if (r.status === 200) links(r.text, x).forEach((y) => renderedLinks.add(y));
+        }
+        if (renderedLinks.has(u)) now = "in-content";
       }
       const was = t.reachable || "none";
       if (now !== was) report.reach.push({ docPath: d, from: was, to: now, active: active(d) });

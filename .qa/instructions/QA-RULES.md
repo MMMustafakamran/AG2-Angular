@@ -32,6 +32,8 @@ Missing steps, undefined identifiers, unstated prerequisites, wrong-framework co
 | LangGraph-vue | 5150 (Vite) | 8150 doc server.ts · 8151 `sample_agent` · 8153 `frontend_tools_harness` | 8152 own backend (`agent/`, one `langgraphjs dev` server; IPv6 `::1` only) |
 | Antigravity-react | 3040 | (Next route) | 8040 quickstart · 8041 interrupt · 8042 shared state · 8043 sub-agents · 8044 tool rendering · 8045 state rendering |
 | Antigravity-vue | 5140 (Vite) | 8140 | 8141 own backend (`backend/`, quickstart agent) |
+| OpenAIAgents-Vue | 5130 (Vite) | 8130 (`server.openai.ts`) | 8131 quickstart agent · 8132–8139 page agents (own `backend/`) |
+| GoogleADK-vue | 5120 (Vite) | 8120 | 8121 quickstart agent · 8122 page agents (own `backend/`) · 8129 Gemini pool |
 
 Each Vue repo runs its own backend; none depends on a React repo's servers at runtime.
 
@@ -86,6 +88,15 @@ Every explained error costs the owner work (explaining it, keeping it known ever
 - `⚠️` only where the team used ⚠️ for the same problem.
 - Anything that needs guesswork to fix stays level 1, even if a harness workaround exists.
 - When unsure between levels 1 and 3, ask: would a reader following the page get stuck? Yes → 1. A minute of fixing → 3.
+
+## 8b. Quickstart blocks the whole framework (owner, 2026-11-12)
+
+When a framework's quickstart is a **complete block** (level 1: no usable setup for that frontend, e.g. the Vue quickstart is the React landing page with no Vue steps), a reader can't get a running app, so **every other page of that framework is blocked**:
+
+- Set `"quickstartBlocked": "<one line: why the quickstart gives no working setup>"` at the top level of the repo's `assignment.json`. The report builder then shows every guide row as ❌ `Blocked: …`, followed by `Tested anyway on a setup built by hand: the page works / also fails on its own` and the page's own clip and notes.
+- Keep testing and recording each page on the harness-built setup (marked HARNESS): its own result stays in `status`, and its own findings stay in `FINDINGS.md`, so nothing is lost once the quickstart is fixed.
+- Not for minor quickstart issues (level 3, e.g. a missing `.env` load): those leave the other pages alone.
+- Applies today to: LangGraph Vue, Antigravity Vue, Google ADK Vue, AG2 Angular.
 
 ## 9. Scope: reachable pages only
 

@@ -1223,7 +1223,10 @@ export class RecordingEngine {
 
         // A 404/500 used to sail through as a PASS -- the route simply did not exist.
         const status = response?.status() ?? 0;
-        if (status >= 400) {
+        if (status >= 400 && config.demoMayError) {
+          // Expected: the doc's code errors on this route. Film it; the page action continues.
+          console.warn(`   ⚠️ Demo route returned HTTP ${status} (expected for this page: demoMayError).`);
+        } else if (status >= 400) {
           throw new Error(
             `Demo route returned HTTP ${status} (${config.demoUrl})`,
           );
@@ -1257,12 +1260,18 @@ export class RecordingEngine {
         }
         // No .catch() here: if the demo never renders an interactive surface there
         // is nothing to record, and that must fail rather than warn.
-        await page.waitForSelector(SELECTORS.chatReady, {
-          state: 'visible',
-          timeout: timeouts.chatReadyMs,
-        });
-        await sleep(1000);
-        await dismissNextIssues(page);
+        if (config.demoMayError) {
+          // The route may never render a chat: settle on whatever it shows (usually the error overlay).
+          await page.waitForSelector(SELECTORS.chatReady, { state: 'visible', timeout: 15000 }).catch(() => {});
+          await sleep(1000);
+        } else {
+          await page.waitForSelector(SELECTORS.chatReady, {
+            state: 'visible',
+            timeout: timeouts.chatReadyMs,
+          });
+          await sleep(1000);
+          await dismissNextIssues(page);
+        }
 
         // Dispatch specific demo actions
         mark('action');

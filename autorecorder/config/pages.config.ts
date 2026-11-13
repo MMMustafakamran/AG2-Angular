@@ -10,6 +10,8 @@ import { definePages } from '../core/types';
 export const SKIP_RECORDING: Record<string, string> = {};
 
 const PKG = { filePath: 'frontend/package.json', startLine: 20, endLine: 40 };
+/** Installed versions (scripts/write-versions.mjs, written after the final install in each CI shard). */
+const VERSIONS = { filePath: 'frontend/VERSIONS.md', startLine: 6, endLine: 20 };
 const RUNTIME = { filePath: 'frontend/server.ts', startLine: 29, endLine: 52 };
 /** The docs site's persisted framework tab (localStorage), so the doc opens on Angular. */
 const ANGULAR_TAB = { 'shell-docs.tab.frontend_framework': 'angular' };
@@ -25,7 +27,7 @@ export const PAGES = definePages([
     ideFile: 'frontend/src/app/features/quickstart/quickstart-chat.ts',
     startLine: 1,
     endLine: 15,
-    extraTabs: [PKG, { filePath: 'frontend/src/app/app.config.ts', startLine: 1, endLine: 50 }, RUNTIME, AGENT],
+    extraTabs: [VERSIONS, PKG, { filePath: 'frontend/src/app/app.config.ts', startLine: 1, endLine: 50 }, RUNTIME, AGENT],
     prompt: 'Hey, are you connected? Tell me a quick fun fact about kites.',
     waitAfterPromptMs: 3000,
   },

@@ -2,7 +2,7 @@ name: Daily QA run
 
 # Daily doc-QA run for AG2-Angular (generated from the workspace template; README "Daily CI").
 #   plan    -> doc drift: pages whose doc changed are held, not recorded (DRIFT.md);
-#              versions a new reader gets today (lockfiles re-resolved); page list split into shards
+#              versions a new reader gets today (CopilotKit + AG-UI latest); page list split into shards
 #   record  -> one runner per shard: today's lockfiles, own servers (start-all.sh), records its pages
 #   report  -> narration fit/mix (saved audio only), clip checks, summary, ONE artifact run-<date>
 # No LLM, no Fish key, no voice sample in CI. The only secret is the doc agents' model key,
@@ -77,7 +77,7 @@ jobs:
         run: |
           for i in 1 2 3; do python3 -m pip install --user --quiet "uv==0.9.*" && break; echo "uv install attempt $i failed; retrying"; sleep 10; done
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Versions a new reader gets today (lockfiles re-resolved within the package.json ranges)
+      - name: Versions a new reader gets today (CopilotKit + AG-UI at latest, the rest within range)
         if: ${{ !inputs.use_lockfile }}
         env:
           UV_PYTHON_DOWNLOADS: never
