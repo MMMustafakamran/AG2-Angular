@@ -10,7 +10,7 @@ import { definePages } from '../core/types';
 export const SKIP_RECORDING: Record<string, string> = {};
 
 const PKG = { filePath: 'frontend/package.json', startLine: 20, endLine: 40 };
-/** Installed versions (scripts/write-versions.mjs, written after the final install in each CI shard). */
+/** Installed versions (scripts/write-versions.mjs, written after the final install in each CI job). */
 const VERSIONS = { filePath: 'frontend/VERSIONS.md', startLine: 6, endLine: 20 };
 const RUNTIME = { filePath: 'frontend/server.ts', startLine: 29, endLine: 52 };
 /** The docs site's persisted framework tab (localStorage), so the doc opens on Angular. */
