@@ -6,7 +6,7 @@ matches.json: {"<clip id>": "https://www.loom.com/share/<32 hex>", ...}
           or  [{"clip": "...", "url": "...", "title": "..."}, ...]
 Links that already have a different URL are left alone unless --overwrite.
 """
-import argparse, os, re, sys
+import argparse, datetime, os, re, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import load, save, validate
@@ -43,6 +43,7 @@ def main():
                 continue
             print(f'  set  {c} -> {m[c]}')
             l['loom'] = m[c]
+            l['filmed'] = datetime.date.today().isoformat()
             changed += 1
     for c in sorted(set(m) - used):
         print('  unmatched (no such clip in this assignment):', c)

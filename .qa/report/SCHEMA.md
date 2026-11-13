@@ -23,7 +23,8 @@ One file per repo (each repo is handed off separately). It is the single source 
   "notes": ["Issue: page says \"Not supported on LangGraph (TypeScript)\" ...", "With the showcase graph added it works."],
   "block": null,
   "links": [{"text": "Issue", "clip": "LANGGRAPH-react-04-UseInterrupt",
-             "loom": "https://www.loom.com/share/...", "narration": "narration/scripts/LANGGRAPH-react-04-UseInterrupt.json"}],
+             "loom": "https://www.loom.com/share/...", "narration": "narration/scripts/LANGGRAPH-react-04-UseInterrupt.json",
+             "filmed": "2026-11-13"}],
   "review": {"verdict": null, "approvedAt": null, "by": null}
  }]
 }
@@ -43,5 +44,5 @@ One file per repo (each repo is handed off separately). It is the single source 
 | `status` | `✅` `⚠️` `❌` (QA-RULES section 8), `N/A` (not tested, note says why), `–` (parent row with no result of its own), `python-only` (renders "The code is written only in Python."). |
 | `notes` | One string per line, in order. Backticks mark code and are stripped in the HTML. |
 | `block` | Hard-failure block (`Area/Surface`, `Problem`, `Tested context`, `Loom Video`). `loomInBlock: true` also puts a Loom link after "Loom Video". |
-| `links[]` | One per clip shown in the cell. `text: null` derives it (`<label> - JS` for ✅, else `Issue`; status style: the status words). `clip: null` = not recorded yet: team style leaves the result cell empty (as report.py did). `loom: null` = not uploaded: the link becomes `#LOOM-<clip>` and the clip is listed under "Clips to upload". The clip id is the file stem in `3-output/<date>/deliver/` and the Loom title. |
+| `links[]` | One per clip shown in the cell. `text: null` derives it (`<label> - JS` for ✅, else `Issue`; status style: the status words). `clip: null` = not recorded yet: team style leaves the result cell empty (as report.py did). `loom: null` = not uploaded: the link becomes `#LOOM-<clip>` and the clip is listed under "Clips to upload". The clip id is the file stem in `3-output/<date>/deliver/` and the Loom title. `filmed` (optional, `YYYY-MM-DD`): the day that Loom clip was filmed; `apply_loom.py` sets it to today when it writes a link. With `scope=auto` and no CopilotKit change, CI also films every ✅ page whose newest `filmed` is missing or 4+ days old. |
 | `review` | Owner sign-off per page. `deliver.py --only-approved` delivers only `verdict: "approved"`. |

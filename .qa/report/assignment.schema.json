@@ -73,6 +73,7 @@
         "clip": {"type": ["string", "null"], "description": "clip id = file stem = Loom title; null = not recorded yet"},
         "loom": {"type": ["string", "null"], "pattern": "^https://www\\.loom\\.com/share/[0-9a-f]{32}$"},
         "narration": {"type": ["string", "null"], "description": "voice script path (workspace-relative) or null"},
+        "filmed": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "description": "YYYY-MM-DD the clip behind `loom` was filmed/uploaded; CI scope=auto re-films a working page when this is missing or 4+ days old"},
         "pendingVideo": {"type": "string", "description": "migration hint: recorder clip name still expected"}
        }
       }

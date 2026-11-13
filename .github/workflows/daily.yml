@@ -141,14 +141,14 @@ jobs:
           else:
               if not ck:
                   print("::warning::scope auto: versions.json lists no CopilotKit package (a re-resolve failed?); treating it as no change", file=sys.stderr)
-              say(f"**Scope auto: failures-and-partials** (❌ ⚠️ only): no CopilotKit change since the committed lockfile ({len(ck)} CopilotKit rows checked).{extra}")
+              say(f"**Scope auto: failures-and-partials** (❌ ⚠️, plus ✅ pages last filmed 4+ days ago): no CopilotKit change since the committed lockfile ({len(ck)} CopilotKit rows checked).{extra}")
               print("failures-and-partials")
           PY
               )
-              export SCOPE
+              export SCOPE SCOPE_AUTO=1
             fi
             PAGES=$(python3 - <<'PY'
-          import json, sys
+          import json, sys, datetime
           rec = json.load(open("recorder-pages.json"))
           norm = lambda s: (s or "").strip("/").lower()
           import os
@@ -156,11 +156,24 @@ jobs:
           want = {"failures": ("❌",), "failures-and-partials": ("❌", "⚠️")}.get(scope)
           status = {norm(p.get("docPath")): p.get("status") for p in json.load(open("assignment.json", encoding="utf8"))["pages"]}
           reach = {norm(p.get("docPath")): ("excluded" if p.get("excluded") else p.get("reachable")) for p in json.load(open("assignment.json", encoding="utf8"))["pages"]}
-          keep = []
+          # Owner rule (WORKFLOW.md B2): when scope=auto found no CopilotKit change, also film every ✅ page whose
+          # newest clip (links[].filmed, YYYY-MM-DD) is missing or 4+ days before today, so working pages stay fresh.
+          stale = set()
+          if scope == "failures-and-partials" and os.environ.get("SCOPE_AUTO") == "1":
+              today = datetime.date.today()
+              for p in json.load(open("assignment.json", encoding="utf8"))["pages"]:
+                  if p.get("status") != "✅":
+                      continue
+                  ds = [l["filmed"] for l in p.get("links", []) if l.get("filmed")]
+                  if not ds or (today - datetime.date.fromisoformat(max(ds))).days >= 4:
+                      stale.add(norm(p.get("docPath")))
+          keep, fresh = [], []
           for r in rec:
               st = reach.get(norm(r["docPath"]))
-              if want and status.get(norm(r["docPath"])) not in want:
+              if want and status.get(norm(r["docPath"])) not in want and norm(r["docPath"]) not in stale:
                   continue
+              if norm(r["docPath"]) in stale and st in ("sidebar", "in-content"):
+                  fresh.append(r["id"])
               if st in ("sidebar", "in-content"):
                   keep.append(r["id"])
               elif st is None:
@@ -168,6 +181,13 @@ jobs:
                   keep.append(r["id"])
               else:
                   print(f"skip {r['id']} ({r['docPath']}): reachable={st}", file=sys.stderr)
+          if stale:
+              s = os.environ.get("GITHUB_STEP_SUMMARY")
+              line = f"**Working pages due for a new clip** (✅, last filmed 4+ days ago or never): {len(fresh)}" + (f": {', '.join(fresh)}" if fresh else "")
+              print(line, file=sys.stderr)
+              if s:
+                  with open(s, "a", encoding="utf8") as f:
+                      f.write(line + "\n\n")
           print(",".join(keep))
           PY
           )
