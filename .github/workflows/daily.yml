@@ -91,6 +91,7 @@ jobs:
       - id: m
         env:
           PAGES: ${{ inputs.pages }}
+          PAGES_INPUT: ${{ inputs.pages }}
           SCOPE: ${{ inputs.scope || 'auto' }}
           USE_LOCKFILE: ${{ inputs.use_lockfile || false }}
           SHARDS: ${{ inputs.shards || 5 }}
@@ -196,9 +197,10 @@ jobs:
           # Owner rule (QA-RULES 8b): while assignment.json has "quickstartBlocked", the framework's quickstart is a
           # complete block, so only the quickstart is recorded (and drift-checked) until it becomes usable.
           PAGES=$(python3 - "$PAGES" <<'PY'
-          import json, sys
+          import json, os, sys
           pages = [p for p in sys.argv[1].split(",") if p]
-          if json.load(open("assignment.json", encoding="utf8")).get("quickstartBlocked"):
+          # Pages named explicitly (-f pages=...) are recorded anyway: the owner asked for them (2026-11-13).
+          if json.load(open("assignment.json", encoding="utf8")).get("quickstartBlocked") and not os.environ.get("PAGES_INPUT", "").strip():
               keep = [p for p in pages if "quickstart" in p]
               print(f"quickstartBlocked: recording only {keep or 'nothing'} (skipped {len(pages) - len(keep)} pages)", file=sys.stderr)
               pages = keep
